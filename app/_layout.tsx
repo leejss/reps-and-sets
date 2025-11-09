@@ -36,6 +36,10 @@ export default function RootLayout() {
               name="exercise-register"
               options={{ presentation: "modal", headerShown: false }}
             />
+            <Stack.Screen
+              name="workout-detail"
+              options={{ headerShown: false }}
+            />
           </Stack>
           <StatusBar style="light" />
         </SafeAreaProvider>
