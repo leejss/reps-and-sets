@@ -1,16 +1,17 @@
-import React, { useState } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  TextInput,
-} from "react-native";
+import { useColor } from "@/constants/colors";
+import { useApp } from "@/context/app-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { useApp } from "@/context/app-context";
-import { useColor } from "@/constants/colors";
+import React, { useState } from "react";
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const muscleGroups = [
   "Chest",
@@ -26,6 +27,7 @@ const muscleGroups = [
 export default function ExerciseRegisterScreen() {
   const { addExercise } = useApp();
   const colors = useColor();
+  const insets = useSafeAreaInsets();
   const [name, setName] = useState("");
   const [muscleGroup, setMuscleGroup] = useState("");
   const [description, setDescription] = useState("");
@@ -52,12 +54,7 @@ export default function ExerciseRegisterScreen() {
   };
 
   return (
-    <View
-      style={[
-        styles.container,
-        { backgroundColor: colors.background },
-      ]}
-    >
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
       <View
         style={[
@@ -73,32 +70,21 @@ export default function ExerciseRegisterScreen() {
           style={styles.backButton}
           activeOpacity={0.7}
         >
-          <Ionicons
-            name="arrow-back"
-            size={24}
-            color={colors.text.primary}
-          />
+          <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
         </TouchableOpacity>
-        <Text
-          style={[styles.headerTitle, { color: colors.text.primary }]}
-        >
+        <Text style={[styles.headerTitle, { color: colors.text.primary }]}>
           Register New Exercise
         </Text>
       </View>
 
       {/* Content */}
       <ScrollView
-        style={styles.content}
+        style={{ ...styles.content }}
         contentContainerStyle={styles.contentContainer}
       >
         <View style={styles.formSection}>
           <View style={styles.inputGroup}>
-            <Text
-              style={[
-                styles.label,
-                { color: colors.text.label },
-              ]}
-            >
+            <Text style={[styles.label, { color: colors.text.label }]}>
               Exercise Name *
             </Text>
             <TextInput
@@ -118,12 +104,7 @@ export default function ExerciseRegisterScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text
-              style={[
-                styles.label,
-                { color: colors.text.label },
-              ]}
-            >
+            <Text style={[styles.label, { color: colors.text.label }]}>
               Muscle Group *
             </Text>
             <View style={styles.muscleGroupGrid}>
@@ -134,13 +115,9 @@ export default function ExerciseRegisterScreen() {
                     styles.muscleGroupButton,
                     {
                       backgroundColor:
-                        muscleGroup === group
-                          ? colors.primary
-                          : colors.surface,
+                        muscleGroup === group ? colors.primary : colors.surface,
                       borderColor:
-                        muscleGroup === group
-                          ? colors.primary
-                          : colors.border,
+                        muscleGroup === group ? colors.primary : colors.border,
                     },
                   ]}
                   onPress={() => setMuscleGroup(group)}
@@ -165,12 +142,7 @@ export default function ExerciseRegisterScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text
-              style={[
-                styles.label,
-                { color: colors.text.label },
-              ]}
-            >
+            <Text style={[styles.label, { color: colors.text.label }]}>
               Description
             </Text>
             <TextInput
@@ -193,12 +165,7 @@ export default function ExerciseRegisterScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text
-              style={[
-                styles.label,
-                { color: colors.text.label },
-              ]}
-            >
+            <Text style={[styles.label, { color: colors.text.label }]}>
               Tutorial Link (Optional)
             </Text>
             <TextInput
@@ -228,20 +195,31 @@ export default function ExerciseRegisterScreen() {
           {
             backgroundColor: colors.headerSurface,
             borderTopColor: colors.border,
+            paddingBottom: insets.bottom,
           },
         ]}
       >
         <TouchableOpacity
           style={[
             styles.submitButton,
-            { opacity: !name || !muscleGroup ? 0.5 : 1 },
+            {
+              backgroundColor: colors.button.primary.background,
+              opacity: !name || !muscleGroup ? 0.5 : 1,
+            },
           ]}
           onPress={handleSubmit}
           disabled={!name || !muscleGroup}
           activeOpacity={0.8}
         >
-          <Ionicons name="save" size={20} color={colors.text.primary} />
-          <Text style={styles.submitButtonText}>Save Exercise</Text>
+          <Ionicons name="save" size={20} color={colors.button.primary.text} />
+          <Text
+            style={[
+              styles.submitButtonText,
+              { color: colors.button.primary.text },
+            ]}
+          >
+            Save Exercise
+          </Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -325,7 +303,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
   },
   submitButton: {
-    backgroundColor: "#00FFC6",
     height: 48,
     borderRadius: 12,
     flexDirection: "row",
@@ -334,7 +311,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   submitButtonText: {
-    color: "#0B0C10",
     fontSize: 16,
     fontWeight: "600",
   },

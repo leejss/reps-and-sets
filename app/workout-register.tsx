@@ -261,14 +261,24 @@ export default function WorkoutRegisterScreen() {
           <TouchableOpacity
             style={[
               styles.submitButton,
-              { opacity: !reps || !sets ? 0.5 : 1 },
+              {
+                backgroundColor: colors.button.primary.background,
+                opacity: !reps || !sets ? 0.5 : 1,
+              },
             ]}
             onPress={handleSubmit}
             disabled={!reps || !sets}
             activeOpacity={0.8}
           >
-            <Ionicons name="add" size={20} color={colors.text.primary} />
-            <Text style={styles.submitButtonText}>Add to Today&apos;s Workout</Text>
+            <Ionicons name="add" size={20} color={colors.button.primary.text} />
+            <Text
+              style={[
+                styles.submitButtonText,
+                { color: colors.button.primary.text },
+              ]}
+            >
+              Add to Today&apos;s Workout
+            </Text>
           </TouchableOpacity>
         </View>
       )}
@@ -374,7 +384,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
   },
   submitButton: {
-    backgroundColor: "#00FFC6",
     height: 48,
     borderRadius: 12,
     flexDirection: "row",
@@ -383,7 +392,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   submitButtonText: {
-    color: "#0B0C10",
     fontSize: 16,
     fontWeight: "600",
   },

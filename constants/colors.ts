@@ -134,6 +134,25 @@ export const Colors = {
     success: BaseColors.violet[500],
   },
 
+  // Button colors
+  button: {
+    primary: {
+      background: BaseColors.violet[500],
+      text: BaseColors.white,
+      hover: BaseColors.violet[600],
+    },
+    secondary: {
+      background: {
+        light: BaseColors.gray[100],
+        dark: BaseColors.gray[700],
+      },
+      text: {
+        light: BaseColors.gray[700],
+        dark: BaseColors.gray[300],
+      },
+    },
+  },
+
   // Shadow colors
   shadow: BaseColors.black,
 
@@ -231,6 +250,23 @@ export const useColor = () => {
     status: {
       error: darkMode ? Colors.status.error.dark : Colors.status.error.light,
       success: Colors.status.success,
+    },
+
+    // Button colors
+    button: {
+      primary: {
+        background: Colors.button.primary.background,
+        text: Colors.button.primary.text,
+        hover: Colors.button.primary.hover,
+      },
+      secondary: {
+        background: darkMode
+          ? Colors.button.secondary.background.dark
+          : Colors.button.secondary.background.light,
+        text: darkMode
+          ? Colors.button.secondary.text.dark
+          : Colors.button.secondary.text.light,
+      },
     },
 
     // Shadow
