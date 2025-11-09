@@ -1,15 +1,9 @@
 import React from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-} from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { View, Text, ScrollView, StyleSheet } from "react-native";
 import { router } from "expo-router";
 import { useApp } from "@/context/app-context";
 import { useColor } from "@/constants/colors";
+import { FloatingActionButton } from "@/components/floating-action-button";
 
 export default function ExercisesScreen() {
   const { exercises } = useApp();
@@ -121,13 +115,7 @@ export default function ExercisesScreen() {
       </ScrollView>
 
       {/* Floating Action Button */}
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={onNavigateToRegister}
-        activeOpacity={0.8}
-      >
-        <Ionicons name="add" size={28} color={colors.text.primary} />
-      </TouchableOpacity>
+      <FloatingActionButton onPress={onNavigateToRegister} />
     </View>
   );
 }
@@ -183,24 +171,5 @@ const styles = StyleSheet.create({
   },
   tagText: {
     fontSize: 12,
-  },
-  fab: {
-    position: "absolute",
-    bottom: 96,
-    right: 24,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: "#00FFC6",
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
   },
 });
