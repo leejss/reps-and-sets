@@ -7,8 +7,9 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
 
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import { AppProvider } from "@/context/app-context";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 export const unstable_settings = {
   anchor: "(tabs)",
@@ -20,22 +21,24 @@ export default function RootLayout() {
   return (
     <AppProvider>
       <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen
-            name="modal"
-            options={{ presentation: "modal", title: "Modal" }}
-          />
-          <Stack.Screen
-            name="workout-register"
-            options={{ presentation: "modal", headerShown: false }}
-          />
-          <Stack.Screen
-            name="exercise-register"
-            options={{ presentation: "modal", headerShown: false }}
-          />
-        </Stack>
-        <StatusBar style="auto" />
+        <SafeAreaProvider>
+          <Stack>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen
+              name="modal"
+              options={{ presentation: "modal", title: "Modal" }}
+            />
+            <Stack.Screen
+              name="workout-register"
+              options={{ presentation: "modal", headerShown: false }}
+            />
+            <Stack.Screen
+              name="exercise-register"
+              options={{ presentation: "modal", headerShown: false }}
+            />
+          </Stack>
+          <StatusBar style="light" />
+        </SafeAreaProvider>
       </ThemeProvider>
     </AppProvider>
   );
