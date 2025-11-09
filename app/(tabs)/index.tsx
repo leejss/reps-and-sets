@@ -9,9 +9,11 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useApp } from "@/context/app-context";
+import { useColor } from "@/constants/colors";
 
 export default function HomeScreen() {
-  const { todayWorkouts, toggleWorkoutComplete, darkMode } = useApp();
+  const { todayWorkouts, toggleWorkoutComplete } = useApp();
+  const colors = useColor();
   const today = new Date().toLocaleDateString("en-US", {
     weekday: "long",
     month: "long",
@@ -26,25 +28,25 @@ export default function HomeScreen() {
     <View
       style={[
         styles.container,
-        { backgroundColor: darkMode ? "#0B0C10" : "#F9FAFB" },
+        { backgroundColor: colors.background },
       ]}
     >
       {/* Header */}
       <View
         style={[
           styles.header,
-          { backgroundColor: darkMode ? "#0B0C10" : "#FFFFFF" },
+          { backgroundColor: colors.headerSurface },
         ]}
       >
         <Text
           style={[
             styles.headerTitle,
-            { color: darkMode ? "#FFFFFF" : "#0B0C10" },
+            { color: colors.text.primary },
           ]}
         >
           Reps and Set
         </Text>
-        <Text style={[styles.headerDate, { color: darkMode ? "#9CA3AF" : "#4B5563" }]}>
+        <Text style={[styles.headerDate, { color: colors.text.secondary }]}>
           {today}
         </Text>
       </View>
@@ -54,7 +56,7 @@ export default function HomeScreen() {
         <Text
           style={[
             styles.sectionTitle,
-            { color: darkMode ? "#FFFFFF" : "#0B0C10" },
+            { color: colors.text.primary },
           ]}
         >
           Today&apos;s Workout List
@@ -65,16 +67,16 @@ export default function HomeScreen() {
             style={[
               styles.emptyCard,
               {
-                backgroundColor: darkMode ? "#1F2937" : "#F9FAFB",
-                borderColor: darkMode ? "#374151" : "#E5E7EB",
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
               },
             ]}
           >
-            <Text style={[styles.emptyText, { color: darkMode ? "#9CA3AF" : "#4B5563" }]}>
+            <Text style={[styles.emptyText, { color: colors.text.secondary }]}>
               No workouts scheduled for today.
             </Text>
             <Text
-              style={[styles.emptySubtext, { color: darkMode ? "#6B7280" : "#6B7280" }]}
+              style={[styles.emptySubtext, { color: colors.text.tertiary }]}
             >
               Tap the + button to add exercises
             </Text>
@@ -87,8 +89,8 @@ export default function HomeScreen() {
                 style={[
                   styles.workoutCard,
                   {
-                    backgroundColor: darkMode ? "#1F2937" : "#FFFFFF",
-                    borderColor: darkMode ? "#374151" : "#E5E7EB",
+                    backgroundColor: colors.surface,
+                    borderColor: colors.border,
                     opacity: workout.completed ? 0.6 : 1,
                   },
                 ]}
@@ -99,7 +101,7 @@ export default function HomeScreen() {
                       style={[
                         styles.workoutName,
                         {
-                          color: darkMode ? "#FFFFFF" : "#0B0C10",
+                          color: colors.text.primary,
                           textDecorationLine: workout.completed
                             ? "line-through"
                             : "none",
@@ -111,7 +113,7 @@ export default function HomeScreen() {
                     <Text
                       style={[
                         styles.workoutDetails,
-                        { color: darkMode ? "#9CA3AF" : "#4B5563" },
+                        { color: colors.text.secondary },
                       ]}
                     >
                       {workout.sets} sets × {workout.reps} reps
@@ -121,14 +123,14 @@ export default function HomeScreen() {
                       style={[
                         styles.muscleGroupTag,
                         {
-                          backgroundColor: darkMode ? "#374151" : "#F3F4F6",
+                          backgroundColor: colors.tag.background,
                         },
                       ]}
                     >
                       <Text
                         style={[
                           styles.muscleGroupText,
-                          { color: darkMode ? "#9CA3AF" : "#4B5563" },
+                          { color: colors.tag.text },
                         ]}
                       >
                         {workout.muscleGroup}
@@ -141,21 +143,17 @@ export default function HomeScreen() {
                       styles.checkButton,
                       {
                         backgroundColor: workout.completed
-                          ? "#00FFC6"
-                          : darkMode
-                          ? "#374151"
-                          : "#F3F4F6",
+                          ? colors.primary
+                          : colors.tag.background,
                         borderColor: workout.completed
-                          ? "#00FFC6"
-                          : darkMode
-                          ? "#4B5563"
-                          : "#D1D5DB",
+                          ? colors.primary
+                          : colors.input.border,
                       },
                     ]}
                     activeOpacity={0.7}
                   >
                     {workout.completed && (
-                      <Ionicons name="checkmark" size={20} color="#0B0C10" />
+                      <Ionicons name="checkmark" size={20} color={colors.text.primary} />
                     )}
                   </TouchableOpacity>
                 </View>
@@ -171,7 +169,7 @@ export default function HomeScreen() {
         onPress={navigateToRegister}
         activeOpacity={0.8}
       >
-        <Ionicons name="add" size={28} color="#0B0C10" />
+        <Ionicons name="add" size={28} color={colors.text.primary} />
       </TouchableOpacity>
     </View>
   );

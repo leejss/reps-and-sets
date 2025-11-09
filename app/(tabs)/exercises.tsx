@@ -9,9 +9,11 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useApp } from "@/context/app-context";
+import { useColor } from "@/constants/colors";
 
 export default function ExercisesScreen() {
-  const { exercises, darkMode } = useApp();
+  const { exercises } = useApp();
+  const colors = useColor();
 
   const onNavigateToRegister = () => {
     router.push("/exercise-register");
@@ -21,25 +23,25 @@ export default function ExercisesScreen() {
     <View
       style={[
         styles.container,
-        { backgroundColor: darkMode ? "#0B0C10" : "#F9FAFB" },
+        { backgroundColor: colors.background },
       ]}
     >
       {/* Header */}
       <View
         style={[
           styles.header,
-          { backgroundColor: darkMode ? "#0B0C10" : "#FFFFFF" },
+          { backgroundColor: colors.headerSurface },
         ]}
       >
         <Text
           style={[
             styles.headerTitle,
-            { color: darkMode ? "#FFFFFF" : "#0B0C10" },
+            { color: colors.text.primary },
           ]}
         >
           My Exercises
         </Text>
-        <Text style={[styles.headerSubtitle, { color: darkMode ? "#9CA3AF" : "#4B5563" }]}>
+        <Text style={[styles.headerSubtitle, { color: colors.text.secondary }]}>
           {exercises.length} exercise{exercises.length !== 1 ? "s" : ""} registered
         </Text>
       </View>
@@ -55,15 +57,15 @@ export default function ExercisesScreen() {
             style={[
               styles.exerciseCard,
               {
-                backgroundColor: darkMode ? "#1F2937" : "#FFFFFF",
-                borderColor: darkMode ? "#374151" : "#E5E7EB",
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
               },
             ]}
           >
             <Text
               style={[
                 styles.exerciseName,
-                { color: darkMode ? "#FFFFFF" : "#0B0C10" },
+                { color: colors.text.primary },
               ]}
             >
               {exercise.name}
@@ -71,7 +73,7 @@ export default function ExercisesScreen() {
             <Text
               style={[
                 styles.exerciseDescription,
-                { color: darkMode ? "#9CA3AF" : "#4B5563" },
+                { color: colors.text.secondary },
               ]}
             >
               {exercise.description || "No description"}
@@ -81,14 +83,14 @@ export default function ExercisesScreen() {
                 style={[
                   styles.tag,
                   {
-                    backgroundColor: darkMode ? "#374151" : "#F3F4F6",
+                    backgroundColor: colors.tag.background,
                   },
                 ]}
               >
                 <Text
                   style={[
                     styles.tagText,
-                    { color: darkMode ? "#9CA3AF" : "#4B5563" },
+                    { color: colors.tag.text },
                   ]}
                 >
                   {exercise.muscleGroup}
@@ -99,16 +101,14 @@ export default function ExercisesScreen() {
                   style={[
                     styles.tag,
                     {
-                      backgroundColor: darkMode
-                        ? "rgba(0, 255, 198, 0.1)"
-                        : "rgba(0, 255, 198, 0.2)",
+                      backgroundColor: colors.tag.tutorial,
                     },
                   ]}
                 >
                   <Text
                     style={[
                       styles.tagText,
-                      { color: darkMode ? "#00FFC6" : "#0B0C10" },
+                      { color: colors.tag.tutorialText },
                     ]}
                   >
                     Has tutorial
@@ -126,7 +126,7 @@ export default function ExercisesScreen() {
         onPress={onNavigateToRegister}
         activeOpacity={0.8}
       >
-        <Ionicons name="add" size={28} color="#0B0C10" />
+        <Ionicons name="add" size={28} color={colors.text.primary} />
       </TouchableOpacity>
     </View>
   );

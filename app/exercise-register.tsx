@@ -10,6 +10,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useApp } from "@/context/app-context";
+import { useColor } from "@/constants/colors";
 
 const muscleGroups = [
   "Chest",
@@ -23,7 +24,8 @@ const muscleGroups = [
 ];
 
 export default function ExerciseRegisterScreen() {
-  const { addExercise, darkMode } = useApp();
+  const { addExercise } = useApp();
+  const colors = useColor();
   const [name, setName] = useState("");
   const [muscleGroup, setMuscleGroup] = useState("");
   const [description, setDescription] = useState("");
@@ -53,7 +55,7 @@ export default function ExerciseRegisterScreen() {
     <View
       style={[
         styles.container,
-        { backgroundColor: darkMode ? "#0B0C10" : "#F9FAFB" },
+        { backgroundColor: colors.background },
       ]}
     >
       {/* Header */}
@@ -61,8 +63,8 @@ export default function ExerciseRegisterScreen() {
         style={[
           styles.header,
           {
-            backgroundColor: darkMode ? "#0B0C10" : "#FFFFFF",
-            borderBottomColor: darkMode ? "#374151" : "#E5E7EB",
+            backgroundColor: colors.headerSurface,
+            borderBottomColor: colors.border,
           },
         ]}
       >
@@ -74,11 +76,11 @@ export default function ExerciseRegisterScreen() {
           <Ionicons
             name="arrow-back"
             size={24}
-            color={darkMode ? "#FFFFFF" : "#0B0C10"}
+            color={colors.text.primary}
           />
         </TouchableOpacity>
         <Text
-          style={[styles.headerTitle, { color: darkMode ? "#FFFFFF" : "#0B0C10" }]}
+          style={[styles.headerTitle, { color: colors.text.primary }]}
         >
           Register New Exercise
         </Text>
@@ -94,7 +96,7 @@ export default function ExerciseRegisterScreen() {
             <Text
               style={[
                 styles.label,
-                { color: darkMode ? "#D1D5DB" : "#374151" },
+                { color: colors.text.label },
               ]}
             >
               Exercise Name *
@@ -103,13 +105,13 @@ export default function ExerciseRegisterScreen() {
               style={[
                 styles.input,
                 {
-                  backgroundColor: darkMode ? "#1F2937" : "#FFFFFF",
-                  borderColor: darkMode ? "#374151" : "#D1D5DB",
-                  color: darkMode ? "#FFFFFF" : "#0B0C10",
+                  backgroundColor: colors.input.background,
+                  borderColor: colors.input.border,
+                  color: colors.text.primary,
                 },
               ]}
               placeholder="e.g., Pull-ups"
-              placeholderTextColor={darkMode ? "#6B7280" : "#9CA3AF"}
+              placeholderTextColor={colors.input.placeholder}
               value={name}
               onChangeText={setName}
             />
@@ -119,7 +121,7 @@ export default function ExerciseRegisterScreen() {
             <Text
               style={[
                 styles.label,
-                { color: darkMode ? "#D1D5DB" : "#374151" },
+                { color: colors.text.label },
               ]}
             >
               Muscle Group *
@@ -133,16 +135,12 @@ export default function ExerciseRegisterScreen() {
                     {
                       backgroundColor:
                         muscleGroup === group
-                          ? "#00FFC6"
-                          : darkMode
-                          ? "#1F2937"
-                          : "#FFFFFF",
+                          ? colors.primary
+                          : colors.surface,
                       borderColor:
                         muscleGroup === group
-                          ? "#00FFC6"
-                          : darkMode
-                          ? "#374151"
-                          : "#D1D5DB",
+                          ? colors.primary
+                          : colors.border,
                     },
                   ]}
                   onPress={() => setMuscleGroup(group)}
@@ -154,10 +152,8 @@ export default function ExerciseRegisterScreen() {
                       {
                         color:
                           muscleGroup === group
-                            ? "#0B0C10"
-                            : darkMode
-                            ? "#FFFFFF"
-                            : "#0B0C10",
+                            ? colors.text.primary
+                            : colors.text.primary,
                       },
                     ]}
                   >
@@ -172,7 +168,7 @@ export default function ExerciseRegisterScreen() {
             <Text
               style={[
                 styles.label,
-                { color: darkMode ? "#D1D5DB" : "#374151" },
+                { color: colors.text.label },
               ]}
             >
               Description
@@ -181,13 +177,13 @@ export default function ExerciseRegisterScreen() {
               style={[
                 styles.textArea,
                 {
-                  backgroundColor: darkMode ? "#1F2937" : "#FFFFFF",
-                  borderColor: darkMode ? "#374151" : "#D1D5DB",
-                  color: darkMode ? "#FFFFFF" : "#0B0C10",
+                  backgroundColor: colors.input.background,
+                  borderColor: colors.input.border,
+                  color: colors.text.primary,
                 },
               ]}
               placeholder="Brief description or notes..."
-              placeholderTextColor={darkMode ? "#6B7280" : "#9CA3AF"}
+              placeholderTextColor={colors.input.placeholder}
               value={description}
               onChangeText={setDescription}
               multiline
@@ -200,7 +196,7 @@ export default function ExerciseRegisterScreen() {
             <Text
               style={[
                 styles.label,
-                { color: darkMode ? "#D1D5DB" : "#374151" },
+                { color: colors.text.label },
               ]}
             >
               Tutorial Link (Optional)
@@ -209,13 +205,13 @@ export default function ExerciseRegisterScreen() {
               style={[
                 styles.input,
                 {
-                  backgroundColor: darkMode ? "#1F2937" : "#FFFFFF",
-                  borderColor: darkMode ? "#374151" : "#D1D5DB",
-                  color: darkMode ? "#FFFFFF" : "#0B0C10",
+                  backgroundColor: colors.input.background,
+                  borderColor: colors.input.border,
+                  color: colors.text.primary,
                 },
               ]}
               placeholder="https://youtube.com/..."
-              placeholderTextColor={darkMode ? "#6B7280" : "#9CA3AF"}
+              placeholderTextColor={colors.input.placeholder}
               value={link}
               onChangeText={setLink}
               keyboardType="url"
@@ -230,8 +226,8 @@ export default function ExerciseRegisterScreen() {
         style={[
           styles.bottomBar,
           {
-            backgroundColor: darkMode ? "#0B0C10" : "#FFFFFF",
-            borderTopColor: darkMode ? "#374151" : "#E5E7EB",
+            backgroundColor: colors.headerSurface,
+            borderTopColor: colors.border,
           },
         ]}
       >
@@ -244,7 +240,7 @@ export default function ExerciseRegisterScreen() {
           disabled={!name || !muscleGroup}
           activeOpacity={0.8}
         >
-          <Ionicons name="save" size={20} color="#0B0C10" />
+          <Ionicons name="save" size={20} color={colors.text.primary} />
           <Text style={styles.submitButtonText}>Save Exercise</Text>
         </TouchableOpacity>
       </View>

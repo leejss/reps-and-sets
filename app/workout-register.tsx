@@ -10,9 +10,11 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useApp } from "@/context/app-context";
+import { useColor } from "@/constants/colors";
 
 export default function WorkoutRegisterScreen() {
-  const { exercises, addTodayWorkout, darkMode } = useApp();
+  const { exercises, addTodayWorkout } = useApp();
+  const colors = useColor();
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
   const [reps, setReps] = useState("");
   const [sets, setSets] = useState("");
@@ -49,7 +51,7 @@ export default function WorkoutRegisterScreen() {
     <View
       style={[
         styles.container,
-        { backgroundColor: darkMode ? "#0B0C10" : "#F9FAFB" },
+        { backgroundColor: colors.background },
       ]}
     >
       {/* Header */}
@@ -57,8 +59,8 @@ export default function WorkoutRegisterScreen() {
         style={[
           styles.header,
           {
-            backgroundColor: darkMode ? "#0B0C10" : "#FFFFFF",
-            borderBottomColor: darkMode ? "#374151" : "#E5E7EB",
+            backgroundColor: colors.headerSurface,
+            borderBottomColor: colors.border,
           },
         ]}
       >
@@ -70,11 +72,11 @@ export default function WorkoutRegisterScreen() {
           <Ionicons
             name="arrow-back"
             size={24}
-            color={darkMode ? "#FFFFFF" : "#0B0C10"}
+            color={colors.text.primary}
           />
         </TouchableOpacity>
         <Text
-          style={[styles.headerTitle, { color: darkMode ? "#FFFFFF" : "#0B0C10" }]}
+          style={[styles.headerTitle, { color: colors.text.primary }]}
         >
           Register Today&apos;s Workout
         </Text>
@@ -88,7 +90,7 @@ export default function WorkoutRegisterScreen() {
         <Text
           style={[
             styles.sectionTitle,
-            { color: darkMode ? "#FFFFFF" : "#0B0C10" },
+            { color: colors.text.primary },
           ]}
         >
           Select Exercise
@@ -101,13 +103,11 @@ export default function WorkoutRegisterScreen() {
               style={[
                 styles.exerciseCard,
                 {
-                  backgroundColor: darkMode ? "#1F2937" : "#FFFFFF",
+                  backgroundColor: colors.surface,
                   borderColor:
                     selectedExerciseId === exercise.id
-                      ? "#00FFC6"
-                      : darkMode
-                      ? "#374151"
-                      : "#E5E7EB",
+                      ? colors.primary
+                      : colors.border,
                   borderWidth: selectedExerciseId === exercise.id ? 2 : 1,
                 },
               ]}
@@ -119,7 +119,7 @@ export default function WorkoutRegisterScreen() {
                   <Text
                     style={[
                       styles.exerciseName,
-                      { color: darkMode ? "#FFFFFF" : "#0B0C10" },
+                      { color: colors.text.primary },
                     ]}
                   >
                     {exercise.name}
@@ -127,7 +127,7 @@ export default function WorkoutRegisterScreen() {
                   <Text
                     style={[
                       styles.exerciseMuscleGroup,
-                      { color: darkMode ? "#9CA3AF" : "#4B5563" },
+                      { color: colors.text.secondary },
                     ]}
                   >
                     {exercise.muscleGroup}
@@ -139,12 +139,10 @@ export default function WorkoutRegisterScreen() {
                     {
                       borderColor:
                         selectedExerciseId === exercise.id
-                          ? "#00FFC6"
-                          : darkMode
-                          ? "#4B5563"
-                          : "#D1D5DB",
+                          ? colors.primary
+                          : colors.input.border,
                       backgroundColor:
-                        selectedExerciseId === exercise.id ? "#00FFC6" : "transparent",
+                        selectedExerciseId === exercise.id ? colors.primary : "transparent",
                     },
                   ]}
                 >
@@ -162,7 +160,7 @@ export default function WorkoutRegisterScreen() {
             <Text
               style={[
                 styles.sectionTitle,
-                { color: darkMode ? "#FFFFFF" : "#0B0C10" },
+                { color: colors.text.primary },
               ]}
             >
               Workout Details
@@ -172,7 +170,7 @@ export default function WorkoutRegisterScreen() {
               <Text
                 style={[
                   styles.label,
-                  { color: darkMode ? "#D1D5DB" : "#374151" },
+                  { color: colors.text.label },
                 ]}
               >
                 Sets
@@ -181,13 +179,13 @@ export default function WorkoutRegisterScreen() {
                 style={[
                   styles.input,
                   {
-                    backgroundColor: darkMode ? "#1F2937" : "#FFFFFF",
-                    borderColor: darkMode ? "#374151" : "#D1D5DB",
-                    color: darkMode ? "#FFFFFF" : "#0B0C10",
+                    backgroundColor: colors.input.background,
+                    borderColor: colors.input.border,
+                    color: colors.text.primary,
                   },
                 ]}
                 placeholder="e.g., 3"
-                placeholderTextColor={darkMode ? "#6B7280" : "#9CA3AF"}
+                placeholderTextColor={colors.input.placeholder}
                 value={sets}
                 onChangeText={setSets}
                 keyboardType="numeric"
@@ -198,7 +196,7 @@ export default function WorkoutRegisterScreen() {
               <Text
                 style={[
                   styles.label,
-                  { color: darkMode ? "#D1D5DB" : "#374151" },
+                  { color: colors.text.label },
                 ]}
               >
                 Reps
@@ -207,13 +205,13 @@ export default function WorkoutRegisterScreen() {
                 style={[
                   styles.input,
                   {
-                    backgroundColor: darkMode ? "#1F2937" : "#FFFFFF",
-                    borderColor: darkMode ? "#374151" : "#D1D5DB",
-                    color: darkMode ? "#FFFFFF" : "#0B0C10",
+                    backgroundColor: colors.input.background,
+                    borderColor: colors.input.border,
+                    color: colors.text.primary,
                   },
                 ]}
                 placeholder="e.g., 10"
-                placeholderTextColor={darkMode ? "#6B7280" : "#9CA3AF"}
+                placeholderTextColor={colors.input.placeholder}
                 value={reps}
                 onChangeText={setReps}
                 keyboardType="numeric"
@@ -224,7 +222,7 @@ export default function WorkoutRegisterScreen() {
               <Text
                 style={[
                   styles.label,
-                  { color: darkMode ? "#D1D5DB" : "#374151" },
+                  { color: colors.text.label },
                 ]}
               >
                 Weight (kg) - Optional
@@ -233,13 +231,13 @@ export default function WorkoutRegisterScreen() {
                 style={[
                   styles.input,
                   {
-                    backgroundColor: darkMode ? "#1F2937" : "#FFFFFF",
-                    borderColor: darkMode ? "#374151" : "#D1D5DB",
-                    color: darkMode ? "#FFFFFF" : "#0B0C10",
+                    backgroundColor: colors.input.background,
+                    borderColor: colors.input.border,
+                    color: colors.text.primary,
                   },
                 ]}
                 placeholder="e.g., 60"
-                placeholderTextColor={darkMode ? "#6B7280" : "#9CA3AF"}
+                placeholderTextColor={colors.input.placeholder}
                 value={weight}
                 onChangeText={setWeight}
                 keyboardType="decimal-pad"
@@ -255,8 +253,8 @@ export default function WorkoutRegisterScreen() {
           style={[
             styles.bottomBar,
             {
-              backgroundColor: darkMode ? "#0B0C10" : "#FFFFFF",
-              borderTopColor: darkMode ? "#374151" : "#E5E7EB",
+              backgroundColor: colors.headerSurface,
+              borderTopColor: colors.border,
             },
           ]}
         >
@@ -269,7 +267,7 @@ export default function WorkoutRegisterScreen() {
             disabled={!reps || !sets}
             activeOpacity={0.8}
           >
-            <Ionicons name="add" size={20} color="#0B0C10" />
+            <Ionicons name="add" size={20} color={colors.text.primary} />
             <Text style={styles.submitButtonText}>Add to Today&apos;s Workout</Text>
           </TouchableOpacity>
         </View>

@@ -1,38 +1,25 @@
+import { useColor } from "@/constants/colors";
+import { useApp } from "@/context/app-context";
+import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import {
-  View,
-  Text,
   ScrollView,
   StyleSheet,
-  TouchableOpacity,
   Switch,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { useApp } from "@/context/app-context";
 
 export default function SettingsScreen() {
   const { user, darkMode, toggleDarkMode, logout } = useApp();
+  const colors = useColor();
 
   return (
-    <View
-      style={[
-        styles.container,
-        { backgroundColor: darkMode ? "#0B0C10" : "#F9FAFB" },
-      ]}
-    >
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
-      <View
-        style={[
-          styles.header,
-          { backgroundColor: darkMode ? "#0B0C10" : "#FFFFFF" },
-        ]}
-      >
-        <Text
-          style={[
-            styles.headerTitle,
-            { color: darkMode ? "#FFFFFF" : "#0B0C10" },
-          ]}
-        >
+      <View style={[styles.header, { backgroundColor: colors.headerSurface }]}>
+        <Text style={[styles.headerTitle, { color: colors.text.primary }]}>
           Settings
         </Text>
       </View>
@@ -47,8 +34,8 @@ export default function SettingsScreen() {
           style={[
             styles.profileCard,
             {
-              backgroundColor: darkMode ? "#1F2937" : "#FFFFFF",
-              borderColor: darkMode ? "#374151" : "#E5E7EB",
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
             },
           ]}
         >
@@ -57,28 +44,18 @@ export default function SettingsScreen() {
               style={[
                 styles.avatar,
                 {
-                  backgroundColor: darkMode
-                    ? "rgba(0, 255, 198, 0.2)"
-                    : "rgba(0, 255, 198, 0.3)",
+                  backgroundColor: colors.avatar,
                 },
               ]}
             >
-              <Ionicons name="person" size={32} color="#00FFC6" />
+              <Ionicons name="person" size={32} color={colors.primary} />
             </View>
             <View style={styles.userInfo}>
-              <Text
-                style={[
-                  styles.userName,
-                  { color: darkMode ? "#FFFFFF" : "#0B0C10" },
-                ]}
-              >
+              <Text style={[styles.userName, { color: colors.text.primary }]}>
                 {user.name}
               </Text>
               <Text
-                style={[
-                  styles.userEmail,
-                  { color: darkMode ? "#9CA3AF" : "#4B5563" },
-                ]}
+                style={[styles.userEmail, { color: colors.text.secondary }]}
               >
                 {user.email}
               </Text>
@@ -93,8 +70,8 @@ export default function SettingsScreen() {
             style={[
               styles.settingCard,
               {
-                backgroundColor: darkMode ? "#1F2937" : "#FFFFFF",
-                borderColor: darkMode ? "#374151" : "#E5E7EB",
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
               },
             ]}
           >
@@ -103,14 +80,14 @@ export default function SettingsScreen() {
                 <Ionicons
                   name={darkMode ? "moon" : "sunny"}
                   size={20}
-                  color="#00FFC6"
+                  color={colors.primary}
                   style={styles.settingIcon}
                 />
                 <View>
                   <Text
                     style={[
                       styles.settingTitle,
-                      { color: darkMode ? "#FFFFFF" : "#0B0C10" },
+                      { color: colors.text.primary },
                     ]}
                   >
                     Dark Mode
@@ -118,7 +95,7 @@ export default function SettingsScreen() {
                   <Text
                     style={[
                       styles.settingSubtitle,
-                      { color: darkMode ? "#9CA3AF" : "#4B5563" },
+                      { color: colors.text.secondary },
                     ]}
                   >
                     {darkMode ? "Enabled" : "Disabled"}
@@ -128,8 +105,13 @@ export default function SettingsScreen() {
               <Switch
                 value={darkMode}
                 onValueChange={toggleDarkMode}
-                trackColor={{ false: "#D1D5DB", true: "#00FFC6" }}
-                thumbColor={darkMode ? "#FFFFFF" : "#F3F4F6"}
+                trackColor={{
+                  false: colors.input.border,
+                  true: colors.primary,
+                }}
+                thumbColor={
+                  darkMode ? colors.text.primary : colors.tag.background
+                }
               />
             </View>
           </View>
@@ -139,8 +121,8 @@ export default function SettingsScreen() {
             style={[
               styles.settingCard,
               {
-                backgroundColor: darkMode ? "#1F2937" : "#FFFFFF",
-                borderColor: darkMode ? "#374151" : "#E5E7EB",
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
               },
             ]}
             activeOpacity={0.7}
@@ -149,14 +131,11 @@ export default function SettingsScreen() {
               <Ionicons
                 name="person-outline"
                 size={20}
-                color={darkMode ? "#9CA3AF" : "#4B5563"}
+                color={colors.text.secondary}
                 style={styles.settingIcon}
               />
               <Text
-                style={[
-                  styles.settingTitle,
-                  { color: darkMode ? "#FFFFFF" : "#0B0C10" },
-                ]}
+                style={[styles.settingTitle, { color: colors.text.primary }]}
               >
                 Edit Profile
               </Text>
@@ -168,8 +147,8 @@ export default function SettingsScreen() {
             style={[
               styles.settingCard,
               {
-                backgroundColor: darkMode ? "#1F2937" : "#FFFFFF",
-                borderColor: darkMode ? "#374151" : "#E5E7EB",
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
               },
             ]}
             activeOpacity={0.7}
@@ -179,23 +158,17 @@ export default function SettingsScreen() {
                 <Ionicons
                   name="information-circle-outline"
                   size={20}
-                  color={darkMode ? "#9CA3AF" : "#4B5563"}
+                  color={colors.text.secondary}
                   style={styles.settingIcon}
                 />
                 <Text
-                  style={[
-                    styles.settingTitle,
-                    { color: darkMode ? "#FFFFFF" : "#0B0C10" },
-                  ]}
+                  style={[styles.settingTitle, { color: colors.text.primary }]}
                 >
                   App Info
                 </Text>
               </View>
               <Text
-                style={[
-                  styles.versionText,
-                  { color: darkMode ? "#9CA3AF" : "#4B5563" },
-                ]}
+                style={[styles.versionText, { color: colors.text.secondary }]}
               >
                 v1.0.0
               </Text>
@@ -207,8 +180,8 @@ export default function SettingsScreen() {
             style={[
               styles.logoutButton,
               {
-                backgroundColor: darkMode ? "#1F2937" : "#FFFFFF",
-                borderColor: darkMode ? "#374151" : "#E5E7EB",
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
               },
             ]}
             onPress={logout}
@@ -217,15 +190,10 @@ export default function SettingsScreen() {
             <Ionicons
               name="log-out-outline"
               size={20}
-              color={darkMode ? "#EF4444" : "#DC2626"}
+              color={colors.status.error}
               style={styles.settingIcon}
             />
-            <Text
-              style={[
-                styles.logoutText,
-                { color: darkMode ? "#EF4444" : "#DC2626" },
-              ]}
-            >
+            <Text style={[styles.logoutText, { color: colors.status.error }]}>
               Log Out
             </Text>
           </TouchableOpacity>
