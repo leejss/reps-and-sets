@@ -92,14 +92,6 @@ export default function SettingsScreen() {
                   >
                     Dark Mode
                   </Text>
-                  <Text
-                    style={[
-                      styles.settingSubtitle,
-                      { color: colors.text.secondary },
-                    ]}
-                  >
-                    {darkMode ? "Enabled" : "Disabled"}
-                  </Text>
                 </View>
               </View>
               <Switch
@@ -115,32 +107,6 @@ export default function SettingsScreen() {
               />
             </View>
           </View>
-
-          {/* Edit Profile Button */}
-          <TouchableOpacity
-            style={[
-              styles.settingCard,
-              {
-                backgroundColor: colors.surface,
-                borderColor: colors.border,
-              },
-            ]}
-            activeOpacity={0.7}
-          >
-            <View style={styles.settingButton}>
-              <Ionicons
-                name="person-outline"
-                size={20}
-                color={colors.text.secondary}
-                style={styles.settingIcon}
-              />
-              <Text
-                style={[styles.settingTitle, { color: colors.text.primary }]}
-              >
-                Edit Profile
-              </Text>
-            </View>
-          </TouchableOpacity>
 
           {/* App Info Button */}
           <TouchableOpacity

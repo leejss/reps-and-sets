@@ -5,10 +5,11 @@ import { useApp } from "@/context/app-context";
  * 모든 semantic token은 이 base token을 참조합니다.
  */
 const BaseColors = {
-  // Brand colors
-  cyan: {
-    500: "#00FFC6",
-    600: "#00E6B3",
+  // Brand colors - Violet (에너지와 활력을 상징)
+  violet: {
+    400: "#A78BFA",
+    500: "#8B5CF6",
+    600: "#7C3AED",
   },
 
   // Grayscale
@@ -48,8 +49,8 @@ const BaseColors = {
  */
 export const Colors = {
   // Primary brand color
-  primary: BaseColors.cyan[500],
-  primaryHover: BaseColors.cyan[600],
+  primary: BaseColors.violet[500],
+  primaryHover: BaseColors.violet[600],
 
   // Background colors
   background: {
@@ -117,7 +118,7 @@ export const Colors = {
       light: BaseColors.white,
       dark: BaseColors.dark[800],
     },
-    active: BaseColors.cyan[600],
+    active: BaseColors.violet[500],
     inactive: {
       light: BaseColors.gray[600],
       dark: BaseColors.gray[400],
@@ -130,7 +131,7 @@ export const Colors = {
       light: BaseColors.red[600],
       dark: BaseColors.red[500],
     },
-    success: BaseColors.cyan[500],
+    success: BaseColors.violet[500],
   },
 
   // Shadow colors
@@ -138,8 +139,8 @@ export const Colors = {
 
   // Avatar background
   avatar: {
-    light: "rgba(0, 255, 198, 0.3)",
-    dark: "rgba(0, 255, 198, 0.2)",
+    light: "rgba(139, 92, 246, 0.2)",
+    dark: "rgba(139, 92, 246, 0.3)",
   },
 
   // Tag colors
@@ -153,12 +154,12 @@ export const Colors = {
       dark: BaseColors.gray[400],
     },
     tutorial: {
-      light: "rgba(0, 255, 198, 0.2)",
-      dark: "rgba(0, 255, 198, 0.1)",
+      light: "rgba(139, 92, 246, 0.15)",
+      dark: "rgba(139, 92, 246, 0.2)",
     },
     tutorialText: {
-      light: BaseColors.dark[900],
-      dark: BaseColors.cyan[500],
+      light: BaseColors.violet[600],
+      dark: BaseColors.violet[400],
     },
   },
 } as const;

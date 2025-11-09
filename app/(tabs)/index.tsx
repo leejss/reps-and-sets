@@ -1,15 +1,15 @@
-import React from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-} from "react-native";
+import { useColor } from "@/constants/colors";
+import { useApp } from "@/context/app-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { useApp } from "@/context/app-context";
-import { useColor } from "@/constants/colors";
+import React from "react";
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 export default function HomeScreen() {
   const { todayWorkouts, toggleWorkoutComplete } = useApp();
@@ -25,25 +25,10 @@ export default function HomeScreen() {
   };
 
   return (
-    <View
-      style={[
-        styles.container,
-        { backgroundColor: colors.background },
-      ]}
-    >
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
-      <View
-        style={[
-          styles.header,
-          { backgroundColor: colors.headerSurface },
-        ]}
-      >
-        <Text
-          style={[
-            styles.headerTitle,
-            { color: colors.text.primary },
-          ]}
-        >
+      <View style={[styles.header, { backgroundColor: colors.headerSurface }]}>
+        <Text style={[styles.headerTitle, { color: colors.text.primary }]}>
           Reps and Set
         </Text>
         <Text style={[styles.headerDate, { color: colors.text.secondary }]}>
@@ -52,13 +37,11 @@ export default function HomeScreen() {
       </View>
 
       {/* Content */}
-      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
-        <Text
-          style={[
-            styles.sectionTitle,
-            { color: colors.text.primary },
-          ]}
-        >
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={styles.contentContainer}
+      >
+        <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>
           Today&apos;s Workout List
         </Text>
 
@@ -153,7 +136,11 @@ export default function HomeScreen() {
                     activeOpacity={0.7}
                   >
                     {workout.completed && (
-                      <Ionicons name="checkmark" size={20} color={colors.text.primary} />
+                      <Ionicons
+                        name="checkmark"
+                        size={20}
+                        color={colors.text.primary}
+                      />
                     )}
                   </TouchableOpacity>
                 </View>
@@ -165,7 +152,25 @@ export default function HomeScreen() {
 
       {/* Floating Action Button */}
       <TouchableOpacity
-        style={styles.fab}
+        style={{
+          position: "absolute",
+          bottom: 96,
+          right: 24,
+          width: 56,
+          height: 56,
+          borderRadius: 28,
+          backgroundColor: colors.primary,
+          alignItems: "center",
+          justifyContent: "center",
+          shadowColor: "#000",
+          shadowOffset: {
+            width: 0,
+            height: 4,
+          },
+          shadowOpacity: 0.3,
+          shadowRadius: 8,
+          elevation: 8,
+        }}
         onPress={navigateToRegister}
         activeOpacity={0.8}
       >
