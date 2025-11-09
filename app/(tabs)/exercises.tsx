@@ -1,16 +1,39 @@
 import { FloatingActionButton } from "@/components/floating-action-button";
 import { useColor } from "@/constants/colors";
 import { useApp } from "@/context/app-context";
+import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 export default function ExercisesScreen() {
-  const { exercises } = useApp();
+  const { exercises, deleteExercise } = useApp();
   const colors = useColor();
 
   const onNavigateToRegister = () => {
     router.push("/exercise-register");
+  };
+
+  const handleEdit = (exerciseId: string) => {
+    router.push(`/exercise-register?id=${exerciseId}`);
+  };
+
+  const handleDelete = (exerciseId: string, exerciseName: string) => {
+    Alert.alert(
+      "운동 삭제",
+      `"${exerciseName}" 운동을 삭제하시겠습니까?`,
+      [
+        {
+          text: "취소",
+          style: "cancel",
+        },
+        {
+          text: "삭제",
+          style: "destructive",
+          onPress: () => deleteExercise(exerciseId),
+        },
+      ]
+    );
   };
 
   return (
@@ -41,16 +64,50 @@ export default function ExercisesScreen() {
               },
             ]}
           >
-            <Text style={[styles.exerciseName, { color: colors.text.primary }]}>
-              {exercise.name}
-            </Text>
+            {/* Card Header with Action Buttons */}
+            <View style={styles.cardHeader}>
+              <Text style={[styles.exerciseName, { color: colors.text.primary }]}>
+                {exercise.name}
+              </Text>
+              <View style={styles.actionButtons}>
+                <TouchableOpacity
+                  onPress={() => handleEdit(exercise.id)}
+                  style={[
+                    styles.actionButton,
+                    { backgroundColor: colors.iconButton.background },
+                  ]}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons
+                    name="pencil"
+                    size={16}
+                    color={colors.text.secondary}
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => handleDelete(exercise.id, exercise.name)}
+                  style={[
+                    styles.actionButton,
+                    { backgroundColor: colors.iconButton.background },
+                  ]}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons
+                    name="trash-outline"
+                    size={16}
+                    color={colors.status.error}
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
+
             <Text
               style={[
                 styles.exerciseDescription,
                 { color: colors.text.secondary },
               ]}
             >
-              {exercise.description || "No description"}
+              {exercise.description || "설명이 없습니다"}
             </Text>
             <View style={styles.tagContainer}>
               <View
@@ -77,7 +134,7 @@ export default function ExercisesScreen() {
                   <Text
                     style={[styles.tagText, { color: colors.tag.tutorialText }]}
                   >
-                    Has tutorial
+                    링크 있음
                   </Text>
                 </View>
               )}
@@ -123,10 +180,27 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     marginBottom: 12,
   },
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 4,
+  },
   exerciseName: {
     fontSize: 16,
     fontWeight: "600",
-    marginBottom: 4,
+    flex: 1,
+  },
+  actionButtons: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  actionButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
   },
   exerciseDescription: {
     fontSize: 14,

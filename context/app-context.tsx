@@ -8,6 +8,8 @@ interface AppContextType {
   user: User;
   darkMode: boolean;
   addExercise: (exercise: Omit<Exercise, 'id' | 'createdAt'>) => void;
+  updateExercise: (id: string, exercise: Omit<Exercise, 'id' | 'createdAt'>) => void;
+  deleteExercise: (id: string) => void;
   addTodayWorkout: (workout: Omit<TodayWorkout, 'id'>) => void;
   toggleWorkoutComplete: (id: string) => void;
   toggleSetComplete: (workoutId: string, setIndex: number) => void;
@@ -71,6 +73,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       createdAt: new Date(),
     };
     setExercises([...exercises, newExercise]);
+  };
+
+  const updateExercise = (id: string, exercise: Omit<Exercise, 'id' | 'createdAt'>) => {
+    setExercises(
+      exercises.map((e) => 
+        e.id === id
+          ? { ...e, ...exercise }
+          : e
+      )
+    );
+  };
+
+  const deleteExercise = (id: string) => {
+    setExercises(exercises.filter((e) => e.id !== id));
   };
 
   const addTodayWorkout = (workout: Omit<TodayWorkout, 'id'>) => {
@@ -168,6 +184,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         user,
         darkMode,
         addExercise,
+        updateExercise,
+        deleteExercise,
         addTodayWorkout,
         toggleWorkoutComplete,
         toggleSetComplete,

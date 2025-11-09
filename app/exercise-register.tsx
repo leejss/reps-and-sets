@@ -1,8 +1,8 @@
 import { useColor } from "@/constants/colors";
 import { useApp } from "@/context/app-context";
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
-import React, { useState } from "react";
+import { router, useLocalSearchParams } from "expo-router";
+import React, { useEffect, useState } from "react";
 import {
   ScrollView,
   StyleSheet,
@@ -25,31 +25,53 @@ const muscleGroups = [
 ];
 
 export default function ExerciseRegisterScreen() {
-  const { addExercise } = useApp();
+  const { addExercise, updateExercise, exercises } = useApp();
   const colors = useColor();
   const insets = useSafeAreaInsets();
+  const params = useLocalSearchParams<{ id?: string }>();
+  const isEditMode = !!params.id;
+  
   const [name, setName] = useState("");
   const [muscleGroup, setMuscleGroup] = useState("");
   const [description, setDescription] = useState("");
   const [link, setLink] = useState("");
+
+  // 편집 모드인 경우 기존 데이터 로드
+  useEffect(() => {
+    if (isEditMode && params.id) {
+      const exercise = exercises.find((e) => e.id === params.id);
+      if (exercise) {
+        setName(exercise.name);
+        setMuscleGroup(exercise.muscleGroup);
+        setDescription(exercise.description || "");
+        setLink(exercise.link || "");
+      }
+    }
+  }, [isEditMode, params.id, exercises]);
 
   const handleSubmit = () => {
     if (!name || !muscleGroup) {
       return;
     }
 
-    addExercise({
-      name,
-      muscleGroup,
-      description: description || undefined,
-      link: link || undefined,
-    });
+    if (isEditMode && params.id) {
+      // 편집 모드: 기존 운동 업데이트
+      updateExercise(params.id, {
+        name,
+        muscleGroup,
+        description: description || undefined,
+        link: link || undefined,
+      });
+    } else {
+      // 추가 모드: 새 운동 추가
+      addExercise({
+        name,
+        muscleGroup,
+        description: description || undefined,
+        link: link || undefined,
+      });
+    }
 
-    // Reset form and go back
-    setName("");
-    setMuscleGroup("");
-    setDescription("");
-    setLink("");
     router.back();
   };
 
@@ -73,7 +95,7 @@ export default function ExerciseRegisterScreen() {
           <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.text.primary }]}>
-          새로운 운동 추가하기
+          {isEditMode ? "운동 수정하기" : "새로운 운동 추가하기"}
         </Text>
       </View>
 
@@ -217,7 +239,7 @@ export default function ExerciseRegisterScreen() {
               { color: colors.button.primary.text },
             ]}
           >
-            운동 추가하기
+            {isEditMode ? "수정 완료" : "운동 추가하기"}
           </Text>
         </TouchableOpacity>
       </View>

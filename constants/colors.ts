@@ -153,6 +153,14 @@ export const Colors = {
     },
   },
 
+  // Icon button colors
+  iconButton: {
+    background: {
+      light: BaseColors.gray[100],
+      dark: BaseColors.gray[700],
+    },
+  },
+
   // Shadow colors
   shadow: BaseColors.black,
 
@@ -267,6 +275,13 @@ export const useColor = () => {
           ? Colors.button.secondary.text.dark
           : Colors.button.secondary.text.light,
       },
+    },
+
+    // Icon button colors
+    iconButton: {
+      background: darkMode
+        ? Colors.iconButton.background.dark
+        : Colors.iconButton.background.light,
     },
 
     // Shadow
