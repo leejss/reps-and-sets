@@ -7,9 +7,10 @@ interface AppContextType {
   user: User;
   darkMode: boolean;
   addExercise: (exercise: Omit<Exercise, 'id' | 'createdAt'>) => void;
-  addTodayWorkout: (workout: Omit<TodayWorkout, 'id' | 'completedSets'>) => void;
+  addTodayWorkout: (workout: Omit<TodayWorkout, 'id'>) => void;
   toggleWorkoutComplete: (id: string) => void;
   toggleSetComplete: (workoutId: string, setIndex: number) => void;
+  updateSetDetails: (workoutId: string, setIndex: number, reps: number, weight?: number) => void;
   toggleDarkMode: () => void;
   logout: () => void;
 }
@@ -58,11 +59,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setExercises([...exercises, newExercise]);
   };
 
-  const addTodayWorkout = (workout: Omit<TodayWorkout, 'id' | 'completedSets'>) => {
+  const addTodayWorkout = (workout: Omit<TodayWorkout, 'id'>) => {
     const newWorkout: TodayWorkout = {
       ...workout,
       id: Date.now().toString(),
-      completedSets: Array(workout.sets).fill(false), // 세트 수만큼 false로 초기화
     };
     setTodayWorkouts([...todayWorkouts, newWorkout]);
   };
@@ -76,7 +76,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           return {
             ...w,
             completed: newCompleted,
-            completedSets: w.completedSets.map(() => newCompleted),
+            setDetails: w.setDetails.map((set) => ({
+              ...set,
+              completed: newCompleted,
+            })),
           };
         }
         return w;
@@ -88,16 +91,40 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setTodayWorkouts(
       todayWorkouts.map((w) => {
         if (w.id === workoutId) {
-          const newCompletedSets = [...w.completedSets];
-          newCompletedSets[setIndex] = !newCompletedSets[setIndex];
+          const newSetDetails = [...w.setDetails];
+          newSetDetails[setIndex] = {
+            ...newSetDetails[setIndex],
+            completed: !newSetDetails[setIndex].completed,
+          };
           
           // 모든 세트가 완료되었는지 확인
-          const allCompleted = newCompletedSets.every(set => set === true);
+          const allCompleted = newSetDetails.every((set) => set.completed === true);
           
           return {
             ...w,
-            completedSets: newCompletedSets,
+            setDetails: newSetDetails,
             completed: allCompleted,
+          };
+        }
+        return w;
+      })
+    );
+  };
+
+  const updateSetDetails = (workoutId: string, setIndex: number, reps: number, weight?: number) => {
+    setTodayWorkouts(
+      todayWorkouts.map((w) => {
+        if (w.id === workoutId) {
+          const newSetDetails = [...w.setDetails];
+          newSetDetails[setIndex] = {
+            ...newSetDetails[setIndex],
+            reps,
+            weight,
+          };
+          
+          return {
+            ...w,
+            setDetails: newSetDetails,
           };
         }
         return w;
@@ -124,6 +151,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         addTodayWorkout,
         toggleWorkoutComplete,
         toggleSetComplete,
+        updateSetDetails,
         toggleDarkMode,
         logout,
       }}

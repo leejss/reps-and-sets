@@ -15,7 +15,7 @@ import {
 export default function HomeScreen() {
   const { todayWorkouts, toggleWorkoutComplete } = useApp();
   const colors = useColor();
-  const today = new Date().toLocaleDateString("en-US", {
+  const today = new Date().toLocaleDateString("ko-KR", {
     weekday: "long",
     month: "long",
     day: "numeric",
@@ -34,7 +34,7 @@ export default function HomeScreen() {
       {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.headerSurface }]}>
         <Text style={[styles.headerTitle, { color: colors.text.primary }]}>
-          Reps and Set
+          Reps and Sets
         </Text>
         <Text style={[styles.headerDate, { color: colors.text.secondary }]}>
           {today}
@@ -47,7 +47,7 @@ export default function HomeScreen() {
         contentContainerStyle={styles.contentContainer}
       >
         <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>
-          Today&apos;s Workout List
+          오늘의 운동
         </Text>
 
         {todayWorkouts.length === 0 ? (
@@ -72,8 +72,22 @@ export default function HomeScreen() {
         ) : (
           <View style={styles.workoutList}>
             {todayWorkouts.map((workout) => {
-              const completedCount =
-                workout.completedSets?.filter((s) => s).length || 0;
+              const completedCount = workout.setDetails.filter((s) => s.completed).length;
+              const totalSets = workout.setDetails.length;
+              
+              // 세트 정보 요약
+              const repsValues = workout.setDetails.map(s => s.reps);
+              const minReps = Math.min(...repsValues);
+              const maxReps = Math.max(...repsValues);
+              const repsDisplay = minReps === maxReps ? `${minReps} reps` : `${minReps}-${maxReps} reps`;
+              
+              // 무게 정보 요약
+              const weights = workout.setDetails.map(s => s.weight).filter((w): w is number => w !== undefined);
+              const weightDisplay = weights.length > 0
+                ? weights.length === 1 || Math.min(...weights) === Math.max(...weights)
+                  ? `${weights[0]}kg`
+                  : `${Math.min(...weights)}-${Math.max(...weights)}kg`
+                : null;
               return (
                 <TouchableOpacity
                   key={workout.id}
@@ -109,8 +123,8 @@ export default function HomeScreen() {
                           { color: colors.text.secondary },
                         ]}
                       >
-                        {workout.sets} sets × {workout.reps} reps
-                        {workout.weight && ` @ ${workout.weight}kg`}
+                        {totalSets} sets × {repsDisplay}
+                        {weightDisplay && ` @ ${weightDisplay}`}
                       </Text>
                       <View style={styles.tagRow}>
                         <View
@@ -144,7 +158,7 @@ export default function HomeScreen() {
                               { color: colors.primary },
                             ]}
                           >
-                            {completedCount}/{workout.sets}
+                            {completedCount}/{totalSets}
                           </Text>
                         </View>
                       </View>

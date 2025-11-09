@@ -1,29 +1,88 @@
-import React, { useState } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  TextInput,
-} from "react-native";
+import { useColor } from "@/constants/colors";
+import { useApp } from "@/context/app-context";
+import { SetDetail } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { useApp } from "@/context/app-context";
-import { useColor } from "@/constants/colors";
+import React, { useEffect, useState } from "react";
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function WorkoutRegisterScreen() {
   const { exercises, addTodayWorkout } = useApp();
+  const insets = useSafeAreaInsets();
   const colors = useColor();
-  const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
-  const [reps, setReps] = useState("");
-  const [sets, setSets] = useState("");
-  const [weight, setWeight] = useState("");
+  const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(
+    null,
+  );
+  const [numberOfSets, setNumberOfSets] = useState("");
+  const [setDetails, setSetDetails] = useState<SetDetail[]>([]);
+  const [useUniformValues, setUseUniformValues] = useState(true);
+  const [uniformReps, setUniformReps] = useState("");
+  const [uniformWeight, setUniformWeight] = useState("");
 
   const selectedExercise = exercises.find((e) => e.id === selectedExerciseId);
 
+  // 세트 수 변경 시 setDetails 배열 초기화
+  useEffect(() => {
+    const numSets = parseInt(numberOfSets);
+    if (numSets > 0 && numSets <= 20) {
+      setSetDetails(
+        Array.from({ length: numSets }, () => ({
+          reps: 0,
+          weight: undefined,
+          completed: false,
+        })),
+      );
+    } else {
+      setSetDetails([]);
+    }
+  }, [numberOfSets]);
+
+  // 동일한 값 적용 모드일 때 모든 세트 업데이트
+  useEffect(() => {
+    if (useUniformValues && setDetails.length > 0) {
+      const reps = parseInt(uniformReps) || 0;
+      const weight = uniformWeight ? parseFloat(uniformWeight) : undefined;
+      setSetDetails((prevDetails) =>
+        prevDetails.map((set) => ({
+          ...set,
+          reps,
+          weight,
+        })),
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [uniformReps, uniformWeight, useUniformValues]);
+
+  const handleSetDetailChange = (
+    index: number,
+    field: "reps" | "weight",
+    value: string,
+  ) => {
+    const newSetDetails = [...setDetails];
+    if (field === "reps") {
+      newSetDetails[index].reps = parseInt(value) || 0;
+    } else {
+      newSetDetails[index].weight = value ? parseFloat(value) : undefined;
+    }
+    setSetDetails(newSetDetails);
+  };
+
   const handleSubmit = () => {
-    if (!selectedExercise || !reps || !sets) {
+    if (!selectedExercise || setDetails.length === 0) {
+      return;
+    }
+
+    // 최소한 하나의 세트에 reps가 입력되어야 함
+    const hasValidSet = setDetails.some((set) => set.reps > 0);
+    if (!hasValidSet) {
       return;
     }
 
@@ -32,28 +91,23 @@ export default function WorkoutRegisterScreen() {
       exerciseId: selectedExercise.id,
       exerciseName: selectedExercise.name,
       muscleGroup: selectedExercise.muscleGroup,
-      reps: parseInt(reps),
-      sets: parseInt(sets),
-      weight: weight ? parseFloat(weight) : undefined,
+      setDetails: setDetails,
       completed: false,
       date: today,
     });
 
     // Reset form and go back
     setSelectedExerciseId(null);
-    setReps("");
-    setSets("");
-    setWeight("");
+    setNumberOfSets("");
+    setSetDetails([]);
+    setUniformReps("");
+    setUniformWeight("");
+    setUseUniformValues(true);
     router.back();
   };
 
   return (
-    <View
-      style={[
-        styles.container,
-        { backgroundColor: colors.background },
-      ]}
-    >
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
       <View
         style={[
@@ -69,15 +123,9 @@ export default function WorkoutRegisterScreen() {
           style={styles.backButton}
           activeOpacity={0.7}
         >
-          <Ionicons
-            name="arrow-back"
-            size={24}
-            color={colors.text.primary}
-          />
+          <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
         </TouchableOpacity>
-        <Text
-          style={[styles.headerTitle, { color: colors.text.primary }]}
-        >
+        <Text style={[styles.headerTitle, { color: colors.text.primary }]}>
           Register Today&apos;s Workout
         </Text>
       </View>
@@ -87,13 +135,8 @@ export default function WorkoutRegisterScreen() {
         style={styles.content}
         contentContainerStyle={styles.contentContainer}
       >
-        <Text
-          style={[
-            styles.sectionTitle,
-            { color: colors.text.primary },
-          ]}
-        >
-          Select Exercise
+        <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>
+          운동 선택
         </Text>
 
         <View style={styles.exerciseList}>
@@ -142,7 +185,9 @@ export default function WorkoutRegisterScreen() {
                           ? colors.primary
                           : colors.input.border,
                       backgroundColor:
-                        selectedExerciseId === exercise.id ? colors.primary : "transparent",
+                        selectedExerciseId === exercise.id
+                          ? colors.primary
+                          : "transparent",
                     },
                   ]}
                 >
@@ -157,23 +202,14 @@ export default function WorkoutRegisterScreen() {
 
         {selectedExercise && (
           <View style={styles.detailsSection}>
-            <Text
-              style={[
-                styles.sectionTitle,
-                { color: colors.text.primary },
-              ]}
-            >
-              Workout Details
+            <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>
+              운동 상세 정보
             </Text>
 
+            {/* 세트 수 입력 */}
             <View style={styles.inputGroup}>
-              <Text
-                style={[
-                  styles.label,
-                  { color: colors.text.label },
-                ]}
-              >
-                Sets
+              <Text style={[styles.label, { color: colors.text.label }]}>
+                세트 수
               </Text>
               <TextInput
                 style={[
@@ -184,65 +220,201 @@ export default function WorkoutRegisterScreen() {
                     color: colors.text.primary,
                   },
                 ]}
-                placeholder="e.g., 3"
+                placeholder="예: 3"
                 placeholderTextColor={colors.input.placeholder}
-                value={sets}
-                onChangeText={setSets}
+                value={numberOfSets}
+                onChangeText={setNumberOfSets}
                 keyboardType="numeric"
               />
             </View>
 
-            <View style={styles.inputGroup}>
-              <Text
-                style={[
-                  styles.label,
-                  { color: colors.text.label },
-                ]}
-              >
-                Reps
-              </Text>
-              <TextInput
-                style={[
-                  styles.input,
-                  {
-                    backgroundColor: colors.input.background,
-                    borderColor: colors.input.border,
-                    color: colors.text.primary,
-                  },
-                ]}
-                placeholder="e.g., 10"
-                placeholderTextColor={colors.input.placeholder}
-                value={reps}
-                onChangeText={setReps}
-                keyboardType="numeric"
-              />
-            </View>
+            {/* 세트가 생성된 경우 */}
+            {setDetails.length > 0 && (
+              <>
+                {/* 동일한 값 적용 토글 */}
+                <TouchableOpacity
+                  style={[
+                    styles.toggleButton,
+                    {
+                      backgroundColor: useUniformValues
+                        ? colors.primary
+                        : colors.surface,
+                      borderColor: useUniformValues
+                        ? colors.primary
+                        : colors.border,
+                    },
+                  ]}
+                  onPress={() => setUseUniformValues(!useUniformValues)}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons
+                    name={useUniformValues ? "checkbox" : "square-outline"}
+                    size={20}
+                    color={
+                      useUniformValues
+                        ? colors.text.primary
+                        : colors.text.secondary
+                    }
+                  />
+                  <Text
+                    style={[
+                      styles.toggleText,
+                      {
+                        color: useUniformValues
+                          ? colors.text.primary
+                          : colors.text.secondary,
+                      },
+                    ]}
+                  >
+                    모든 세트에 동일한 값 적용
+                  </Text>
+                </TouchableOpacity>
 
-            <View style={styles.inputGroup}>
-              <Text
-                style={[
-                  styles.label,
-                  { color: colors.text.label },
-                ]}
-              >
-                Weight (kg) - Optional
-              </Text>
-              <TextInput
-                style={[
-                  styles.input,
-                  {
-                    backgroundColor: colors.input.background,
-                    borderColor: colors.input.border,
-                    color: colors.text.primary,
-                  },
-                ]}
-                placeholder="e.g., 60"
-                placeholderTextColor={colors.input.placeholder}
-                value={weight}
-                onChangeText={setWeight}
-                keyboardType="decimal-pad"
-              />
-            </View>
+                {/* 동일한 값 입력 모드 */}
+                {useUniformValues ? (
+                  <View style={styles.uniformInputs}>
+                    <View style={styles.inputGroup}>
+                      <Text
+                        style={[styles.label, { color: colors.text.label }]}
+                      >
+                        반복 횟수 (Reps)
+                      </Text>
+                      <TextInput
+                        style={[
+                          styles.input,
+                          {
+                            backgroundColor: colors.input.background,
+                            borderColor: colors.input.border,
+                            color: colors.text.primary,
+                          },
+                        ]}
+                        placeholder="예: 10"
+                        placeholderTextColor={colors.input.placeholder}
+                        value={uniformReps}
+                        onChangeText={setUniformReps}
+                        keyboardType="numeric"
+                      />
+                    </View>
+
+                    <View style={styles.inputGroup}>
+                      <Text
+                        style={[styles.label, { color: colors.text.label }]}
+                      >
+                        무게 (kg) - 선택사항
+                      </Text>
+                      <TextInput
+                        style={[
+                          styles.input,
+                          {
+                            backgroundColor: colors.input.background,
+                            borderColor: colors.input.border,
+                            color: colors.text.primary,
+                          },
+                        ]}
+                        placeholder="예: 60"
+                        placeholderTextColor={colors.input.placeholder}
+                        value={uniformWeight}
+                        onChangeText={setUniformWeight}
+                        keyboardType="decimal-pad"
+                      />
+                    </View>
+                  </View>
+                ) : (
+                  /* 세트별 개별 입력 모드 */
+                  <View style={styles.setsContainer}>
+                    <Text
+                      style={[
+                        styles.subsectionTitle,
+                        { color: colors.text.primary },
+                      ]}
+                    >
+                      세트별 상세 정보
+                    </Text>
+                    {setDetails.map((set, index) => (
+                      <View
+                        key={index}
+                        style={[
+                          styles.setDetailCard,
+                          {
+                            backgroundColor: colors.surface,
+                            borderColor: colors.border,
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.setLabel,
+                            { color: colors.text.primary },
+                          ]}
+                        >
+                          Set {index + 1}
+                        </Text>
+                        <View style={styles.setInputRow}>
+                          <View style={styles.halfInput}>
+                            <Text
+                              style={[
+                                styles.smallLabel,
+                                { color: colors.text.label },
+                              ]}
+                            >
+                              Reps
+                            </Text>
+                            <TextInput
+                              style={[
+                                styles.input,
+                                {
+                                  backgroundColor: colors.input.background,
+                                  borderColor: colors.input.border,
+                                  color: colors.text.primary,
+                                },
+                              ]}
+                              placeholder="10"
+                              placeholderTextColor={colors.input.placeholder}
+                              value={set.reps > 0 ? set.reps.toString() : ""}
+                              onChangeText={(value) =>
+                                handleSetDetailChange(index, "reps", value)
+                              }
+                              keyboardType="numeric"
+                            />
+                          </View>
+                          <View style={styles.halfInput}>
+                            <Text
+                              style={[
+                                styles.smallLabel,
+                                { color: colors.text.label },
+                              ]}
+                            >
+                              Weight (kg)
+                            </Text>
+                            <TextInput
+                              style={[
+                                styles.input,
+                                {
+                                  backgroundColor: colors.input.background,
+                                  borderColor: colors.input.border,
+                                  color: colors.text.primary,
+                                },
+                              ]}
+                              placeholder="60"
+                              placeholderTextColor={colors.input.placeholder}
+                              value={
+                                set.weight !== undefined
+                                  ? set.weight.toString()
+                                  : ""
+                              }
+                              onChangeText={(value) =>
+                                handleSetDetailChange(index, "weight", value)
+                              }
+                              keyboardType="decimal-pad"
+                            />
+                          </View>
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </>
+            )}
           </View>
         )}
       </ScrollView>
@@ -255,6 +427,7 @@ export default function WorkoutRegisterScreen() {
             {
               backgroundColor: colors.headerSurface,
               borderTopColor: colors.border,
+              paddingBottom: insets.bottom,
             },
           ]}
         >
@@ -263,11 +436,16 @@ export default function WorkoutRegisterScreen() {
               styles.submitButton,
               {
                 backgroundColor: colors.button.primary.background,
-                opacity: !reps || !sets ? 0.5 : 1,
+                opacity:
+                  setDetails.length === 0 || !setDetails.some((s) => s.reps > 0)
+                    ? 0.5
+                    : 1,
               },
             ]}
             onPress={handleSubmit}
-            disabled={!reps || !sets}
+            disabled={
+              setDetails.length === 0 || !setDetails.some((s) => s.reps > 0)
+            }
             activeOpacity={0.8}
           >
             <Ionicons name="add" size={20} color={colors.button.primary.text} />
@@ -277,7 +455,7 @@ export default function WorkoutRegisterScreen() {
                 { color: colors.button.primary.text },
               ]}
             >
-              Add to Today&apos;s Workout
+              오늘의 운동에 추가
             </Text>
           </TouchableOpacity>
         </View>
@@ -363,6 +541,51 @@ const styles = StyleSheet.create({
   },
   detailsSection: {
     gap: 16,
+  },
+  toggleButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 2,
+    gap: 8,
+  },
+  toggleText: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  uniformInputs: {
+    gap: 16,
+  },
+  subsectionTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    marginBottom: 8,
+  },
+  setsContainer: {
+    gap: 12,
+  },
+  setDetailCard: {
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 12,
+  },
+  setLabel: {
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  setInputRow: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  halfInput: {
+    flex: 1,
+    gap: 8,
+  },
+  smallLabel: {
+    fontSize: 13,
+    fontWeight: "500",
   },
   inputGroup: {
     gap: 8,

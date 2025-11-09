@@ -13,16 +13,19 @@ export interface WorkoutSet {
   weight?: number;
 }
 
+export interface SetDetail {
+  reps: number;
+  weight?: number;
+  completed: boolean;
+}
+
 export interface TodayWorkout {
   id: string;
   exerciseId: string;
   exerciseName: string;
   muscleGroup: string;
-  reps: number;
-  sets: number;
-  weight?: number;
+  setDetails: SetDetail[]; // 각 세트별 상세 정보 (reps, weight, completed)
   completed: boolean; // 전체 완료 여부 (모든 세트 완료 시 true)
-  completedSets: boolean[]; // 각 세트별 완료 여부 [set1, set2, set3, ...]
   date: string;
 }
 
