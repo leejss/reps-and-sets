@@ -25,6 +25,10 @@ export default function HomeScreen() {
     router.push("/workout-register");
   };
 
+  const navigateToDetail = (workoutId: string) => {
+    router.push(`/workout-detail?id=${workoutId}`);
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
@@ -67,86 +71,114 @@ export default function HomeScreen() {
           </View>
         ) : (
           <View style={styles.workoutList}>
-            {todayWorkouts.map((workout) => (
-              <View
-                key={workout.id}
-                style={[
-                  styles.workoutCard,
-                  {
-                    backgroundColor: colors.surface,
-                    borderColor: colors.border,
-                    opacity: workout.completed ? 0.6 : 1,
-                  },
-                ]}
-              >
-                <View style={styles.workoutCardContent}>
-                  <View style={styles.workoutInfo}>
-                    <Text
-                      style={[
-                        styles.workoutName,
-                        {
-                          color: colors.text.primary,
-                          textDecorationLine: workout.completed
-                            ? "line-through"
-                            : "none",
-                        },
-                      ]}
-                    >
-                      {workout.exerciseName}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.workoutDetails,
-                        { color: colors.text.secondary },
-                      ]}
-                    >
-                      {workout.sets} sets × {workout.reps} reps
-                      {workout.weight && ` @ ${workout.weight}kg`}
-                    </Text>
-                    <View
-                      style={[
-                        styles.muscleGroupTag,
-                        {
-                          backgroundColor: colors.tag.background,
-                        },
-                      ]}
-                    >
+            {todayWorkouts.map((workout) => {
+              const completedCount =
+                workout.completedSets?.filter((s) => s).length || 0;
+              return (
+                <TouchableOpacity
+                  key={workout.id}
+                  style={[
+                    styles.workoutCard,
+                    {
+                      backgroundColor: colors.surface,
+                      borderColor: colors.border,
+                      opacity: workout.completed ? 0.6 : 1,
+                    },
+                  ]}
+                  onPress={() => navigateToDetail(workout.id)}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.workoutCardContent}>
+                    <View style={styles.workoutInfo}>
                       <Text
                         style={[
-                          styles.muscleGroupText,
-                          { color: colors.tag.text },
+                          styles.workoutName,
+                          {
+                            color: colors.text.primary,
+                            textDecorationLine: workout.completed
+                              ? "line-through"
+                              : "none",
+                          },
                         ]}
                       >
-                        {workout.muscleGroup}
+                        {workout.exerciseName}
                       </Text>
+                      <Text
+                        style={[
+                          styles.workoutDetails,
+                          { color: colors.text.secondary },
+                        ]}
+                      >
+                        {workout.sets} sets × {workout.reps} reps
+                        {workout.weight && ` @ ${workout.weight}kg`}
+                      </Text>
+                      <View style={styles.tagRow}>
+                        <View
+                          style={[
+                            styles.muscleGroupTag,
+                            {
+                              backgroundColor: colors.tag.background,
+                            },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.muscleGroupText,
+                              { color: colors.tag.text },
+                            ]}
+                          >
+                            {workout.muscleGroup}
+                          </Text>
+                        </View>
+                        <View
+                          style={[
+                            styles.progressTag,
+                            {
+                              backgroundColor: colors.tag.background,
+                            },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.progressText,
+                              { color: colors.primary },
+                            ]}
+                          >
+                            {completedCount}/{workout.sets}
+                          </Text>
+                        </View>
+                      </View>
                     </View>
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        toggleWorkoutComplete(workout.id);
+                      }}
+                      style={[
+                        styles.checkButton,
+                        {
+                          backgroundColor: workout.completed
+                            ? colors.primary
+                            : colors.tag.background,
+                          borderColor: workout.completed
+                            ? colors.primary
+                            : colors.input.border,
+                        },
+                      ]}
+                      activeOpacity={0.7}
+                    >
+                      {workout.completed && (
+                        <Ionicons
+                          name="checkmark"
+                          size={20}
+                          color={colors.text.primary}
+                        />
+                      )}
+                    </TouchableOpacity>
                   </View>
-                  <TouchableOpacity
-                    onPress={() => toggleWorkoutComplete(workout.id)}
-                    style={[
-                      styles.checkButton,
-                      {
-                        backgroundColor: workout.completed
-                          ? colors.primary
-                          : colors.tag.background,
-                        borderColor: workout.completed
-                          ? colors.primary
-                          : colors.input.border,
-                      },
-                    ]}
-                    activeOpacity={0.7}
-                  >
-                    {workout.completed && (
-                      <Ionicons
-                        name="checkmark"
-                        size={20}
-                        color={colors.text.primary}
-                      />
-                    )}
-                  </TouchableOpacity>
-                </View>
-              </View>
-            ))}
+                </TouchableOpacity>
+              );
+            })}
           </View>
         )}
       </ScrollView>
@@ -210,6 +242,20 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     marginBottom: 12,
+  },
+  tagRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  progressTag: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  progressText: {
+    fontSize: 12,
+    fontWeight: "700",
   },
   workoutCardContent: {
     flexDirection: "row",

@@ -21,7 +21,8 @@ export interface TodayWorkout {
   reps: number;
   sets: number;
   weight?: number;
-  completed: boolean;
+  completed: boolean; // 전체 완료 여부 (모든 세트 완료 시 true)
+  completedSets: boolean[]; // 각 세트별 완료 여부 [set1, set2, set3, ...]
   date: string;
 }
 

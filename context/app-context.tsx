@@ -7,8 +7,9 @@ interface AppContextType {
   user: User;
   darkMode: boolean;
   addExercise: (exercise: Omit<Exercise, 'id' | 'createdAt'>) => void;
-  addTodayWorkout: (workout: Omit<TodayWorkout, 'id'>) => void;
+  addTodayWorkout: (workout: Omit<TodayWorkout, 'id' | 'completedSets'>) => void;
   toggleWorkoutComplete: (id: string) => void;
+  toggleSetComplete: (workoutId: string, setIndex: number) => void;
   toggleDarkMode: () => void;
   logout: () => void;
 }
@@ -57,19 +58,50 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setExercises([...exercises, newExercise]);
   };
 
-  const addTodayWorkout = (workout: Omit<TodayWorkout, 'id'>) => {
+  const addTodayWorkout = (workout: Omit<TodayWorkout, 'id' | 'completedSets'>) => {
     const newWorkout: TodayWorkout = {
       ...workout,
       id: Date.now().toString(),
+      completedSets: Array(workout.sets).fill(false), // 세트 수만큼 false로 초기화
     };
     setTodayWorkouts([...todayWorkouts, newWorkout]);
   };
 
   const toggleWorkoutComplete = (id: string) => {
     setTodayWorkouts(
-      todayWorkouts.map((w) =>
-        w.id === id ? { ...w, completed: !w.completed } : w
-      )
+      todayWorkouts.map((w) => {
+        if (w.id === id) {
+          const newCompleted = !w.completed;
+          // 전체 완료 토글 시 모든 세트도 함께 토글
+          return {
+            ...w,
+            completed: newCompleted,
+            completedSets: w.completedSets.map(() => newCompleted),
+          };
+        }
+        return w;
+      })
+    );
+  };
+
+  const toggleSetComplete = (workoutId: string, setIndex: number) => {
+    setTodayWorkouts(
+      todayWorkouts.map((w) => {
+        if (w.id === workoutId) {
+          const newCompletedSets = [...w.completedSets];
+          newCompletedSets[setIndex] = !newCompletedSets[setIndex];
+          
+          // 모든 세트가 완료되었는지 확인
+          const allCompleted = newCompletedSets.every(set => set === true);
+          
+          return {
+            ...w,
+            completedSets: newCompletedSets,
+            completed: allCompleted,
+          };
+        }
+        return w;
+      })
     );
   };
 
@@ -91,6 +123,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         addExercise,
         addTodayWorkout,
         toggleWorkoutComplete,
+        toggleSetComplete,
         toggleDarkMode,
         logout,
       }}
