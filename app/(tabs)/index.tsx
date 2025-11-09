@@ -1,98 +1,287 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
-
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import React from "react";
+import {
+  View,
+  Text,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
+import { useApp } from "@/context/app-context";
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const { todayWorkouts, toggleWorkoutComplete, darkMode } = useApp();
+  const today = new Date().toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  });
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+  const navigateToRegister = () => {
+    router.push("/workout-register");
+  };
+
+  return (
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: darkMode ? "#0B0C10" : "#F9FAFB" },
+      ]}
+    >
+      {/* Header */}
+      <View
+        style={[
+          styles.header,
+          { backgroundColor: darkMode ? "#0B0C10" : "#FFFFFF" },
+        ]}
+      >
+        <Text
+          style={[
+            styles.headerTitle,
+            { color: darkMode ? "#FFFFFF" : "#0B0C10" },
+          ]}
+        >
+          Reps and Set
+        </Text>
+        <Text style={[styles.headerDate, { color: darkMode ? "#9CA3AF" : "#4B5563" }]}>
+          {today}
+        </Text>
+      </View>
+
+      {/* Content */}
+      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+        <Text
+          style={[
+            styles.sectionTitle,
+            { color: darkMode ? "#FFFFFF" : "#0B0C10" },
+          ]}
+        >
+          Today&apos;s Workout List
+        </Text>
+
+        {todayWorkouts.length === 0 ? (
+          <View
+            style={[
+              styles.emptyCard,
+              {
+                backgroundColor: darkMode ? "#1F2937" : "#F9FAFB",
+                borderColor: darkMode ? "#374151" : "#E5E7EB",
+              },
+            ]}
+          >
+            <Text style={[styles.emptyText, { color: darkMode ? "#9CA3AF" : "#4B5563" }]}>
+              No workouts scheduled for today.
+            </Text>
+            <Text
+              style={[styles.emptySubtext, { color: darkMode ? "#6B7280" : "#6B7280" }]}
+            >
+              Tap the + button to add exercises
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.workoutList}>
+            {todayWorkouts.map((workout) => (
+              <View
+                key={workout.id}
+                style={[
+                  styles.workoutCard,
+                  {
+                    backgroundColor: darkMode ? "#1F2937" : "#FFFFFF",
+                    borderColor: darkMode ? "#374151" : "#E5E7EB",
+                    opacity: workout.completed ? 0.6 : 1,
+                  },
+                ]}
+              >
+                <View style={styles.workoutCardContent}>
+                  <View style={styles.workoutInfo}>
+                    <Text
+                      style={[
+                        styles.workoutName,
+                        {
+                          color: darkMode ? "#FFFFFF" : "#0B0C10",
+                          textDecorationLine: workout.completed
+                            ? "line-through"
+                            : "none",
+                        },
+                      ]}
+                    >
+                      {workout.exerciseName}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.workoutDetails,
+                        { color: darkMode ? "#9CA3AF" : "#4B5563" },
+                      ]}
+                    >
+                      {workout.sets} sets × {workout.reps} reps
+                      {workout.weight && ` @ ${workout.weight}kg`}
+                    </Text>
+                    <View
+                      style={[
+                        styles.muscleGroupTag,
+                        {
+                          backgroundColor: darkMode ? "#374151" : "#F3F4F6",
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.muscleGroupText,
+                          { color: darkMode ? "#9CA3AF" : "#4B5563" },
+                        ]}
+                      >
+                        {workout.muscleGroup}
+                      </Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => toggleWorkoutComplete(workout.id)}
+                    style={[
+                      styles.checkButton,
+                      {
+                        backgroundColor: workout.completed
+                          ? "#00FFC6"
+                          : darkMode
+                          ? "#374151"
+                          : "#F3F4F6",
+                        borderColor: workout.completed
+                          ? "#00FFC6"
+                          : darkMode
+                          ? "#4B5563"
+                          : "#D1D5DB",
+                      },
+                    ]}
+                    activeOpacity={0.7}
+                  >
+                    {workout.completed && (
+                      <Ionicons name="checkmark" size={20} color="#0B0C10" />
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+      </ScrollView>
+
+      {/* Floating Action Button */}
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={navigateToRegister}
+        activeOpacity={0.8}
+      >
+        <Ionicons name="add" size={28} color="#0B0C10" />
+      </TouchableOpacity>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  container: {
+    flex: 1,
   },
-  stepContainer: {
-    gap: 8,
+  header: {
+    paddingHorizontal: 24,
+    paddingTop: 32,
+    paddingBottom: 32,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: "600",
+    marginBottom: 4,
+  },
+  headerDate: {
+    fontSize: 14,
+  },
+  content: {
+    flex: 1,
+  },
+  contentContainer: {
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    paddingBottom: 100,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    marginBottom: 16,
+  },
+  emptyCard: {
+    padding: 32,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: "center",
+  },
+  emptyText: {
+    fontSize: 14,
+    textAlign: "center",
+  },
+  emptySubtext: {
+    fontSize: 12,
+    marginTop: 8,
+    textAlign: "center",
+  },
+  workoutList: {
+    gap: 12,
+  },
+  workoutCard: {
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 12,
+  },
+  workoutCardContent: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+  },
+  workoutInfo: {
+    flex: 1,
+  },
+  workoutName: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 4,
+  },
+  workoutDetails: {
+    fontSize: 14,
     marginBottom: 8,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  muscleGroupTag: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 16,
+  },
+  muscleGroupText: {
+    fontSize: 12,
+  },
+  checkButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 2,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  fab: {
+    position: "absolute",
+    bottom: 96,
+    right: 24,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "#00FFC6",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
 });
