@@ -1,87 +1,90 @@
-import React, { useState } from 'react';
+import { useColor } from "@/constants/colors";
+import { useAuth } from "@/context/auth-context";
+import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
+import React, { useState } from "react";
 import {
-  View,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  Alert,
-  ActivityIndicator,
-} from 'react-native';
-import { useAuth } from '@/context/auth-context';
-import { Colors } from '@/constants/colors';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { router } from 'expo-router';
+  View,
+} from "react-native";
 
 export default function LoginScreen() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
-
-  // Get themed colors
-  const colors = {
-    background: isDark ? Colors.background.dark : Colors.background.light,
-    surface: isDark ? Colors.surface.dark : Colors.surface.light,
-    textPrimary: isDark ? Colors.text.primary.dark : Colors.text.primary.light,
-    textSecondary: isDark ? Colors.text.secondary.dark : Colors.text.secondary.light,
-    inputBackground: isDark ? Colors.input.background.dark : Colors.input.background.light,
-    inputBorder: isDark ? Colors.input.border.dark : Colors.input.border.light,
-    inputPlaceholder: isDark ? Colors.input.placeholder.dark : Colors.input.placeholder.light,
-  };
+  const colors = useColor();
 
   const handleLogin = async () => {
     setIsLoading(true);
     try {
       // 개발 중: 입력값이 없으면 기본 계정 사용
-      const loginEmail = email.trim() || 'dev@repandset.com';
-      const loginPassword = password.trim() || 'dev123';
-      
+      const loginEmail = email.trim() || "dev@repandset.com";
+      const loginPassword = password.trim() || "dev123";
+
       await login(loginEmail, loginPassword);
-      
+
       // 로그인 성공 시 메인 화면으로 이동
-      router.replace('/(tabs)');
+      router.replace("/(tabs)");
     } catch (error) {
-      Alert.alert('로그인 실패', error instanceof Error ? error.message : '로그인에 실패했습니다.');
+      Alert.alert(
+        "로그인 실패",
+        error instanceof Error ? error.message : "로그인에 실패했습니다.",
+      );
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={[styles.container, { backgroundColor: colors.background }]}
-    >
-      <View style={styles.content}>
-        {/* Logo & Title */}
-        <View style={styles.header}>
-          <Text style={[styles.logo, { color: Colors.primary }]}>💪</Text>
-          <Text style={[styles.title, { color: colors.textPrimary }]}>Rep & Set</Text>
-          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-            운동을 기록하고 성장하세요
-          </Text>
-        </View>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      {/* Header */}
+      <View style={[styles.header, { backgroundColor: colors.headerSurface }]}>
+        <Text style={[styles.headerTitle, { color: colors.text.primary }]}>
+          Rep & Set
+        </Text>
+        <Text style={[styles.headerSubtitle, { color: colors.text.secondary }]}>
+          운동을 기록하고 성장하세요
+        </Text>
+      </View>
 
-        {/* Login Form */}
-        <View style={styles.form}>
-          <View style={styles.inputContainer}>
-            <Text style={[styles.label, { color: colors.textPrimary }]}>이메일</Text>
+      {/* Content */}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.content}
+      >
+        <ScrollView
+          contentContainerStyle={styles.contentContainer}
+          keyboardShouldPersistTaps="handled"
+        >
+          <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>
+            로그인
+          </Text>
+
+          {/* Email Input */}
+          <View style={styles.inputGroup}>
+            <Text style={[styles.label, { color: colors.text.label }]}>
+              이메일
+            </Text>
             <TextInput
               style={[
                 styles.input,
                 {
-                  backgroundColor: colors.inputBackground,
-                  borderColor: colors.inputBorder,
-                  color: colors.textPrimary,
+                  backgroundColor: colors.input.background,
+                  borderColor: colors.input.border,
+                  color: colors.text.primary,
                 },
               ]}
               placeholder="example@email.com"
-              placeholderTextColor={colors.inputPlaceholder}
+              placeholderTextColor={colors.input.placeholder}
               value={email}
               onChangeText={setEmail}
               autoCapitalize="none"
@@ -91,19 +94,22 @@ export default function LoginScreen() {
             />
           </View>
 
-          <View style={styles.inputContainer}>
-            <Text style={[styles.label, { color: colors.textPrimary }]}>비밀번호</Text>
+          {/* Password Input */}
+          <View style={styles.inputGroup}>
+            <Text style={[styles.label, { color: colors.text.label }]}>
+              비밀번호
+            </Text>
             <TextInput
               style={[
                 styles.input,
                 {
-                  backgroundColor: colors.inputBackground,
-                  borderColor: colors.inputBorder,
-                  color: colors.textPrimary,
+                  backgroundColor: colors.input.background,
+                  borderColor: colors.input.border,
+                  color: colors.text.primary,
                 },
               ]}
               placeholder="••••••••"
-              placeholderTextColor={colors.inputPlaceholder}
+              placeholderTextColor={colors.input.placeholder}
               value={password}
               onChangeText={setPassword}
               secureTextEntry
@@ -112,33 +118,59 @@ export default function LoginScreen() {
             />
           </View>
 
+          {/* Login Button */}
           <TouchableOpacity
             style={[
               styles.loginButton,
-              { backgroundColor: Colors.primary },
-              isLoading && styles.loginButtonDisabled,
+              {
+                backgroundColor: colors.button.primary.background,
+                opacity: isLoading ? 0.6 : 1,
+              },
             ]}
             onPress={handleLogin}
             disabled={isLoading}
+            activeOpacity={0.8}
           >
             {isLoading ? (
-              <ActivityIndicator color={Colors.button.primary.text} />
+              <ActivityIndicator color={colors.button.primary.text} />
             ) : (
-              <Text style={[styles.loginButtonText, { color: Colors.button.primary.text }]}>
-                로그인
-              </Text>
+              <>
+                <Text
+                  style={[
+                    styles.loginButtonText,
+                    { color: colors.button.primary.text },
+                  ]}
+                >
+                  로그인
+                </Text>
+              </>
             )}
           </TouchableOpacity>
 
-          {/* Demo Credentials Info */}
-          <View style={styles.demoInfo}>
-            <Text style={[styles.demoText, { color: colors.textSecondary }]}>
+          {/* Dev Info */}
+          <View
+            style={[
+              styles.devInfo,
+              {
+                backgroundColor: colors.tag.tutorial,
+                borderColor: colors.border,
+              },
+            ]}
+          >
+            <Ionicons
+              name="information-circle-outline"
+              size={16}
+              color={colors.tag.tutorialText}
+            />
+            <Text
+              style={[styles.devInfoText, { color: colors.tag.tutorialText }]}
+            >
               개발 중: 로그인 버튼만 눌러도 자동으로 인증됩니다
             </Text>
           </View>
-        </View>
-      </View>
-    </KeyboardAvoidingView>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
@@ -146,67 +178,70 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  header: {
+    paddingHorizontal: 24,
+    paddingTop: 60,
+    paddingBottom: 32,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: "600",
+    marginBottom: 4,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+  },
   content: {
     flex: 1,
-    justifyContent: 'center',
+  },
+  contentContainer: {
     paddingHorizontal: 24,
+    paddingVertical: 16,
   },
-  header: {
-    alignItems: 'center',
-    marginBottom: 48,
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    marginBottom: 24,
   },
-  logo: {
-    fontSize: 72,
-    marginBottom: 16,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-  },
-  form: {
-    width: '100%',
-  },
-  inputContainer: {
+  inputGroup: {
     marginBottom: 20,
   },
   label: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "500",
     marginBottom: 8,
   },
   input: {
-    height: 52,
-    borderWidth: 1,
+    height: 48,
     borderRadius: 12,
+    borderWidth: 1,
     paddingHorizontal: 16,
     fontSize: 16,
   },
   loginButton: {
-    height: 52,
+    height: 48,
     borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     marginTop: 8,
-  },
-  loginButtonDisabled: {
-    opacity: 0.6,
+    gap: 8,
   },
   loginButtonText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
-  demoInfo: {
-    marginTop: 24,
+  devInfo: {
+    flexDirection: "row",
+    alignItems: "center",
     padding: 16,
     borderRadius: 12,
-    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+    borderWidth: 1,
+    gap: 8,
+    marginTop: 24,
   },
-  demoText: {
+  devInfoText: {
     fontSize: 13,
-    textAlign: 'center',
+    flex: 1,
   },
 });
