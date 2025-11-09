@@ -2,6 +2,7 @@ import { useColor } from "@/constants/colors";
 import { useAuth } from "@/context/auth-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
+import { Routes } from "./route-config";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
@@ -33,7 +34,7 @@ export default function LoginScreen() {
       await login(loginEmail, loginPassword);
 
       // 로그인 성공 시 메인 화면으로 이동
-      router.replace("/(tabs)");
+      router.replace(Routes.TABS);
     } catch (error) {
       Alert.alert(
         "로그인 실패",

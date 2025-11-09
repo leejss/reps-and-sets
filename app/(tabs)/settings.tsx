@@ -2,6 +2,7 @@ import { useColor } from "@/constants/colors";
 import { useApp } from "@/context/app-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
+import { Routes } from "../route-config";
 import React from "react";
 import {
   ScrollView,
@@ -32,7 +33,7 @@ export default function SettingsScreen() {
           onPress: async () => {
             await logout();
             // 로그아웃 후 로그인 화면으로 이동
-            router.replace('/login');
+            router.replace(Routes.LOGIN);
           },
         },
       ],

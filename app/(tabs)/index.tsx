@@ -3,6 +3,7 @@ import { useColor } from "@/constants/colors";
 import { useApp } from "@/context/app-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
+import { Routes, RouteHelpers } from "../route-config";
 import React from "react";
 import {
   ScrollView,
@@ -22,11 +23,11 @@ export default function HomeScreen() {
   });
 
   const navigateToRegister = () => {
-    router.push("/workout-register");
+    router.push(Routes.WORKOUT_REGISTER);
   };
 
   const navigateToDetail = (workoutId: string) => {
-    router.push(`/workout-detail?id=${workoutId}`);
+    router.push(RouteHelpers.workoutDetail(workoutId));
   };
 
   return (

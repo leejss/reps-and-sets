@@ -1,0 +1,50 @@
+import type { Href } from "expo-router";
+
+/**
+ * 라우트 경로 중앙 관리
+ *
+ * 모든 라우트 경로를 이 파일에서 중앙화하여 관리합니다.
+ * 라우트 경로가 변경될 경우 이 파일만 수정하면 됩니다.
+ */
+
+export const Routes = {
+  // 인증 관련
+  LOGIN: "/login",
+
+  // 메인 화면
+  ROOT: "/",
+  TABS: "/(tabs)",
+
+  // 운동 관련
+  WORKOUT_REGISTER: "/workout-register",
+  WORKOUT_DETAIL: "/workout-detail",
+
+  // 운동 종목 관련
+  EXERCISE_REGISTER: "/exercise-register",
+} as const;
+
+/**
+ * 라우트 경로를 쿼리 파라미터와 함께 생성하는 헬퍼 함수들
+ */
+export const RouteHelpers = {
+  /**
+   * 운동 상세 화면으로 이동하는 경로 생성
+   * @param workoutId 운동 ID
+   * @returns `/workout-detail?id={workoutId}`
+   */
+  workoutDetail: (workoutId: string): Href => {
+    return `${Routes.WORKOUT_DETAIL}?id=${workoutId}` as Href;
+  },
+
+  /**
+   * 운동 등록 화면으로 이동하는 경로 생성 (편집 모드)
+   * @param exerciseId 운동 종목 ID (선택사항)
+   * @returns `/exercise-register` 또는 `/exercise-register?id={exerciseId}`
+   */
+  exerciseRegister: (exerciseId?: string): Href => {
+    if (exerciseId) {
+      return `${Routes.EXERCISE_REGISTER}?id=${exerciseId}` as Href;
+    }
+    return Routes.EXERCISE_REGISTER;
+  },
+} as const;

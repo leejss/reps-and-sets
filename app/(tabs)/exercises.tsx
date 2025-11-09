@@ -4,36 +4,40 @@ import { useApp } from "@/context/app-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React from "react";
-import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { RouteHelpers } from "../route-config";
 
 export default function ExercisesScreen() {
   const { exercises, deleteExercise } = useApp();
   const colors = useColor();
 
   const onNavigateToRegister = () => {
-    router.push("/exercise-register");
+    router.push(RouteHelpers.exerciseRegister());
   };
 
   const handleEdit = (exerciseId: string) => {
-    router.push(`/exercise-register?id=${exerciseId}`);
+    router.push(RouteHelpers.exerciseRegister(exerciseId));
   };
 
   const handleDelete = (exerciseId: string, exerciseName: string) => {
-    Alert.alert(
-      "운동 삭제",
-      `"${exerciseName}" 운동을 삭제하시겠습니까?`,
-      [
-        {
-          text: "취소",
-          style: "cancel",
-        },
-        {
-          text: "삭제",
-          style: "destructive",
-          onPress: () => deleteExercise(exerciseId),
-        },
-      ]
-    );
+    Alert.alert("운동 삭제", `"${exerciseName}" 운동을 삭제하시겠습니까?`, [
+      {
+        text: "취소",
+        style: "cancel",
+      },
+      {
+        text: "삭제",
+        style: "destructive",
+        onPress: () => deleteExercise(exerciseId),
+      },
+    ]);
   };
 
   return (
@@ -66,7 +70,9 @@ export default function ExercisesScreen() {
           >
             {/* Card Header with Action Buttons */}
             <View style={styles.cardHeader}>
-              <Text style={[styles.exerciseName, { color: colors.text.primary }]}>
+              <Text
+                style={[styles.exerciseName, { color: colors.text.primary }]}
+              >
                 {exercise.name}
               </Text>
               <View style={styles.actionButtons}>
