@@ -1,9 +1,9 @@
-import React from "react";
-import { View, Text, ScrollView, StyleSheet } from "react-native";
-import { router } from "expo-router";
-import { useApp } from "@/context/app-context";
-import { useColor } from "@/constants/colors";
 import { FloatingActionButton } from "@/components/floating-action-button";
+import { useColor } from "@/constants/colors";
+import { useApp } from "@/context/app-context";
+import { router } from "expo-router";
+import React from "react";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 
 export default function ExercisesScreen() {
   const { exercises } = useApp();
@@ -14,29 +14,14 @@ export default function ExercisesScreen() {
   };
 
   return (
-    <View
-      style={[
-        styles.container,
-        { backgroundColor: colors.background },
-      ]}
-    >
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
-      <View
-        style={[
-          styles.header,
-          { backgroundColor: colors.headerSurface },
-        ]}
-      >
-        <Text
-          style={[
-            styles.headerTitle,
-            { color: colors.text.primary },
-          ]}
-        >
-          My Exercises
+      <View style={[styles.header, { backgroundColor: colors.headerSurface }]}>
+        <Text style={[styles.headerTitle, { color: colors.text.primary }]}>
+          내 운동
         </Text>
         <Text style={[styles.headerSubtitle, { color: colors.text.secondary }]}>
-          {exercises.length} exercise{exercises.length !== 1 ? "s" : ""} registered
+          {exercises.length}개의 운동이 등록되었습니다.
         </Text>
       </View>
 
@@ -56,12 +41,7 @@ export default function ExercisesScreen() {
               },
             ]}
           >
-            <Text
-              style={[
-                styles.exerciseName,
-                { color: colors.text.primary },
-              ]}
-            >
+            <Text style={[styles.exerciseName, { color: colors.text.primary }]}>
               {exercise.name}
             </Text>
             <Text
@@ -81,12 +61,7 @@ export default function ExercisesScreen() {
                   },
                 ]}
               >
-                <Text
-                  style={[
-                    styles.tagText,
-                    { color: colors.tag.text },
-                  ]}
-                >
+                <Text style={[styles.tagText, { color: colors.tag.text }]}>
                   {exercise.muscleGroup}
                 </Text>
               </View>
@@ -100,10 +75,7 @@ export default function ExercisesScreen() {
                   ]}
                 >
                   <Text
-                    style={[
-                      styles.tagText,
-                      { color: colors.tag.tutorialText },
-                    ]}
+                    style={[styles.tagText, { color: colors.tag.tutorialText }]}
                   >
                     Has tutorial
                   </Text>
