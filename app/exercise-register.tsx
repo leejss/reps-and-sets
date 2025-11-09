@@ -14,14 +14,14 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const muscleGroups = [
-  "Chest",
-  "Back",
-  "Legs",
-  "Shoulders",
-  "Arms",
-  "Core",
-  "Cardio",
-  "Full Body",
+  "가슴",
+  "등",
+  "하체",
+  "어깨",
+  "팔",
+  "코어",
+  "카디오",
+  "전신",
 ];
 
 export default function ExerciseRegisterScreen() {
@@ -73,7 +73,7 @@ export default function ExerciseRegisterScreen() {
           <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.text.primary }]}>
-          Register New Exercise
+          새로운 운동 추가하기
         </Text>
       </View>
 
@@ -85,7 +85,7 @@ export default function ExerciseRegisterScreen() {
         <View style={styles.formSection}>
           <View style={styles.inputGroup}>
             <Text style={[styles.label, { color: colors.text.label }]}>
-              Exercise Name *
+              운동 이름 *
             </Text>
             <TextInput
               style={[
@@ -105,7 +105,7 @@ export default function ExerciseRegisterScreen() {
 
           <View style={styles.inputGroup}>
             <Text style={[styles.label, { color: colors.text.label }]}>
-              Muscle Group *
+              운동 부위 *
             </Text>
             <View style={styles.muscleGroupGrid}>
               {muscleGroups.map((group) => (
@@ -143,7 +143,7 @@ export default function ExerciseRegisterScreen() {
 
           <View style={styles.inputGroup}>
             <Text style={[styles.label, { color: colors.text.label }]}>
-              Description
+              운동 설명
             </Text>
             <TextInput
               style={[
@@ -166,7 +166,7 @@ export default function ExerciseRegisterScreen() {
 
           <View style={styles.inputGroup}>
             <Text style={[styles.label, { color: colors.text.label }]}>
-              Tutorial Link (Optional)
+              링크 (선택)
             </Text>
             <TextInput
               style={[
@@ -211,14 +211,13 @@ export default function ExerciseRegisterScreen() {
           disabled={!name || !muscleGroup}
           activeOpacity={0.8}
         >
-          <Ionicons name="save" size={20} color={colors.button.primary.text} />
           <Text
             style={[
               styles.submitButtonText,
               { color: colors.button.primary.text },
             ]}
           >
-            Save Exercise
+            운동 추가하기
           </Text>
         </TouchableOpacity>
       </View>

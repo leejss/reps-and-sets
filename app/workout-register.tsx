@@ -126,7 +126,7 @@ export default function WorkoutRegisterScreen() {
           <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.text.primary }]}>
-          Register Today&apos;s Workout
+          오늘의 운동 추가하기
         </Text>
       </View>
 

@@ -61,33 +61,42 @@ export default function HomeScreen() {
             ]}
           >
             <Text style={[styles.emptyText, { color: colors.text.secondary }]}>
-              No workouts scheduled for today.
+              등록된 운동이 없습니다.
             </Text>
             <Text
               style={[styles.emptySubtext, { color: colors.text.tertiary }]}
             >
-              Tap the + button to add exercises
+              아래 + 버튼을 눌러 운동을 추가해보세요
             </Text>
           </View>
         ) : (
           <View style={styles.workoutList}>
             {todayWorkouts.map((workout) => {
-              const completedCount = workout.setDetails.filter((s) => s.completed).length;
+              const completedCount = workout.setDetails.filter(
+                (s) => s.completed,
+              ).length;
               const totalSets = workout.setDetails.length;
-              
+
               // 세트 정보 요약
-              const repsValues = workout.setDetails.map(s => s.reps);
+              const repsValues = workout.setDetails.map((s) => s.reps);
               const minReps = Math.min(...repsValues);
               const maxReps = Math.max(...repsValues);
-              const repsDisplay = minReps === maxReps ? `${minReps} reps` : `${minReps}-${maxReps} reps`;
-              
+              const repsDisplay =
+                minReps === maxReps
+                  ? `${minReps} reps`
+                  : `${minReps}-${maxReps} reps`;
+
               // 무게 정보 요약
-              const weights = workout.setDetails.map(s => s.weight).filter((w): w is number => w !== undefined);
-              const weightDisplay = weights.length > 0
-                ? weights.length === 1 || Math.min(...weights) === Math.max(...weights)
-                  ? `${weights[0]}kg`
-                  : `${Math.min(...weights)}-${Math.max(...weights)}kg`
-                : null;
+              const weights = workout.setDetails
+                .map((s) => s.weight)
+                .filter((w): w is number => w !== undefined);
+              const weightDisplay =
+                weights.length > 0
+                  ? weights.length === 1 ||
+                    Math.min(...weights) === Math.max(...weights)
+                    ? `${weights[0]}kg`
+                    : `${Math.min(...weights)}-${Math.max(...weights)}kg`
+                  : null;
               return (
                 <TouchableOpacity
                   key={workout.id}
