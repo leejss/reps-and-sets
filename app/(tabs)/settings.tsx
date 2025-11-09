@@ -1,6 +1,7 @@
 import { useColor } from "@/constants/colors";
 import { useApp } from "@/context/app-context";
 import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
 import React from "react";
 import {
   ScrollView,
@@ -9,11 +10,34 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Alert,
 } from "react-native";
 
 export default function SettingsScreen() {
   const { user, darkMode, toggleDarkMode, logout } = useApp();
   const colors = useColor();
+
+  const handleLogout = async () => {
+    Alert.alert(
+      '로그아웃',
+      '정말 로그아웃 하시겠습니까?',
+      [
+        {
+          text: '취소',
+          style: 'cancel',
+        },
+        {
+          text: '로그아웃',
+          style: 'destructive',
+          onPress: async () => {
+            await logout();
+            // 로그아웃 후 로그인 화면으로 이동
+            router.replace('/login');
+          },
+        },
+      ],
+    );
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -150,7 +174,7 @@ export default function SettingsScreen() {
                 borderColor: colors.border,
               },
             ]}
-            onPress={logout}
+            onPress={handleLogout}
             activeOpacity={0.7}
           >
             <Ionicons

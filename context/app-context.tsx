@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Exercise, TodayWorkout, User } from '../types';
+import { useAuth } from './auth-context';
 
 interface AppContextType {
   exercises: Exercise[];
@@ -45,10 +46,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [exercises, setExercises] = useState<Exercise[]>(defaultExercises);
   const [todayWorkouts, setTodayWorkouts] = useState<TodayWorkout[]>([]);
   const [darkMode, setDarkMode] = useState(true);
-  const [user] = useState<User>({
-    name: 'Alex Johnson',
-    email: 'alex@example.com',
+  const auth = useAuth();
+  
+  // AuthContext의 user를 AppContext의 user로 사용
+  const [user, setUser] = useState<User>({
+    name: 'Guest',
+    email: 'guest@example.com',
   });
+
+  // AuthContext의 user 정보가 변경되면 동기화
+  useEffect(() => {
+    if (auth.user) {
+      setUser({
+        name: auth.user.name,
+        email: auth.user.email,
+      });
+    }
+  }, [auth.user]);
 
   const addExercise = (exercise: Omit<Exercise, 'id' | 'createdAt'>) => {
     const newExercise: Exercise = {
@@ -136,8 +150,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setDarkMode(!darkMode);
   };
 
-  const logout = () => {
-    console.log('Logging out...');
+  const logout = async () => {
+    try {
+      await auth.logout();
+      // 로그아웃 시 앱 상태 초기화 (선택적)
+      setTodayWorkouts([]);
+    } catch (error) {
+      console.error('Logout error in AppContext:', error);
+    }
   };
 
   return (
