@@ -1,4 +1,4 @@
-import { useApp } from "@/context/app-context";
+import { useAppStore } from "@/stores/app-store";
 
 /**
  * Base Tokens - 기본 색상 팔레트
@@ -199,7 +199,7 @@ export const getColor = (
 
 // Hook to get themed colors based on current dark mode state
 export const useColor = () => {
-  const { darkMode } = useApp();
+  const darkMode = useAppStore((state) => state.darkMode);
 
   return {
     // Primary brand color

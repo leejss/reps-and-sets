@@ -1,5 +1,5 @@
 import { useColor } from "@/constants/colors";
-import { useApp } from "@/context/app-context";
+import { useAppStore } from "@/stores/app-store";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useState } from "react";
@@ -16,12 +16,11 @@ import {
 
 export default function WorkoutDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const {
-    todayWorkouts,
-    toggleSetComplete,
-    toggleWorkoutComplete,
-    updateSetDetails,
-  } = useApp();
+  const todayWorkouts = useAppStore((state) => state.todayWorkouts);
+  const toggleSetComplete = useAppStore((state) => state.toggleSetComplete);
+  const toggleWorkoutComplete = useAppStore((state) => state.toggleWorkoutComplete);
+  const updateSetDetails = useAppStore((state) => state.updateSetDetails);
+
   const colors = useColor();
   const [editingSetIndex, setEditingSetIndex] = useState<number | null>(null);
   const [editReps, setEditReps] = useState("");
@@ -58,14 +57,18 @@ export default function WorkoutDetailScreen() {
     setEditingSetIndex(index);
   };
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (editingSetIndex !== null && editReps) {
       const reps = parseInt(editReps);
       const weight = editWeight ? parseFloat(editWeight) : undefined;
-      updateSetDetails(workout.id, editingSetIndex, reps, weight);
-      setEditingSetIndex(null);
-      setEditReps("");
-      setEditWeight("");
+      try {
+        await updateSetDetails(workout.id, editingSetIndex, reps, weight);
+        setEditingSetIndex(null);
+        setEditReps("");
+        setEditWeight("");
+      } catch (error) {
+        console.error("세트 수정 실패:", error);
+      }
     }
   };
 
@@ -171,7 +174,13 @@ export default function WorkoutDetailScreen() {
               ]}
             >
               <TouchableOpacity
-                onPress={() => toggleSetComplete(workout.id, index)}
+                onPress={async () => {
+                  try {
+                    await toggleSetComplete(workout.id, index);
+                  } catch (error) {
+                    console.error("세트 완료 토글 실패:", error);
+                  }
+                }}
                 style={styles.setCardTouchable}
                 activeOpacity={0.7}
               >
@@ -256,7 +265,13 @@ export default function WorkoutDetailScreen() {
 
         {/* Complete All Button */}
         <TouchableOpacity
-          onPress={() => toggleWorkoutComplete(workout.id)}
+          onPress={async () => {
+            try {
+              await toggleWorkoutComplete(workout.id);
+            } catch (error) {
+              console.error("운동 완료 토글 실패:", error);
+            }
+          }}
           style={[
             styles.completeButton,
             {

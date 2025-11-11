@@ -1,5 +1,5 @@
 import { useColor } from "@/constants/colors";
-import { useApp } from "@/context/app-context";
+import { useAppStore } from "@/stores/app-store";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -25,12 +25,14 @@ const muscleGroups = [
 ];
 
 export default function ExerciseRegisterScreen() {
-  const { addExercise, updateExercise, exercises } = useApp();
+  const addExercise = useAppStore((state) => state.addExercise);
+  const updateExercise = useAppStore((state) => state.updateExercise);
+  const exercises = useAppStore((state) => state.exercises);
   const colors = useColor();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ id?: string }>();
   const isEditMode = !!params.id;
-  
+
   const [name, setName] = useState("");
   const [muscleGroup, setMuscleGroup] = useState("");
   const [description, setDescription] = useState("");
@@ -49,30 +51,35 @@ export default function ExerciseRegisterScreen() {
     }
   }, [isEditMode, params.id, exercises]);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!name || !muscleGroup) {
       return;
     }
 
-    if (isEditMode && params.id) {
-      // 편집 모드: 기존 운동 업데이트
-      updateExercise(params.id, {
-        name,
-        muscleGroup,
-        description: description || undefined,
-        link: link || undefined,
-      });
-    } else {
-      // 추가 모드: 새 운동 추가
-      addExercise({
-        name,
-        muscleGroup,
-        description: description || undefined,
-        link: link || undefined,
-      });
-    }
+    try {
+      if (isEditMode && params.id) {
+        // 편집 모드: 기존 운동 업데이트
+        await updateExercise(params.id, {
+          name,
+          muscleGroup,
+          description: description || undefined,
+          link: link || undefined,
+        });
+      } else {
+        // 추가 모드: 새 운동 추가
+        await addExercise({
+          name,
+          muscleGroup,
+          description: description || undefined,
+          link: link || undefined,
+        });
+      }
 
-    router.back();
+      router.back();
+    } catch (error) {
+      console.error("운동 저장 실패:", error);
+      // 에러는 Context에서 이미 처리되었으므로 여기서는 로그만 남김
+    }
   };
 
   return (

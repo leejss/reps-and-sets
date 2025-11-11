@@ -1,0 +1,410 @@
+import { create } from "zustand";
+import { combine } from "zustand/middleware";
+import * as db from "../lib/database";
+import { Exercise, TodayWorkout } from "../types";
+import { useAuthStore } from "./auth-store";
+
+/**
+ * App Store - 운동 데이터 및 앱 설정 관리
+ *
+ * 책임:
+ * - 운동 목록(exercises) 관리
+ * - 오늘의 운동 기록(todayWorkouts) 관리
+ * - 다크 모드 설정
+ * - Optimistic Update를 통한 빠른 UI 응답
+ * - Supabase와의 데이터 동기화
+ */
+export const useAppStore = create(
+  combine(
+    {
+      // 상태
+      exercises: [] as Exercise[],
+      todayWorkouts: [] as TodayWorkout[],
+      darkMode: true,
+      isLoadingExercises: false,
+      isLoadingWorkouts: false,
+    },
+    (set, get) => ({
+      // ========================================
+      // 데이터 로드 (Fetch)
+      // ========================================
+
+      /**
+       * Supabase에서 운동 목록 새로고침
+       */
+      refreshExercises: async () => {
+        const { isAuthenticated } = useAuthStore.getState();
+        if (!isAuthenticated) return;
+
+        set({ isLoadingExercises: true });
+        try {
+          const data = await db.fetchExercises();
+          set({ exercises: data });
+        } catch (error) {
+          console.error("운동 목록 로드 실패:", error);
+        } finally {
+          set({ isLoadingExercises: false });
+        }
+      },
+
+      /**
+       * Supabase에서 오늘의 운동 기록 새로고침
+       */
+      refreshWorkouts: async () => {
+        const { isAuthenticated } = useAuthStore.getState();
+        if (!isAuthenticated) return;
+
+        set({ isLoadingWorkouts: true });
+        try {
+          const today = new Date();
+          const data = await db.fetchWorkoutLogs(today);
+          set({ todayWorkouts: data });
+        } catch (error) {
+          console.error("운동 기록 로드 실패:", error);
+        } finally {
+          set({ isLoadingWorkouts: false });
+        }
+      },
+
+      /**
+       * 초기 데이터 로드 (앱 시작 시 호출)
+       */
+      loadInitialData: async () => {
+        const { isAuthenticated } = useAuthStore.getState();
+        if (!isAuthenticated) return;
+
+        try {
+          const today = new Date();
+          const [exercisesData, workoutsData] = await Promise.all([
+            db.fetchExercises(),
+            db.fetchWorkoutLogs(today),
+          ]);
+          set({
+            exercises: exercisesData,
+            todayWorkouts: workoutsData,
+          });
+        } catch (error) {
+          console.error("초기 데이터 로드 실패:", error);
+        }
+      },
+
+      /**
+       * 모든 데이터 초기화 (로그아웃 시 호출)
+       */
+      clearData: () => {
+        set({
+          exercises: [],
+          todayWorkouts: [],
+        });
+      },
+
+      // ========================================
+      // 운동 관리 (Exercises)
+      // ========================================
+
+      /**
+       * 운동 추가 (Optimistic Update + Supabase 동기화)
+       */
+      addExercise: async (exercise: Omit<Exercise, "id" | "createdAt">) => {
+        const { isAuthenticated } = useAuthStore.getState();
+        if (!isAuthenticated) {
+          throw new Error("로그인이 필요합니다.");
+        }
+
+        // Optimistic Update: UI에 즉시 반영
+        const tempExercise: Exercise = {
+          ...exercise,
+          id: `temp-${Date.now()}`,
+          createdAt: new Date(),
+        };
+        set((state) => ({
+          exercises: [tempExercise, ...state.exercises],
+        }));
+
+        try {
+          // Supabase에 저장
+          const newExercise = await db.createExercise(exercise);
+
+          // 임시 항목을 실제 데이터로 교체
+          set((state) => ({
+            exercises: state.exercises.map((e) =>
+              e.id === tempExercise.id ? newExercise : e,
+            ),
+          }));
+        } catch (error) {
+          // 실패 시 임시 항목 제거 (Rollback)
+          set((state) => ({
+            exercises: state.exercises.filter((e) => e.id !== tempExercise.id),
+          }));
+          console.error("운동 추가 실패:", error);
+          throw error;
+        }
+      },
+
+      /**
+       * 운동 수정 (Optimistic Update + Supabase 동기화)
+       */
+      updateExercise: async (
+        id: string,
+        exercise: Omit<Exercise, "id" | "createdAt">,
+      ) => {
+        const { isAuthenticated } = useAuthStore.getState();
+        if (!isAuthenticated) {
+          throw new Error("로그인이 필요합니다.");
+        }
+
+        // 이전 상태 저장 (롤백용)
+        const previousExercises = get().exercises;
+
+        // Optimistic Update
+        set((state) => ({
+          exercises: state.exercises.map((e) =>
+            e.id === id ? { ...e, ...exercise } : e,
+          ),
+        }));
+
+        try {
+          // Supabase에 업데이트
+          await db.updateExercise(id, exercise);
+        } catch (error) {
+          // 실패 시 롤백
+          set({ exercises: previousExercises });
+          console.error("운동 수정 실패:", error);
+          throw error;
+        }
+      },
+
+      /**
+       * 운동 삭제 (Optimistic Update + Supabase 동기화)
+       */
+      deleteExercise: async (id: string) => {
+        const { isAuthenticated } = useAuthStore.getState();
+        if (!isAuthenticated) {
+          throw new Error("로그인이 필요합니다.");
+        }
+
+        // 이전 상태 저장 (롤백용)
+        const previousExercises = get().exercises;
+
+        // Optimistic Update
+        set((state) => ({
+          exercises: state.exercises.filter((e) => e.id !== id),
+        }));
+
+        try {
+          // Supabase에서 삭제
+          await db.deleteExercise(id);
+        } catch (error) {
+          // 실패 시 롤백
+          set({ exercises: previousExercises });
+          console.error("운동 삭제 실패:", error);
+          throw error;
+        }
+      },
+
+      // ========================================
+      // 오늘의 운동 기록 관리 (Today Workouts)
+      // ========================================
+
+      /**
+       * 오늘의 운동 추가 (Optimistic Update + Supabase 동기화)
+       */
+      addTodayWorkout: async (workout: Omit<TodayWorkout, "id">) => {
+        const { isAuthenticated } = useAuthStore.getState();
+        if (!isAuthenticated) {
+          throw new Error("로그인이 필요합니다.");
+        }
+
+        // Optimistic Update
+        const tempWorkout: TodayWorkout = {
+          ...workout,
+          id: `temp-${Date.now()}`,
+        };
+        set((state) => ({
+          todayWorkouts: [tempWorkout, ...state.todayWorkouts],
+        }));
+
+        try {
+          // Supabase에 저장
+          const newWorkout = await db.createWorkoutLog(workout);
+
+          // 임시 항목을 실제 데이터로 교체
+          set((state) => ({
+            todayWorkouts: state.todayWorkouts.map((w) =>
+              w.id === tempWorkout.id ? newWorkout : w,
+            ),
+          }));
+        } catch (error) {
+          // 실패 시 임시 항목 제거
+          set((state) => ({
+            todayWorkouts: state.todayWorkouts.filter(
+              (w) => w.id !== tempWorkout.id,
+            ),
+          }));
+          console.error("운동 기록 추가 실패:", error);
+          throw error;
+        }
+      },
+
+      /**
+       * 운동 완료 상태 토글 (Optimistic Update + Supabase 동기화)
+       */
+      toggleWorkoutComplete: async (id: string) => {
+        const { isAuthenticated } = useAuthStore.getState();
+        if (!isAuthenticated) {
+          throw new Error("로그인이 필요합니다.");
+        }
+
+        // 이전 상태 저장
+        const previousWorkouts = get().todayWorkouts;
+
+        // Optimistic Update
+        const updatedWorkouts = previousWorkouts.map((w) => {
+          if (w.id === id) {
+            const newCompleted = !w.completed;
+            return {
+              ...w,
+              completed: newCompleted,
+              setDetails: w.setDetails.map((set) => ({
+                ...set,
+                completed: newCompleted,
+              })),
+            };
+          }
+          return w;
+        });
+        set({ todayWorkouts: updatedWorkouts });
+
+        try {
+          const workout = updatedWorkouts.find((w) => w.id === id);
+          if (workout) {
+            await db.updateWorkoutLog(id, {
+              completed: workout.completed,
+              setDetails: workout.setDetails,
+            });
+          }
+        } catch (error) {
+          // 실패 시 롤백
+          set({ todayWorkouts: previousWorkouts });
+          console.error("운동 완료 토글 실패:", error);
+          throw error;
+        }
+      },
+
+      /**
+       * 세트 완료 상태 토글 (Optimistic Update + Supabase 동기화)
+       */
+      toggleSetComplete: async (workoutId: string, setIndex: number) => {
+        const { isAuthenticated } = useAuthStore.getState();
+        if (!isAuthenticated) {
+          throw new Error("로그인이 필요합니다.");
+        }
+
+        // 이전 상태 저장
+        const previousWorkouts = get().todayWorkouts;
+
+        // Optimistic Update
+        const updatedWorkouts = previousWorkouts.map((w) => {
+          if (w.id === workoutId) {
+            const newSetDetails = [...w.setDetails];
+            newSetDetails[setIndex] = {
+              ...newSetDetails[setIndex],
+              completed: !newSetDetails[setIndex].completed,
+            };
+
+            const allCompleted = newSetDetails.every(
+              (set) => set.completed === true,
+            );
+
+            return {
+              ...w,
+              setDetails: newSetDetails,
+              completed: allCompleted,
+            };
+          }
+          return w;
+        });
+        set({ todayWorkouts: updatedWorkouts });
+
+        try {
+          // Supabase에 업데이트
+          const workout = updatedWorkouts.find((w) => w.id === workoutId);
+          if (workout) {
+            await db.updateWorkoutLog(workoutId, {
+              setDetails: workout.setDetails,
+              completed: workout.completed,
+            });
+          }
+        } catch (error) {
+          // 실패 시 롤백
+          set({ todayWorkouts: previousWorkouts });
+          console.error("세트 완료 토글 실패:", error);
+          throw error;
+        }
+      },
+
+      /**
+       * 세트 상세 정보 업데이트 (Optimistic Update + Supabase 동기화)
+       */
+      updateSetDetails: async (
+        workoutId: string,
+        setIndex: number,
+        reps: number,
+        weight?: number,
+      ) => {
+        const { isAuthenticated } = useAuthStore.getState();
+        if (!isAuthenticated) {
+          throw new Error("로그인이 필요합니다.");
+        }
+
+        // 이전 상태 저장
+        const previousWorkouts = get().todayWorkouts;
+
+        // Optimistic Update
+        const updatedWorkouts = previousWorkouts.map((w) => {
+          if (w.id === workoutId) {
+            const newSetDetails = [...w.setDetails];
+            newSetDetails[setIndex] = {
+              ...newSetDetails[setIndex],
+              reps,
+              weight,
+            };
+
+            return {
+              ...w,
+              setDetails: newSetDetails,
+            };
+          }
+          return w;
+        });
+        set({ todayWorkouts: updatedWorkouts });
+
+        try {
+          // Supabase에 업데이트
+          const workout = updatedWorkouts.find((w) => w.id === workoutId);
+          if (workout) {
+            await db.updateWorkoutLog(workoutId, {
+              setDetails: workout.setDetails,
+            });
+          }
+        } catch (error) {
+          // 실패 시 롤백
+          set({ todayWorkouts: previousWorkouts });
+          console.error("세트 상세 업데이트 실패:", error);
+          throw error;
+        }
+      },
+
+      // ========================================
+      // 설정 (Settings)
+      // ========================================
+
+      /**
+       * 다크 모드 토글
+       */
+      toggleDarkMode: () => {
+        set((state) => ({ darkMode: !state.darkMode }));
+      },
+    }),
+  ),
+);

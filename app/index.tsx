@@ -1,5 +1,5 @@
 import { Redirect } from 'expo-router';
-import { useAuth } from '@/context/auth-context';
+import { useAuthStore } from '@/stores/auth-store';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { Colors } from '@/constants/colors';
 import { Routes } from './route-config';
@@ -8,7 +8,8 @@ import { Routes } from './route-config';
  * 루트 화면 - 인증 상태에 따라 로그인 화면 또는 메인 화면으로 리디렉션
  */
 export default function Index() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const isLoading = useAuthStore((state) => state.isLoading);
 
   // 인증 상태를 확인하는 동안 로딩 표시
   if (isLoading) {

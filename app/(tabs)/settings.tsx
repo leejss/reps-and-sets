@@ -1,43 +1,42 @@
 import { useColor } from "@/constants/colors";
-import { useApp } from "@/context/app-context";
+import { useAppStore } from "@/stores/app-store";
+import { useAuthStore } from "@/stores/auth-store";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { Routes } from "../route-config";
 import React from "react";
 import {
+  Alert,
   ScrollView,
   StyleSheet,
   Switch,
   Text,
   TouchableOpacity,
   View,
-  Alert,
 } from "react-native";
+import { Routes } from "../route-config";
 
 export default function SettingsScreen() {
-  const { user, darkMode, toggleDarkMode, logout } = useApp();
+  const user = useAuthStore((state) => state.user);
+  const logout = useAuthStore((state) => state.logout);
+  const darkMode = useAppStore((state) => state.darkMode);
+  const toggleDarkMode = useAppStore((state) => state.toggleDarkMode);
   const colors = useColor();
 
   const handleLogout = async () => {
-    Alert.alert(
-      '로그아웃',
-      '정말 로그아웃 하시겠습니까?',
-      [
-        {
-          text: '취소',
-          style: 'cancel',
+    Alert.alert("로그아웃", "정말 로그아웃 하시겠습니까?", [
+      {
+        text: "취소",
+        style: "cancel",
+      },
+      {
+        text: "로그아웃",
+        style: "destructive",
+        onPress: async () => {
+          await logout();
+          router.replace(Routes.LOGIN);
         },
-        {
-          text: '로그아웃',
-          style: 'destructive',
-          onPress: async () => {
-            await logout();
-            // 로그아웃 후 로그인 화면으로 이동
-            router.replace(Routes.LOGIN);
-          },
-        },
-      ],
-    );
+      },
+    ]);
   };
 
   return (
@@ -77,12 +76,12 @@ export default function SettingsScreen() {
             </View>
             <View style={styles.userInfo}>
               <Text style={[styles.userName, { color: colors.text.primary }]}>
-                {user.name}
+                {user?.name || "Guest"}
               </Text>
               <Text
                 style={[styles.userEmail, { color: colors.text.secondary }]}
               >
-                {user.email}
+                {user?.email || "guest@example.com"}
               </Text>
             </View>
           </View>

@@ -1,8 +1,7 @@
 import { useColor } from "@/constants/colors";
-import { useAuth } from "@/context/auth-context";
+import { useAuthStore } from "@/stores/auth-store";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { Routes } from "./route-config";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
@@ -16,23 +15,64 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { Routes } from "./route-config";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
+  const [showDevLogin, setShowDevLogin] = useState(false);
+  const signInWithGoogle = useAuthStore((state) => state.signInWithGoogle);
+  const signInWithKakao = useAuthStore((state) => state.signInWithKakao);
+  const signInWithEmail = useAuthStore((state) => state.signInWithEmail);
   const colors = useColor();
 
-  const handleLogin = async () => {
+  const handleGoogleLogin = async () => {
     setIsLoading(true);
     try {
-      // 개발 중: 입력값이 없으면 기본 계정 사용
-      const loginEmail = email.trim() || "dev@repandset.com";
-      const loginPassword = password.trim() || "dev123";
+      await signInWithGoogle();
+      // 로그인 성공 시 메인 화면으로 이동
+      router.replace(Routes.TABS);
+    } catch (error) {
+      Alert.alert(
+        "Google 로그인 실패",
+        error instanceof Error ? error.message : "로그인에 실패했습니다.",
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-      await login(loginEmail, loginPassword);
+  // const handleKakaoLogin = async () => {
+  //   setIsLoading(true);
+  //   try {
+  //     await signInWithKakao();
+  //     // 로그인 성공 시 메인 화면으로 이동
+  //     router.replace(Routes.TABS);
+  //   } catch (error) {
+  //     Alert.alert(
+  //       "Kakao 로그인 실패",
+  //       error instanceof Error ? error.message : "로그인에 실패했습니다.",
+  //     );
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // };
 
+  const handleEmailLogin = async () => {
+    if (!signInWithEmail) {
+      Alert.alert("알림", "개발용 로그인이 비활성화되었습니다.");
+      return;
+    }
+
+    if (!email.trim() || !password.trim()) {
+      Alert.alert("알림", "이메일과 비밀번호를 입력해주세요.");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await signInWithEmail(email.trim(), password.trim());
       // 로그인 성공 시 메인 화면으로 이동
       router.replace(Routes.TABS);
     } catch (error) {
@@ -67,91 +107,156 @@ export default function LoginScreen() {
           keyboardShouldPersistTaps="handled"
         >
           <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>
-            로그인
+            소셜 로그인
           </Text>
 
-          {/* Email Input */}
-          <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: colors.text.label }]}>
-              이메일
-            </Text>
-            <TextInput
-              style={[
-                styles.input,
-                {
-                  backgroundColor: colors.input.background,
-                  borderColor: colors.input.border,
-                  color: colors.text.primary,
-                },
-              ]}
-              placeholder="example@email.com"
-              placeholderTextColor={colors.input.placeholder}
-              value={email}
-              onChangeText={setEmail}
-              autoCapitalize="none"
-              keyboardType="email-address"
-              autoComplete="email"
-              editable={!isLoading}
-            />
-          </View>
-
-          {/* Password Input */}
-          <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: colors.text.label }]}>
-              비밀번호
-            </Text>
-            <TextInput
-              style={[
-                styles.input,
-                {
-                  backgroundColor: colors.input.background,
-                  borderColor: colors.input.border,
-                  color: colors.text.primary,
-                },
-              ]}
-              placeholder="••••••••"
-              placeholderTextColor={colors.input.placeholder}
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              autoComplete="password"
-              editable={!isLoading}
-            />
-          </View>
-
-          {/* Login Button */}
+          {/* Google Login Button */}
           <TouchableOpacity
             style={[
-              styles.loginButton,
-              {
-                backgroundColor: colors.button.primary.background,
-                opacity: isLoading ? 0.6 : 1,
-              },
+              styles.socialButton,
+              styles.googleButton,
+              { opacity: isLoading ? 0.6 : 1 },
             ]}
-            onPress={handleLogin}
+            onPress={handleGoogleLogin}
             disabled={isLoading}
             activeOpacity={0.8}
           >
-            {isLoading ? (
-              <ActivityIndicator color={colors.button.primary.text} />
-            ) : (
-              <>
-                <Text
-                  style={[
-                    styles.loginButtonText,
-                    { color: colors.button.primary.text },
-                  ]}
-                >
-                  로그인
-                </Text>
-              </>
-            )}
+            <Ionicons name="logo-google" size={20} color="#4285F4" />
+            <Text style={styles.socialButtonText}>Google로 계속하기</Text>
           </TouchableOpacity>
 
-          {/* Dev Info */}
+          {/* Kakao Login Button */}
+          {/* <TouchableOpacity
+            style={[
+              styles.socialButton,
+              styles.kakaoButton,
+              { opacity: isLoading ? 0.6 : 1 },
+            ]}
+            onPress={handleKakaoLogin}
+            disabled={isLoading}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="chatbubble" size={20} color="#000000" />
+            <Text style={styles.kakaoButtonText}>Kakao로 계속하기</Text>
+          </TouchableOpacity>
+ */}
+          {/* Divider */}
+          <View style={styles.divider}>
+            <View
+              style={[styles.dividerLine, { backgroundColor: colors.border }]}
+            />
+            <Text
+              style={[styles.dividerText, { color: colors.text.secondary }]}
+            >
+              또는
+            </Text>
+            <View
+              style={[styles.dividerLine, { backgroundColor: colors.border }]}
+            />
+          </View>
+
+          {/* Dev Login Toggle */}
+          <TouchableOpacity
+            style={styles.devToggle}
+            onPress={() => setShowDevLogin(!showDevLogin)}
+          >
+            <Text
+              style={[styles.devToggleText, { color: colors.text.secondary }]}
+            >
+              {showDevLogin ? "개발자 로그인 숨기기" : "개발자 로그인 표시"}
+            </Text>
+            <Ionicons
+              name={showDevLogin ? "chevron-up" : "chevron-down"}
+              size={16}
+              color={colors.text.secondary}
+            />
+          </TouchableOpacity>
+
+          {/* Dev Email Login */}
+          {showDevLogin && (
+            <View style={styles.devLoginSection}>
+              {/* Email Input */}
+              <View style={styles.inputGroup}>
+                <Text style={[styles.label, { color: colors.text.label }]}>
+                  이메일
+                </Text>
+                <TextInput
+                  style={[
+                    styles.input,
+                    {
+                      backgroundColor: colors.input.background,
+                      borderColor: colors.input.border,
+                      color: colors.text.primary,
+                    },
+                  ]}
+                  placeholder="example@email.com"
+                  placeholderTextColor={colors.input.placeholder}
+                  value={email}
+                  onChangeText={setEmail}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                  autoComplete="email"
+                  editable={!isLoading}
+                />
+              </View>
+
+              {/* Password Input */}
+              <View style={styles.inputGroup}>
+                <Text style={[styles.label, { color: colors.text.label }]}>
+                  비밀번호
+                </Text>
+                <TextInput
+                  style={[
+                    styles.input,
+                    {
+                      backgroundColor: colors.input.background,
+                      borderColor: colors.input.border,
+                      color: colors.text.primary,
+                    },
+                  ]}
+                  placeholder="••••••••"
+                  placeholderTextColor={colors.input.placeholder}
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry
+                  autoComplete="password"
+                  editable={!isLoading}
+                />
+              </View>
+
+              {/* Email Login Button */}
+              <TouchableOpacity
+                style={[
+                  styles.loginButton,
+                  {
+                    backgroundColor: colors.button.secondary.background,
+                    opacity: isLoading ? 0.6 : 1,
+                  },
+                ]}
+                onPress={handleEmailLogin}
+                disabled={isLoading}
+                activeOpacity={0.8}
+              >
+                {isLoading ? (
+                  <ActivityIndicator color={colors.button.secondary.text} />
+                ) : (
+                  <Text
+                    style={[
+                      styles.loginButtonText,
+                      { color: colors.button.secondary.text },
+                    ]}
+                  >
+                    이메일로 로그인
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Info */}
           <View
             style={[
-              styles.devInfo,
+              styles.infoBox,
               {
                 backgroundColor: colors.tag.tutorial,
                 borderColor: colors.border,
@@ -163,10 +268,9 @@ export default function LoginScreen() {
               size={16}
               color={colors.tag.tutorialText}
             />
-            <Text
-              style={[styles.devInfoText, { color: colors.tag.tutorialText }]}
-            >
-              개발 중: 로그인 버튼만 눌러도 자동으로 인증됩니다
+            <Text style={[styles.infoText, { color: colors.tag.tutorialText }]}>
+              Supabase와 연동되어 있습니다. Google 또는 Kakao 계정으로
+              로그인하세요.
             </Text>
           </View>
         </ScrollView>
@@ -204,8 +308,63 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     marginBottom: 24,
   },
+  socialButton: {
+    height: 52,
+    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
+    gap: 12,
+    borderWidth: 1,
+  },
+  googleButton: {
+    backgroundColor: "#FFFFFF",
+    borderColor: "#DADCE0",
+  },
+  socialButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#1F1F1F",
+  },
+  kakaoButton: {
+    backgroundColor: "#FEE500",
+    borderColor: "#FEE500",
+  },
+  kakaoButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#000000",
+  },
+  divider: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 24,
+    gap: 16,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+  },
+  dividerText: {
+    fontSize: 14,
+  },
+  devToggle: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    gap: 8,
+  },
+  devToggleText: {
+    fontSize: 14,
+  },
+  devLoginSection: {
+    marginTop: 16,
+    paddingTop: 16,
+  },
   inputGroup: {
-    marginBottom: 20,
+    marginBottom: 16,
   },
   label: {
     fontSize: 14,
@@ -232,17 +391,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
-  devInfo: {
+  infoBox: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     padding: 16,
     borderRadius: 12,
     borderWidth: 1,
-    gap: 8,
+    gap: 12,
     marginTop: 24,
   },
-  devInfoText: {
+  infoText: {
     fontSize: 13,
     flex: 1,
+    lineHeight: 18,
   },
 });

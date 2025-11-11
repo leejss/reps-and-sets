@@ -1,5 +1,5 @@
 import { useColor } from "@/constants/colors";
-import { useApp } from "@/context/app-context";
+import { useAppStore } from "@/stores/app-store";
 import { SetDetail } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
@@ -15,7 +15,8 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function WorkoutRegisterScreen() {
-  const { exercises, addTodayWorkout } = useApp();
+  const exercises = useAppStore((state) => state.exercises);
+  const addTodayWorkout = useAppStore((state) => state.addTodayWorkout);
   const insets = useSafeAreaInsets();
   const colors = useColor();
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(
@@ -75,7 +76,7 @@ export default function WorkoutRegisterScreen() {
     setSetDetails(newSetDetails);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!selectedExercise || setDetails.length === 0) {
       return;
     }
@@ -86,24 +87,29 @@ export default function WorkoutRegisterScreen() {
       return;
     }
 
-    const today = new Date().toISOString().split("T")[0];
-    addTodayWorkout({
-      exerciseId: selectedExercise.id,
-      exerciseName: selectedExercise.name,
-      muscleGroup: selectedExercise.muscleGroup,
-      setDetails: setDetails,
-      completed: false,
-      date: today,
-    });
+    try {
+      const today = new Date().toISOString().split("T")[0];
+      await addTodayWorkout({
+        exerciseId: selectedExercise.id,
+        exerciseName: selectedExercise.name,
+        muscleGroup: selectedExercise.muscleGroup,
+        setDetails: setDetails,
+        completed: false,
+        date: today,
+      });
 
-    // Reset form and go back
-    setSelectedExerciseId(null);
-    setNumberOfSets("");
-    setSetDetails([]);
-    setUniformReps("");
-    setUniformWeight("");
-    setUseUniformValues(true);
-    router.back();
+      // Reset form and go back
+      setSelectedExerciseId(null);
+      setNumberOfSets("");
+      setSetDetails([]);
+      setUniformReps("");
+      setUniformWeight("");
+      setUseUniformValues(true);
+      router.back();
+    } catch (error) {
+      console.error('운동 추가 실패:', error);
+      // 에러는 Context에서 이미 처리되었으므로 여기서는 로그만 남김
+    }
   };
 
   return (

@@ -1,9 +1,8 @@
 import { FloatingActionButton } from "@/components/floating-action-button";
 import { useColor } from "@/constants/colors";
-import { useApp } from "@/context/app-context";
+import { useAppStore } from "@/stores/app-store";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { Routes, RouteHelpers } from "../route-config";
 import React from "react";
 import {
   ScrollView,
@@ -12,9 +11,11 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { RouteHelpers, Routes } from "../route-config";
 
 export default function HomeScreen() {
-  const { todayWorkouts, toggleWorkoutComplete } = useApp();
+  const todayWorkouts = useAppStore((state) => state.todayWorkouts);
+  const toggleWorkoutComplete = useAppStore((state) => state.toggleWorkoutComplete);
   const colors = useColor();
   const today = new Date().toLocaleDateString("ko-KR", {
     weekday: "long",
@@ -174,9 +175,13 @@ export default function HomeScreen() {
                       </View>
                     </View>
                     <TouchableOpacity
-                      onPress={(e) => {
+                      onPress={async (e) => {
                         e.stopPropagation();
-                        toggleWorkoutComplete(workout.id);
+                        try {
+                          await toggleWorkoutComplete(workout.id);
+                        } catch (error) {
+                          console.error("운동 완료 토글 실패:", error);
+                        }
                       }}
                       style={[
                         styles.checkButton,

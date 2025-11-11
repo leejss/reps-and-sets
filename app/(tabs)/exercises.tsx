@@ -1,6 +1,6 @@
 import { FloatingActionButton } from "@/components/floating-action-button";
 import { useColor } from "@/constants/colors";
-import { useApp } from "@/context/app-context";
+import { useAppStore } from "@/stores/app-store";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React from "react";
@@ -15,7 +15,8 @@ import {
 import { RouteHelpers } from "../route-config";
 
 export default function ExercisesScreen() {
-  const { exercises, deleteExercise } = useApp();
+  const exercises = useAppStore((state) => state.exercises);
+  const deleteExercise = useAppStore((state) => state.deleteExercise);
   const colors = useColor();
 
   const onNavigateToRegister = () => {
@@ -35,7 +36,17 @@ export default function ExercisesScreen() {
       {
         text: "삭제",
         style: "destructive",
-        onPress: () => deleteExercise(exerciseId),
+        onPress: async () => {
+          try {
+            await deleteExercise(exerciseId);
+          } catch (error) {
+            console.error("운동 삭제 실패:", error);
+            Alert.alert(
+              "삭제 실패",
+              "운동 삭제 중 오류가 발생했습니다. 다시 시도해주세요.",
+            );
+          }
+        },
       },
     ]);
   };
