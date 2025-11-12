@@ -1,19 +1,17 @@
-import type { Session, User } from "@supabase/supabase-js";
+import type { Session } from "@supabase/supabase-js";
 import * as AuthSession from "expo-auth-session";
 import * as WebBrowser from "expo-web-browser";
 import { create } from "zustand";
 import { combine } from "zustand/middleware";
 import { supabase } from "../lib/supabase";
 
-// WebBrowser 세션 완료 설정 (OAuth 리다이렉트 처리)
 WebBrowser.maybeCompleteAuthSession();
 
 export const useAuthStore = create(
   combine(
     {
-      isAuthenticated: false,
+      isAuthenticated: false, // if session is not null
       isLoading: true,
-      user: null as { email: string; name: string; id: string } | null,
       session: null as Session | null,
     },
     (set, get) => ({
@@ -24,39 +22,37 @@ export const useAuthStore = create(
         });
       },
 
-      setUser: (user: { email: string; name: string; id: string } | null) => {
-        set({ user });
-      },
-
       setLoading: (loading: boolean) => {
         set({ isLoading: loading });
       },
 
-      // 초기화 함수 (앱 시작 시 호출)
-      initialize: () => {
-        // 초기 세션 확인
-        supabase.auth.getSession().then(({ data: { session } }) => {
-          set({
-            session,
-            isAuthenticated: !!session,
-          });
-          if (session?.user) {
-            updateUserFromSupabaseUser(session.user, set);
-          }
+      initialize: async () => {
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.getSession();
+
+        if (error) {
+          console.error("Error getting session:", error);
+          // TODO:  Emit error event
+          // emit("auth-error", error);
           set({ isLoading: false });
+          return;
+        }
+
+        set({
+          session,
+          isAuthenticated: !!session,
         });
 
-        // Auth 상태 변경 리스너
+        set({ isLoading: false });
+
         supabase.auth.onAuthStateChange((_event, session) => {
+          console.log("onAuthStateChange", _event, session);
           set({
             session,
             isAuthenticated: !!session,
           });
-          if (session?.user) {
-            updateUserFromSupabaseUser(session.user, set);
-          } else {
-            set({ user: null });
-          }
         });
       },
 
@@ -166,14 +162,8 @@ export const useAuthStore = create(
       },
 
       logout: async () => {
-        try {
-          const { error } = await supabase.auth.signOut();
-          if (error) throw error;
-
-          // AppStore 데이터도 초기화
-          const { useAppStore } = await import("./app-store");
-          useAppStore.getState().clearData();
-        } catch (error) {
+        const { error } = await supabase.auth.signOut();
+        if (error) {
           console.error("로그아웃 실패:", error);
           throw error;
         }
@@ -181,27 +171,7 @@ export const useAuthStore = create(
     }),
   ),
 );
-
-function updateUserFromSupabaseUser(
-  supabaseUser: User,
-  set: (
-    state: Partial<{
-      isAuthenticated: boolean;
-      isLoading: boolean;
-      user: { email: string; name: string; id: string } | null;
-      session: Session | null;
-    }>,
-  ) => void,
-) {
-  set({
-    user: {
-      id: supabaseUser.id,
-      email: supabaseUser.email || "",
-      name:
-        supabaseUser.user_metadata?.name ||
-        supabaseUser.user_metadata?.full_name ||
-        supabaseUser.email?.split("@")[0] ||
-        "User",
-    },
-  });
-}
+// TODO: if session is not null, update public.user data
+export const getAuthStore = () => {
+  return useAuthStore.getState();
+};

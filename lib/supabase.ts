@@ -1,10 +1,3 @@
-/**
- * Supabase 클라이언트 설정
- *
- * 이 파일은 Supabase 클라이언트 인스턴스를 생성하고 설정합니다.
- * AsyncStorage를 사용하여 세션을 영구 저장합니다.
- */
-
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createClient, processLock } from "@supabase/supabase-js";
 import { AppState, Platform } from "react-native";
@@ -22,16 +15,22 @@ if (!supabaseUrl || !supabaseAnonKey) {
   );
 }
 
-/**
- * Supabase 클라이언트 인스턴스
- *
- * AsyncStorage를 사용하여 세션을 자동으로 저장하고 복원합니다.
- * 앱이 재시작되어도 로그인 상태가 유지됩니다.
- */
+const ExpoWebSecureStoreAdapter = {
+  getItem: (key: string) => {
+    console.debug("getItem", { key });
+    return AsyncStorage.getItem(key);
+  },
+  setItem: (key: string, value: string) => {
+    return AsyncStorage.setItem(key, value);
+  },
+  removeItem: (key: string) => {
+    return AsyncStorage.removeItem(key);
+  },
+};
+
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    // 웹이 아닌 경우에만 AsyncStorage 사용 (웹은 기본 storage 사용)
-    ...(Platform.OS !== "web" ? { storage: AsyncStorage } : {}),
+    ...(Platform.OS !== "web" ? { storage: ExpoWebSecureStoreAdapter } : {}),
     // 자동 토큰 갱신 활성화
     autoRefreshToken: true,
     // 세션 감지 활성화

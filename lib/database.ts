@@ -1,12 +1,12 @@
 /**
  * 데이터베이스 헬퍼 함수
- * 
+ *
  * Supabase 데이터베이스와 상호작용하는 모든 함수를 정의합니다.
  * Single Responsibility Principle을 따라 각 함수는 하나의 책임만 가집니다.
  */
 
-import { supabase } from './supabase';
-import { Exercise, TodayWorkout, SetDetail } from '../types';
+import { Exercise, SetDetail, TodayWorkout } from "../types";
+import { supabase } from "./supabase";
 
 // ============================================
 // 타입 변환 헬퍼
@@ -20,17 +20,10 @@ const parseDate = (dateString: string): Date => {
 };
 
 /**
- * Date 객체를 ISO 문자열로 변환
- */
-const formatDate = (date: Date): string => {
-  return date.toISOString();
-};
-
-/**
  * Date 객체를 YYYY-MM-DD 형식으로 변환
  */
 const formatDateOnly = (date: Date): string => {
-  return date.toISOString().split('T')[0];
+  return date.toISOString().split("T")[0];
 };
 
 // ============================================
@@ -41,25 +34,27 @@ const formatDateOnly = (date: Date): string => {
  * 현재 사용자의 모든 운동 목록 조회
  */
 export async function fetchExercises(): Promise<Exercise[]> {
-  const { data: { user } } = await supabase.auth.getUser();
-  
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   if (!user) {
-    throw new Error('인증되지 않은 사용자입니다.');
+    throw new Error("인증되지 않은 사용자입니다.");
   }
 
   const { data, error } = await supabase
-    .from('exercises')
-    .select('*')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false });
+    .from("exercises")
+    .select("*")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false });
 
   if (error) {
-    console.error('운동 목록 조회 실패:', error);
+    console.error("운동 목록 조회 실패:", error);
     throw error;
   }
 
   // 데이터베이스 형식을 앱 형식으로 변환
-  return (data || []).map(exercise => ({
+  return (data || []).map((exercise) => ({
     id: exercise.id,
     name: exercise.name,
     muscleGroup: exercise.muscle_group,
@@ -73,16 +68,18 @@ export async function fetchExercises(): Promise<Exercise[]> {
  * 새 운동 생성
  */
 export async function createExercise(
-  exercise: Omit<Exercise, 'id' | 'createdAt'>
+  exercise: Omit<Exercise, "id" | "createdAt">,
 ): Promise<Exercise> {
-  const { data: { user } } = await supabase.auth.getUser();
-  
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   if (!user) {
-    throw new Error('인증되지 않은 사용자입니다.');
+    throw new Error("인증되지 않은 사용자입니다.");
   }
 
   const { data, error } = await supabase
-    .from('exercises')
+    .from("exercises")
     .insert({
       user_id: user.id,
       name: exercise.name,
@@ -94,7 +91,7 @@ export async function createExercise(
     .single();
 
   if (error) {
-    console.error('운동 생성 실패:', error);
+    console.error("운동 생성 실패:", error);
     throw error;
   }
 
@@ -113,22 +110,22 @@ export async function createExercise(
  */
 export async function updateExercise(
   id: string,
-  exercise: Omit<Exercise, 'id' | 'createdAt'>
+  exercise: Omit<Exercise, "id" | "createdAt">,
 ): Promise<Exercise> {
   const { data, error } = await supabase
-    .from('exercises')
+    .from("exercises")
     .update({
       name: exercise.name,
       muscle_group: exercise.muscleGroup,
       description: exercise.description || null,
       link: exercise.link || null,
     })
-    .eq('id', id)
+    .eq("id", id)
     .select()
     .single();
 
   if (error) {
-    console.error('운동 수정 실패:', error);
+    console.error("운동 수정 실패:", error);
     throw error;
   }
 
@@ -146,13 +143,10 @@ export async function updateExercise(
  * 운동 삭제
  */
 export async function deleteExercise(id: string): Promise<void> {
-  const { error } = await supabase
-    .from('exercises')
-    .delete()
-    .eq('id', id);
+  const { error } = await supabase.from("exercises").delete().eq("id", id);
 
   if (error) {
-    console.error('운동 삭제 실패:', error);
+    console.error("운동 삭제 실패:", error);
     throw error;
   }
 }
@@ -165,30 +159,32 @@ export async function deleteExercise(id: string): Promise<void> {
  * 특정 날짜의 운동 기록 조회
  */
 export async function fetchWorkoutLogs(date: Date): Promise<TodayWorkout[]> {
-  const { data: { user } } = await supabase.auth.getUser();
-  
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   if (!user) {
-    throw new Error('인증되지 않은 사용자입니다.');
+    throw new Error("인증되지 않은 사용자입니다.");
   }
 
   const dateString = formatDateOnly(date);
 
   const { data, error } = await supabase
-    .from('workout_logs')
-    .select('*')
-    .eq('user_id', user.id)
-    .eq('workout_date', dateString)
-    .order('created_at', { ascending: false });
+    .from("workout_logs")
+    .select("*")
+    .eq("user_id", user.id)
+    .eq("workout_date", dateString)
+    .order("created_at", { ascending: false });
 
   if (error) {
-    console.error('운동 기록 조회 실패:', error);
+    console.error("운동 기록 조회 실패:", error);
     throw error;
   }
 
   // 데이터베이스 형식을 앱 형식으로 변환
-  return (data || []).map(log => ({
+  return (data || []).map((log) => ({
     id: log.id,
-    exerciseId: log.exercise_id || '',
+    exerciseId: log.exercise_id || "",
     exerciseName: log.exercise_name,
     muscleGroup: log.muscle_group,
     setDetails: log.set_details as SetDetail[],
@@ -201,16 +197,18 @@ export async function fetchWorkoutLogs(date: Date): Promise<TodayWorkout[]> {
  * 새 운동 기록 생성
  */
 export async function createWorkoutLog(
-  workout: Omit<TodayWorkout, 'id'>
+  workout: Omit<TodayWorkout, "id">,
 ): Promise<TodayWorkout> {
-  const { data: { user } } = await supabase.auth.getUser();
-  
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   if (!user) {
-    throw new Error('인증되지 않은 사용자입니다.');
+    throw new Error("인증되지 않은 사용자입니다.");
   }
 
   const { data, error } = await supabase
-    .from('workout_logs')
+    .from("workout_logs")
     .insert({
       user_id: user.id,
       exercise_id: workout.exerciseId || null,
@@ -224,13 +222,13 @@ export async function createWorkoutLog(
     .single();
 
   if (error) {
-    console.error('운동 기록 생성 실패:', error);
+    console.error("운동 기록 생성 실패:", error);
     throw error;
   }
 
   return {
     id: data.id,
-    exerciseId: data.exercise_id || '',
+    exerciseId: data.exercise_id || "",
     exerciseName: data.exercise_name,
     muscleGroup: data.muscle_group,
     setDetails: data.set_details as SetDetail[],
@@ -244,10 +242,10 @@ export async function createWorkoutLog(
  */
 export async function updateWorkoutLog(
   id: string,
-  workout: Partial<Omit<TodayWorkout, 'id'>>
+  workout: Partial<Omit<TodayWorkout, "id">>,
 ): Promise<TodayWorkout> {
   const updateData: any = {};
-  
+
   if (workout.exerciseId !== undefined) {
     updateData.exercise_id = workout.exerciseId || null;
   }
@@ -268,20 +266,20 @@ export async function updateWorkoutLog(
   }
 
   const { data, error } = await supabase
-    .from('workout_logs')
+    .from("workout_logs")
     .update(updateData)
-    .eq('id', id)
+    .eq("id", id)
     .select()
     .single();
 
   if (error) {
-    console.error('운동 기록 수정 실패:', error);
+    console.error("운동 기록 수정 실패:", error);
     throw error;
   }
 
   return {
     id: data.id,
-    exerciseId: data.exercise_id || '',
+    exerciseId: data.exercise_id || "",
     exerciseName: data.exercise_name,
     muscleGroup: data.muscle_group,
     setDetails: data.set_details as SetDetail[],
@@ -294,13 +292,10 @@ export async function updateWorkoutLog(
  * 운동 기록 삭제
  */
 export async function deleteWorkoutLog(id: string): Promise<void> {
-  const { error } = await supabase
-    .from('workout_logs')
-    .delete()
-    .eq('id', id);
+  const { error } = await supabase.from("workout_logs").delete().eq("id", id);
 
   if (error) {
-    console.error('운동 기록 삭제 실패:', error);
+    console.error("운동 기록 삭제 실패:", error);
     throw error;
   }
 }
@@ -313,20 +308,22 @@ export async function deleteWorkoutLog(id: string): Promise<void> {
  * 사용자 프로필 조회
  */
 export async function fetchUserProfile() {
-  const { data: { user } } = await supabase.auth.getUser();
-  
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   if (!user) {
-    throw new Error('인증되지 않은 사용자입니다.');
+    throw new Error("인증되지 않은 사용자입니다.");
   }
 
   const { data, error } = await supabase
-    .from('users')
-    .select('*')
-    .eq('id', user.id)
+    .from("users")
+    .select("*")
+    .eq("id", user.id)
     .single();
 
   if (error) {
-    console.error('사용자 프로필 조회 실패:', error);
+    console.error("사용자 프로필 조회 실패:", error);
     throw error;
   }
 
@@ -340,24 +337,25 @@ export async function updateUserProfile(updates: {
   name?: string;
   profile_photo?: string;
 }) {
-  const { data: { user } } = await supabase.auth.getUser();
-  
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   if (!user) {
-    throw new Error('인증되지 않은 사용자입니다.');
+    throw new Error("인증되지 않은 사용자입니다.");
   }
 
   const { data, error } = await supabase
-    .from('users')
+    .from("users")
     .update(updates)
-    .eq('id', user.id)
+    .eq("id", user.id)
     .select()
     .single();
 
   if (error) {
-    console.error('사용자 프로필 업데이트 실패:', error);
+    console.error("사용자 프로필 업데이트 실패:", error);
     throw error;
   }
 
   return data;
 }
-

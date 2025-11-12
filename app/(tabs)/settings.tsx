@@ -16,10 +16,11 @@ import {
 import { Routes } from "../route-config";
 
 export default function SettingsScreen() {
-  const user = useAuthStore((state) => state.user);
+  const user = useAuthStore((state) => state.session?.user);
   const logout = useAuthStore((state) => state.logout);
   const darkMode = useAppStore((state) => state.darkMode);
   const toggleDarkMode = useAppStore((state) => state.toggleDarkMode);
+  const clearData = useAppStore((state) => state.clearData);
   const colors = useColor();
 
   const handleLogout = async () => {
@@ -33,6 +34,7 @@ export default function SettingsScreen() {
         style: "destructive",
         onPress: async () => {
           await logout();
+          clearData();
           router.replace(Routes.LOGIN);
         },
       },
@@ -76,7 +78,7 @@ export default function SettingsScreen() {
             </View>
             <View style={styles.userInfo}>
               <Text style={[styles.userName, { color: colors.text.primary }]}>
-                {user?.name || "Guest"}
+                {user?.user_metadata?.name || "Guest"}
               </Text>
               <Text
                 style={[styles.userEmail, { color: colors.text.secondary }]}

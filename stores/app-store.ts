@@ -2,18 +2,8 @@ import { create } from "zustand";
 import { combine } from "zustand/middleware";
 import * as db from "../lib/database";
 import { Exercise, TodayWorkout } from "../types";
-import { useAuthStore } from "./auth-store";
+import { getAuthStore, useAuthStore } from "./auth-store";
 
-/**
- * App Store - 운동 데이터 및 앱 설정 관리
- *
- * 책임:
- * - 운동 목록(exercises) 관리
- * - 오늘의 운동 기록(todayWorkouts) 관리
- * - 다크 모드 설정
- * - Optimistic Update를 통한 빠른 UI 응답
- * - Supabase와의 데이터 동기화
- */
 export const useAppStore = create(
   combine(
     {
@@ -25,10 +15,6 @@ export const useAppStore = create(
       isLoadingWorkouts: false,
     },
     (set, get) => ({
-      // ========================================
-      // 데이터 로드 (Fetch)
-      // ========================================
-
       /**
        * Supabase에서 운동 목록 새로고침
        */
@@ -66,12 +52,11 @@ export const useAppStore = create(
         }
       },
 
-      /**
-       * 초기 데이터 로드 (앱 시작 시 호출)
-       */
       loadInitialData: async () => {
-        const { isAuthenticated } = useAuthStore.getState();
-        if (!isAuthenticated) return;
+        const { isAuthenticated } = getAuthStore();
+        if (!isAuthenticated) {
+          return;
+        }
 
         try {
           const today = new Date();
@@ -88,19 +73,12 @@ export const useAppStore = create(
         }
       },
 
-      /**
-       * 모든 데이터 초기화 (로그아웃 시 호출)
-       */
       clearData: () => {
         set({
           exercises: [],
           todayWorkouts: [],
         });
       },
-
-      // ========================================
-      // 운동 관리 (Exercises)
-      // ========================================
 
       /**
        * 운동 추가 (Optimistic Update + Supabase 동기화)
