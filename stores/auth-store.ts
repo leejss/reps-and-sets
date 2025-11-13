@@ -1,11 +1,19 @@
+import {
+  GoogleSignin,
+  statusCodes,
+} from "@react-native-google-signin/google-signin";
 import type { Session } from "@supabase/supabase-js";
-import * as AuthSession from "expo-auth-session";
-import * as WebBrowser from "expo-web-browser";
 import { create } from "zustand";
 import { combine } from "zustand/middleware";
 import { supabase } from "../lib/supabase";
 
-WebBrowser.maybeCompleteAuthSession();
+// Google Sign-In 초기화
+GoogleSignin.configure({
+  webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+  iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+  scopes: ["profile", "email"],
+  offlineAccess: true,
+});
 
 export const useAuthStore = create(
   combine(
@@ -59,87 +67,45 @@ export const useAuthStore = create(
       // Google 소셜 로그인
       signInWithGoogle: async () => {
         try {
-          const redirectUrl = AuthSession.makeRedirectUri({
-            path: "/auth/callback",
+          // 1. Google Play Services 체크 (Android)
+          await GoogleSignin.hasPlayServices({
+            showPlayServicesUpdateDialog: true,
           });
 
-          const { data, error } = await supabase.auth.signInWithOAuth({
+          // 2. Google 로그인 프롬프트
+          const userInfo = await GoogleSignin.signIn();
+
+          // 3. ID Token 확인
+          if (!userInfo.data?.idToken) {
+            throw new Error("ID Token을 받지 못했습니다");
+          }
+
+          console.log("Google Sign-In 성공:", userInfo.data.user);
+
+          // 4. Supabase에 ID Token으로 로그인
+          const { data, error } = await supabase.auth.signInWithIdToken({
             provider: "google",
-            options: {
-              redirectTo: redirectUrl,
-              skipBrowserRedirect: false,
-            },
+            token: userInfo.data.idToken,
           });
 
           if (error) throw error;
 
-          // OAuth URL을 브라우저로 열기
-          if (data.url) {
-            const result = await WebBrowser.openAuthSessionAsync(
-              data.url,
-              redirectUrl,
-            );
+          console.log("Supabase 로그인 성공:", data.user?.email);
 
-            if (result.type === "success") {
-              // URL에서 세션 정보 추출
-              const url = result.url;
-              const params = new URLSearchParams(url.split("#")[1]);
-              const access_token = params.get("access_token");
-              const refresh_token = params.get("refresh_token");
-
-              if (access_token && refresh_token) {
-                await supabase.auth.setSession({
-                  access_token,
-                  refresh_token,
-                });
-              }
-            }
+          // 세션은 onAuthStateChange에서 자동 처리됨
+        } catch (error: any) {
+          // Google Sign-In 에러 핸들링
+          if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+            console.log("사용자가 로그인을 취소했습니다");
+            return; // throw 하지 않음
+          } else if (error.code === statusCodes.IN_PROGRESS) {
+            console.log("로그인이 이미 진행 중입니다");
+            return;
+          } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+            throw new Error("Google Play Services를 사용할 수 없습니다");
           }
-        } catch (error) {
+
           console.error("Google 로그인 실패:", error);
-          throw error;
-        }
-      },
-
-      signInWithKakao: async () => {
-        try {
-          const kakaoAppKey = process.env.EXPO_PUBLIC_KAKAO_APP_KEY;
-
-          if (!kakaoAppKey) {
-            throw new Error("Kakao App Key가 설정되지 않았습니다.");
-          }
-
-          const redirectUrl = AuthSession.makeRedirectUri({
-            path: "/auth/callback",
-          });
-
-          // Kakao OAuth URL 생성
-          const kakaoAuthUrl = `https://kauth.kakao.com/oauth/authorize?client_id=${kakaoAppKey}&redirect_uri=${encodeURIComponent(
-            redirectUrl,
-          )}&response_type=code`;
-
-          // 브라우저로 OAuth 플로우 시작
-          const result = await WebBrowser.openAuthSessionAsync(
-            kakaoAuthUrl,
-            redirectUrl,
-          );
-
-          if (result.type === "success") {
-            const url = result.url;
-            const code = new URL(url).searchParams.get("code");
-
-            if (code) {
-              // Kakao 토큰 교환 (서버 사이드에서 처리하거나 Supabase Edge Function 사용)
-              // 현재는 간단히 에러를 던집니다.
-              // 실제 구현에서는 서버나 Edge Function에서 처리해야 합니다.
-              throw new Error(
-                "Kakao 로그인은 서버 사이드 처리가 필요합니다. " +
-                  "Supabase Edge Function을 구현하거나 백엔드 API를 사용하세요.",
-              );
-            }
-          }
-        } catch (error) {
-          console.error("Kakao 로그인 실패:", error);
           throw error;
         }
       },
@@ -162,6 +128,14 @@ export const useAuthStore = create(
       },
 
       logout: async () => {
+        try {
+          // Google SDK 로그아웃
+          await GoogleSignin.signOut();
+        } catch (error) {
+          console.warn("Google Sign-Out 오류:", error);
+        }
+
+        // Supabase 로그아웃
         const { error } = await supabase.auth.signOut();
         if (error) {
           console.error("로그아웃 실패:", error);

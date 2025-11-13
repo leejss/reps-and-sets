@@ -8,7 +8,6 @@ export default function Index() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const isLoading = useAuthStore((state) => state.isLoading);
 
-  // TODO: handle splash screen later
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>

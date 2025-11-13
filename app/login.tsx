@@ -15,6 +15,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Routes } from "./route-config";
 
 export default function LoginScreen() {
@@ -23,7 +24,7 @@ export default function LoginScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [showDevLogin, setShowDevLogin] = useState(false);
   const signInWithGoogle = useAuthStore((state) => state.signInWithGoogle);
-  const signInWithKakao = useAuthStore((state) => state.signInWithKakao);
+  // const signInWithKakao = useAuthStore((state) => state.signInWithKakao);
   const signInWithEmail = useAuthStore((state) => state.signInWithEmail);
   const colors = useColor();
 
@@ -31,7 +32,6 @@ export default function LoginScreen() {
     setIsLoading(true);
     try {
       await signInWithGoogle();
-      // 로그인 성공 시 메인 화면으로 이동
       router.replace(Routes.TABS);
     } catch (error) {
       Alert.alert(
@@ -86,47 +86,43 @@ export default function LoginScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: colors.headerSurface }]}>
-        <Text style={[styles.headerTitle, { color: colors.text.primary }]}>
-          Rep & Set
-        </Text>
-        <Text style={[styles.headerSubtitle, { color: colors.text.secondary }]}>
-          운동을 기록하고 성장하세요
-        </Text>
-      </View>
-
-      {/* Content */}
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={styles.content}
-      >
-        <ScrollView
-          contentContainerStyle={styles.contentContainer}
-          keyboardShouldPersistTaps="handled"
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+      <View style={[styles.container]}>
+        {/* Header */}
+        <View
+          style={[styles.header, { backgroundColor: colors.headerSurface }]}
         >
-          <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>
-            소셜 로그인
+          <Text style={[styles.headerTitle, { color: colors.text.primary }]}>
+            Rep & Set
           </Text>
+        </View>
 
-          {/* Google Login Button */}
-          <TouchableOpacity
-            style={[
-              styles.socialButton,
-              styles.googleButton,
-              { opacity: isLoading ? 0.6 : 1 },
-            ]}
-            onPress={handleGoogleLogin}
-            disabled={isLoading}
-            activeOpacity={0.8}
+        {/* Content */}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.content}
+        >
+          <ScrollView
+            contentContainerStyle={styles.contentContainer}
+            keyboardShouldPersistTaps="handled"
           >
-            <Ionicons name="logo-google" size={20} color="#4285F4" />
-            <Text style={styles.socialButtonText}>Google로 계속하기</Text>
-          </TouchableOpacity>
+            {/* Google Login Button */}
+            <TouchableOpacity
+              style={[
+                styles.socialButton,
+                styles.googleButton,
+                { opacity: isLoading ? 0.6 : 1 },
+              ]}
+              onPress={handleGoogleLogin}
+              disabled={isLoading}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="logo-google" size={20} color="#4285F4" />
+              <Text style={styles.socialButtonText}>Google로 로그인하기</Text>
+            </TouchableOpacity>
 
-          {/* Kakao Login Button */}
-          {/* <TouchableOpacity
+            {/* Kakao Login Button */}
+            {/* <TouchableOpacity
             style={[
               styles.socialButton,
               styles.kakaoButton,
@@ -140,142 +136,145 @@ export default function LoginScreen() {
             <Text style={styles.kakaoButtonText}>Kakao로 계속하기</Text>
           </TouchableOpacity>
  */}
-          {/* Divider */}
-          <View style={styles.divider}>
-            <View
-              style={[styles.dividerLine, { backgroundColor: colors.border }]}
-            />
-            <Text
-              style={[styles.dividerText, { color: colors.text.secondary }]}
-            >
-              또는
-            </Text>
-            <View
-              style={[styles.dividerLine, { backgroundColor: colors.border }]}
-            />
-          </View>
-
-          {/* Dev Login Toggle */}
-          <TouchableOpacity
-            style={styles.devToggle}
-            onPress={() => setShowDevLogin(!showDevLogin)}
-          >
-            <Text
-              style={[styles.devToggleText, { color: colors.text.secondary }]}
-            >
-              {showDevLogin ? "개발자 로그인 숨기기" : "개발자 로그인 표시"}
-            </Text>
-            <Ionicons
-              name={showDevLogin ? "chevron-up" : "chevron-down"}
-              size={16}
-              color={colors.text.secondary}
-            />
-          </TouchableOpacity>
-
-          {/* Dev Email Login */}
-          {showDevLogin && (
-            <View style={styles.devLoginSection}>
-              {/* Email Input */}
-              <View style={styles.inputGroup}>
-                <Text style={[styles.label, { color: colors.text.label }]}>
-                  이메일
-                </Text>
-                <TextInput
-                  style={[
-                    styles.input,
-                    {
-                      backgroundColor: colors.input.background,
-                      borderColor: colors.input.border,
-                      color: colors.text.primary,
-                    },
-                  ]}
-                  placeholder="example@email.com"
-                  placeholderTextColor={colors.input.placeholder}
-                  value={email}
-                  onChangeText={setEmail}
-                  autoCapitalize="none"
-                  keyboardType="email-address"
-                  autoComplete="email"
-                  editable={!isLoading}
-                />
-              </View>
-
-              {/* Password Input */}
-              <View style={styles.inputGroup}>
-                <Text style={[styles.label, { color: colors.text.label }]}>
-                  비밀번호
-                </Text>
-                <TextInput
-                  style={[
-                    styles.input,
-                    {
-                      backgroundColor: colors.input.background,
-                      borderColor: colors.input.border,
-                      color: colors.text.primary,
-                    },
-                  ]}
-                  placeholder="••••••••"
-                  placeholderTextColor={colors.input.placeholder}
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry
-                  autoComplete="password"
-                  editable={!isLoading}
-                />
-              </View>
-
-              {/* Email Login Button */}
-              <TouchableOpacity
-                style={[
-                  styles.loginButton,
-                  {
-                    backgroundColor: colors.button.secondary.background,
-                    opacity: isLoading ? 0.6 : 1,
-                  },
-                ]}
-                onPress={handleEmailLogin}
-                disabled={isLoading}
-                activeOpacity={0.8}
+            {/* Divider */}
+            <View style={styles.divider}>
+              <View
+                style={[styles.dividerLine, { backgroundColor: colors.border }]}
+              />
+              <Text
+                style={[styles.dividerText, { color: colors.text.secondary }]}
               >
-                {isLoading ? (
-                  <ActivityIndicator color={colors.button.secondary.text} />
-                ) : (
-                  <Text
-                    style={[
-                      styles.loginButtonText,
-                      { color: colors.button.secondary.text },
-                    ]}
-                  >
-                    이메일로 로그인
-                  </Text>
-                )}
-              </TouchableOpacity>
+                또는
+              </Text>
+              <View
+                style={[styles.dividerLine, { backgroundColor: colors.border }]}
+              />
             </View>
-          )}
 
-          {/* Info */}
-          <View
-            style={[
-              styles.infoBox,
-              {
-                backgroundColor: colors.tag.tutorial,
-                borderColor: colors.border,
-              },
-            ]}
-          >
-            <Ionicons
-              name="information-circle-outline"
-              size={16}
-              color={colors.tag.tutorialText}
-            />
-            <Text style={[styles.infoText, { color: colors.tag.tutorialText }]}>
-              Supabase와 연동되어 있습니다. Google 또는 Kakao 계정으로
-              로그인하세요.
-            </Text>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </View>
+            {/* Dev Login Toggle */}
+            <TouchableOpacity
+              style={styles.devToggle}
+              onPress={() => setShowDevLogin(!showDevLogin)}
+            >
+              <Text
+                style={[styles.devToggleText, { color: colors.text.secondary }]}
+              >
+                {showDevLogin ? "개발자 로그인 숨기기" : "개발자 로그인 표시"}
+              </Text>
+              <Ionicons
+                name={showDevLogin ? "chevron-up" : "chevron-down"}
+                size={16}
+                color={colors.text.secondary}
+              />
+            </TouchableOpacity>
+
+            {/* Dev Email Login */}
+            {showDevLogin && (
+              <View style={styles.devLoginSection}>
+                {/* Email Input */}
+                <View style={styles.inputGroup}>
+                  <Text style={[styles.label, { color: colors.text.label }]}>
+                    이메일
+                  </Text>
+                  <TextInput
+                    style={[
+                      styles.input,
+                      {
+                        backgroundColor: colors.input.background,
+                        borderColor: colors.input.border,
+                        color: colors.text.primary,
+                      },
+                    ]}
+                    placeholder="example@email.com"
+                    placeholderTextColor={colors.input.placeholder}
+                    value={email}
+                    onChangeText={setEmail}
+                    autoCapitalize="none"
+                    keyboardType="email-address"
+                    autoComplete="email"
+                    editable={!isLoading}
+                  />
+                </View>
+
+                {/* Password Input */}
+                <View style={styles.inputGroup}>
+                  <Text style={[styles.label, { color: colors.text.label }]}>
+                    비밀번호
+                  </Text>
+                  <TextInput
+                    style={[
+                      styles.input,
+                      {
+                        backgroundColor: colors.input.background,
+                        borderColor: colors.input.border,
+                        color: colors.text.primary,
+                      },
+                    ]}
+                    placeholder="••••••••"
+                    placeholderTextColor={colors.input.placeholder}
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry
+                    autoComplete="password"
+                    editable={!isLoading}
+                  />
+                </View>
+
+                {/* Email Login Button */}
+                <TouchableOpacity
+                  style={[
+                    styles.loginButton,
+                    {
+                      backgroundColor: colors.button.secondary.background,
+                      opacity: isLoading ? 0.6 : 1,
+                    },
+                  ]}
+                  onPress={handleEmailLogin}
+                  disabled={isLoading}
+                  activeOpacity={0.8}
+                >
+                  {isLoading ? (
+                    <ActivityIndicator color={colors.button.secondary.text} />
+                  ) : (
+                    <Text
+                      style={[
+                        styles.loginButtonText,
+                        { color: colors.button.secondary.text },
+                      ]}
+                    >
+                      이메일로 로그인
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* Info */}
+            <View
+              style={[
+                styles.infoBox,
+                {
+                  backgroundColor: colors.tag.tutorial,
+                  borderColor: colors.border,
+                },
+              ]}
+            >
+              <Ionicons
+                name="information-circle-outline"
+                size={16}
+                color={colors.tag.tutorialText}
+              />
+              <Text
+                style={[styles.infoText, { color: colors.tag.tutorialText }]}
+              >
+                Supabase와 연동되어 있습니다. Google 또는 Kakao 계정으로
+                로그인하세요.
+              </Text>
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </View>
+    </SafeAreaView>
   );
 }
 
@@ -285,7 +284,6 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 24,
-    paddingTop: 60,
     paddingBottom: 32,
   },
   headerTitle: {
