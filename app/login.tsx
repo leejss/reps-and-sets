@@ -93,7 +93,7 @@ export default function LoginScreen() {
           style={[styles.header, { backgroundColor: colors.headerSurface }]}
         >
           <Text style={[styles.headerTitle, { color: colors.text.primary }]}>
-            Rep & Set
+            Reps & Sets
           </Text>
         </View>
 
