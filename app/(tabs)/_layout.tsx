@@ -21,6 +21,7 @@ export default function TabLayout() {
             tabBarStyle: {
               backgroundColor: colors.tabBar.background,
               borderTopColor: colors.border,
+              paddingBottom: insets.bottom,
             },
             headerShown: false,
             tabBarButton: HapticTab,
@@ -29,7 +30,7 @@ export default function TabLayout() {
           <Tabs.Screen
             name="index"
             options={{
-              title: "Home",
+              title: "홈",
               tabBarIcon: ({ color, size }) => (
                 <Ionicons name="home" size={size} color={color} />
               ),
@@ -38,16 +39,25 @@ export default function TabLayout() {
           <Tabs.Screen
             name="exercises"
             options={{
-              title: "Exercises",
+              title: "내 운동",
               tabBarIcon: ({ color, size }) => (
                 <Ionicons name="barbell" size={size} color={color} />
               ),
             }}
           />
           <Tabs.Screen
+            name="weekly-plan"
+            options={{
+              title: "주간 계획",
+              tabBarIcon: ({ color, size }) => (
+                <Ionicons name="calendar" size={size} color={color} />
+              ),
+            }}
+          />
+          <Tabs.Screen
             name="settings"
             options={{
-              title: "Settings",
+              title: "설정",
               tabBarIcon: ({ color, size }) => (
                 <Ionicons name="settings" size={size} color={color} />
               ),
