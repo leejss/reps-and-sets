@@ -4,13 +4,13 @@ import { DayCarousel } from "@/features/weekly-plan/components/DayCarousel";
 import { PlanWorkoutEditor } from "@/features/weekly-plan/components/PlanWorkoutEditor";
 import { SummaryCard } from "@/features/weekly-plan/components/SummaryCard";
 import { WorkoutBoard } from "@/features/weekly-plan/components/WorkoutBoard";
+import { useWeeklyPlan } from "@/features/weekly-plan/useWeeklyPlan";
+import { useAppStore } from "@/stores/app-store";
 import {
   Weekday,
   WeeklyWorkout,
   WeeklyWorkoutInput,
-} from "@/features/weekly-plan/types";
-import { useWeeklyPlan } from "@/features/weekly-plan/useWeeklyPlan";
-import { useAppStore } from "@/stores/app-store";
+} from "@/types/weekly-plan";
 import { useFocusEffect } from "@react-navigation/native";
 import React, { useCallback, useMemo, useState } from "react";
 import { Alert, ScrollView, StyleSheet } from "react-native";
@@ -60,6 +60,7 @@ export default function WeeklyPlanScreen() {
 
   const openCreateEditor = () => {
     if (isLoading || isMutating) return;
+
     setEditorState({
       visible: true,
       mode: "create",

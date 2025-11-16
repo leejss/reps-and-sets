@@ -1,4 +1,4 @@
-import { SetDetail } from "./index";
+import { ScheduledWorkoutRecord, SetDetail } from "./index";
 
 export type Weekday = "Mon" | "Tue" | "Wed" | "Thu" | "Fri" | "Sat" | "Sun";
 
@@ -38,7 +38,7 @@ export type DayPlan = {
   label: string;
   dateLabel: string;
   dateISO: string;
-  workouts: WeeklyWorkout[];
+  workouts: ScheduledWorkoutRecord[];
 };
 
 export type WeeklyPlan = {
@@ -47,5 +47,3 @@ export type WeeklyPlan = {
   weekRange: string;
   dayPlans: DayPlan[];
 };
-
-

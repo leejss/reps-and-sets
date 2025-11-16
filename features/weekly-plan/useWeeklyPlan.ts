@@ -14,16 +14,15 @@ import { syncWorkoutLogFromSchedule } from "@/lib/queries/workoutLogs.query";
 import type { ScheduledWorkoutRecord } from "@/lib/types";
 import { getWeekdayFromDate } from "@/lib/utils";
 import { useAppStore } from "@/stores/app-store";
-import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   DayPlan,
   Weekday,
   WEEKDAY_LABELS,
   WEEKDAY_ORDER,
   WeeklyPlan,
-  WeeklyWorkout,
   WeeklyWorkoutInput,
-} from "./types";
+} from "@/types/weekly-plan";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 const buildEmptyPlan = (weekStart: string): WeeklyPlan => {
   const weekStartDay = getStartOfWeek(weekStart);
@@ -50,15 +49,6 @@ const buildEmptyPlan = (weekStart: string): WeeklyPlan => {
   };
 };
 
-const toWeeklyWorkout = (record: ScheduledWorkoutRecord): WeeklyWorkout => ({
-  id: record.id,
-  exerciseId: record.exerciseId,
-  exerciseName: record.exerciseName,
-  muscleGroup: record.muscleGroup,
-  setDetails: record.setDetails,
-  note: record.note,
-});
-
 const mergeWorkoutsIntoPlan = (
   basePlan: WeeklyPlan,
   workouts: ScheduledWorkoutRecord[],
@@ -80,7 +70,7 @@ const mergeWorkoutsIntoPlan = (
     const weekday = getWeekdayFromDate(record.scheduledDate);
     const targetDay = dayPlanMap[weekday];
     if (!targetDay) return;
-    targetDay.workouts.push(toWeeklyWorkout(record));
+    targetDay.workouts.push(record);
   });
 
   return {
@@ -115,11 +105,8 @@ export const useWeeklyPlan = () => {
     setIsLoading(true);
     try {
       const data = await fetchWeeklyPlanWorkouts(anchorDate.toDate());
-
       const basePlan = buildEmptyPlan(data.weekStartDate);
-
       setPlan(mergeWorkoutsIntoPlan(basePlan, data.workouts));
-
       setError(null);
     } catch (err) {
       console.error("주간 계획 로드 실패:", err);
@@ -153,7 +140,7 @@ export const useWeeklyPlan = () => {
             day.id === dayId
               ? {
                   ...day,
-                  workouts: [...day.workouts, toWeeklyWorkout(created)],
+                  workouts: [...day.workouts, created],
                 }
               : day,
           );
@@ -177,9 +164,7 @@ export const useWeeklyPlan = () => {
               ? {
                   ...day,
                   workouts: day.workouts.map((workout) =>
-                    workout.id === workoutId
-                      ? toWeeklyWorkout(updated)
-                      : workout,
+                    workout.id === workoutId ? updated : workout,
                   ),
                 }
               : day,
@@ -216,7 +201,7 @@ export const useWeeklyPlan = () => {
               ? {
                   ...day,
                   workouts: day.workouts.filter(
-                    (workout: WeeklyWorkout) => workout.id !== workoutId,
+                    (workout) => workout.id !== workoutId,
                   ),
                 }
               : day,
