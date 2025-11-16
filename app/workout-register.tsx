@@ -1,4 +1,5 @@
 import { useColor } from "@/constants/colors";
+import { formatLocalDateISO } from "@/lib/date";
 import { useAppStore } from "@/stores/app-store";
 import { SetDetail } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
@@ -88,7 +89,7 @@ export default function WorkoutRegisterScreen() {
     }
 
     try {
-      const today = new Date().toISOString().split("T")[0];
+      const today = formatLocalDateISO(new Date());
       await addTodayWorkout({
         exerciseId: selectedExercise.id,
         exerciseName: selectedExercise.name,

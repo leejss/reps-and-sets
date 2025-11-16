@@ -11,7 +11,8 @@ import {
 } from "@/features/weekly-plan/types";
 import { useWeeklyPlan } from "@/features/weekly-plan/useWeeklyPlan";
 import { useAppStore } from "@/stores/app-store";
-import React, { useMemo, useState } from "react";
+import { useFocusEffect } from "@react-navigation/native";
+import React, { useCallback, useMemo, useState } from "react";
 import { Alert, ScrollView, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -37,6 +38,12 @@ export default function WeeklyPlanScreen() {
     isMutating,
     refresh,
   } = useWeeklyPlan();
+
+  useFocusEffect(
+    useCallback(() => {
+      void refresh();
+    }, [refresh]),
+  );
 
   const selectedPlan = useMemo(
     () =>

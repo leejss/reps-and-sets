@@ -8,6 +8,7 @@
 import { Exercise, SetDetail, TodayWorkout } from "@/types";
 import { Weekday, WeeklyWorkoutInput } from "@/types/weekly-plan";
 
+import { formatLocalDateISO } from "./date";
 import { Database, supabase } from "./supabase";
 import { ensureUserProfile } from "./user-profile";
 
@@ -20,13 +21,6 @@ import { ensureUserProfile } from "./user-profile";
  */
 const parseDate = (dateString: string): Date => {
   return new Date(dateString);
-};
-
-/**
- * Date 객체를 YYYY-MM-DD 형식으로 변환
- */
-const formatDateOnly = (date: Date): string => {
-  return date.toISOString().split("T")[0];
 };
 
 /**
@@ -207,7 +201,7 @@ export async function deleteExercise(id: string): Promise<void> {
 export async function fetchWorkoutLogs(date: Date): Promise<TodayWorkout[]> {
   const user = await getAuthenticatedUser();
 
-  const dateString = formatDateOnly(date);
+  const dateString = formatLocalDateISO(date);
 
   const { data, error } = await supabase
     .from("workout_logs")
@@ -222,16 +216,7 @@ export async function fetchWorkoutLogs(date: Date): Promise<TodayWorkout[]> {
   }
 
   // 데이터베이스 형식을 앱 형식으로 변환
-  return (data || []).map((log) => ({
-    id: log.id,
-    exerciseId: log.exercise_id || "",
-    exerciseName: log.exercise_name,
-    muscleGroup: log.muscle_group,
-    setDetails: log.set_details as SetDetail[],
-    completed: log.completed,
-    date: log.workout_date,
-    scheduledWorkoutId: log.scheduled_workout_id || undefined,
-  }));
+  return (data || []).map(mapWorkoutLog);
 }
 
 /**
@@ -262,16 +247,7 @@ export async function createWorkoutLog(
     throw error;
   }
 
-  return {
-    id: data.id,
-    exerciseId: data.exercise_id || "",
-    exerciseName: data.exercise_name,
-    muscleGroup: data.muscle_group,
-    setDetails: data.set_details as SetDetail[],
-    completed: data.completed,
-    date: data.workout_date,
-    scheduledWorkoutId: data.scheduled_workout_id || undefined,
-  };
+  return mapWorkoutLog(data);
 }
 
 /**
@@ -317,16 +293,38 @@ export async function updateWorkoutLog(
     throw error;
   }
 
-  return {
-    id: data.id,
-    exerciseId: data.exercise_id || "",
-    exerciseName: data.exercise_name,
-    muscleGroup: data.muscle_group,
-    setDetails: data.set_details as SetDetail[],
-    completed: data.completed,
-    date: data.workout_date,
-    scheduledWorkoutId: data.scheduled_workout_id || undefined,
-  };
+  return mapWorkoutLog(data);
+}
+
+export async function syncWorkoutLogFromSchedule(params: {
+  scheduledWorkoutId: string;
+  workout: WeeklyWorkoutInput;
+}): Promise<TodayWorkout | null> {
+  const user = await getAuthenticatedUser();
+
+  const { data, error } = await supabase
+    .from("workout_logs")
+    .update({
+      exercise_id: params.workout.exerciseId,
+      exercise_name: params.workout.exerciseName,
+      muscle_group: params.workout.muscleGroup,
+      set_details: params.workout.setDetails,
+    })
+    .eq("user_id", user.id)
+    .eq("scheduled_workout_id", params.scheduledWorkoutId)
+    .select("*")
+    .maybeSingle();
+
+  if (error) {
+    console.error("운동 로그 동기화 실패:", error);
+    throw error;
+  }
+
+  if (!data) {
+    return null;
+  }
+
+  return mapWorkoutLog(data);
 }
 
 /**
@@ -373,6 +371,19 @@ const mapScheduledWorkout = (
   orderIndex: row.order_index,
 });
 
+type WorkoutLogRow = Database["public"]["Tables"]["workout_logs"]["Row"];
+
+const mapWorkoutLog = (row: WorkoutLogRow): TodayWorkout => ({
+  id: row.id,
+  exerciseId: row.exercise_id || "",
+  exerciseName: row.exercise_name,
+  muscleGroup: row.muscle_group,
+  setDetails: row.set_details as SetDetail[],
+  completed: row.completed,
+  date: row.workout_date,
+  scheduledWorkoutId: row.scheduled_workout_id || undefined,
+});
+
 export async function fetchWeeklyPlanWorkouts(date: Date): Promise<{
   weekStartDate: string;
   workouts: ScheduledWorkoutRecord[];
@@ -382,8 +393,8 @@ export async function fetchWeeklyPlanWorkouts(date: Date): Promise<{
   const weekStart = getWeekStart(date);
   const weekEnd = new Date(weekStart);
   weekEnd.setDate(weekStart.getDate() + 6);
-  const startDate = formatDateOnly(weekStart);
-  const endDate = formatDateOnly(weekEnd);
+  const startDate = formatLocalDateISO(weekStart);
+  const endDate = formatLocalDateISO(weekEnd);
 
   const { data, error } = await supabase
     .from("scheduled_workouts")

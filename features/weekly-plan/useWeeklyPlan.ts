@@ -5,8 +5,11 @@ import {
   deleteWeeklyPlanWorkout,
   fetchWeeklyPlanWorkouts,
   ScheduledWorkoutRecord,
+  syncWorkoutLogFromSchedule,
   updateWeeklyPlanWorkout,
 } from "@/lib/database";
+import { useAppStore } from "@/stores/app-store";
+import { formatLocalDateISO } from "@/lib/date";
 
 import {
   DayPlan,
@@ -44,12 +47,12 @@ const buildEmptyPlan = (weekStart: Date): WeeklyPlan => {
       id: weekday,
       label: WEEKDAY_LABELS[weekday],
       dateLabel: formatChipDate(current),
-      dateISO: current.toISOString().split("T")[0],
+      dateISO: formatLocalDateISO(current),
       workouts: [],
     };
   });
 
-  const toDateString = (date: Date) => date.toISOString().split("T")[0];
+  const toDateString = (date: Date) => formatLocalDateISO(date);
 
   return {
     weekStartDate: toDateString(weekStart),
@@ -111,6 +114,8 @@ export const useWeeklyPlan = () => {
     () => buildEmptyPlan(getStartOfWeek(anchorDate)),
     [anchorDate],
   );
+
+  const refreshTodayWorkouts = useAppStore((state) => state.refreshWorkouts);
 
   const [plan, setPlan] = useState<WeeklyPlan>(initialPlan);
   const [selectedDay, setSelectedDay] = useState<Weekday>("Mon");
@@ -199,11 +204,23 @@ export const useWeeklyPlan = () => {
           );
           return { ...prev, dayPlans: nextDayPlans };
         });
+
+        try {
+          const synced = await syncWorkoutLogFromSchedule({
+            scheduledWorkoutId: updated.id,
+            workout: payload,
+          });
+          if (synced) {
+            await refreshTodayWorkouts();
+          }
+        } catch (syncError) {
+          console.error("오늘의 운동 동기화 실패:", syncError);
+        }
       } finally {
         setIsMutating(false);
       }
     },
-    [],
+    [refreshTodayWorkouts],
   );
 
   const removeWorkout = useCallback(
