@@ -1,22 +1,20 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-
-import {
-  createWeeklyPlanWorkout,
-  deleteWeeklyPlanWorkout,
-  fetchWeeklyPlanWorkouts,
-  getWeekdayFromDate,
-  ScheduledWorkoutRecord,
-  syncWorkoutLogFromSchedule,
-  updateWeeklyPlanWorkout,
-} from "@/lib/database";
 import {
   formatChipDate,
   formatLocalDateISO,
   getCurrentDate,
   getStartOfWeek,
 } from "@/lib/date";
+import {
+  createWeeklyPlanWorkout,
+  deleteWeeklyPlanWorkout,
+  fetchWeeklyPlanWorkouts,
+  updateWeeklyPlanWorkout,
+} from "@/lib/queries/scheduledWorkouts.query";
+import { syncWorkoutLogFromSchedule } from "@/lib/queries/workoutLogs.query";
+import type { ScheduledWorkoutRecord } from "@/lib/types";
+import { getWeekdayFromDate } from "@/lib/utils";
 import { useAppStore } from "@/stores/app-store";
-
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   DayPlan,
   Weekday,
@@ -107,26 +105,21 @@ export const useWeeklyPlan = () => {
   );
 
   const refreshTodayWorkouts = useAppStore((state) => state.refreshWorkouts);
-
   const [plan, setPlan] = useState<WeeklyPlan>(initialPlan);
   const [selectedDay, setSelectedDay] = useState<Weekday>("Mon");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isMutating, setIsMutating] = useState(false);
 
-  const populatePlan = useCallback(
-    (records: ScheduledWorkoutRecord[], weekStartDate: string) => {
-      const basePlan = buildEmptyPlan(weekStartDate);
-      setPlan(mergeWorkoutsIntoPlan(basePlan, records));
-    },
-    [],
-  );
-
   const loadWeeklyPlan = useCallback(async () => {
     setIsLoading(true);
     try {
       const data = await fetchWeeklyPlanWorkouts(anchorDate.toDate());
-      populatePlan(data.workouts, data.weekStartDate);
+
+      const basePlan = buildEmptyPlan(data.weekStartDate);
+
+      setPlan(mergeWorkoutsIntoPlan(basePlan, data.workouts));
+
       setError(null);
     } catch (err) {
       console.error("주간 계획 로드 실패:", err);
@@ -135,7 +128,7 @@ export const useWeeklyPlan = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [anchorDate, populatePlan]);
+  }, [anchorDate]);
 
   useEffect(() => {
     loadWeeklyPlan();

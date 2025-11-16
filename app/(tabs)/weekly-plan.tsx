@@ -41,7 +41,7 @@ export default function WeeklyPlanScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      void refresh();
+      refresh();
     }, [refresh]),
   );
 
