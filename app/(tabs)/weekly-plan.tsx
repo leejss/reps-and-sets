@@ -92,15 +92,19 @@ export default function WeeklyPlanScreen() {
           editorState.workout.id,
           payload,
         );
-      } else {
+      }
+
+      if (editorState.mode === "create") {
         await addWorkout(editorState.targetDay, payload);
       }
+
       closeEditor();
     } catch (err) {
       const message =
         err instanceof Error
           ? err.message
           : "주간 계획을 저장하는 중 오류가 발생했습니다.";
+
       Alert.alert("저장 실패", message);
     }
   };

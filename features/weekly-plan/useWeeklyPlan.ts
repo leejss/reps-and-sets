@@ -4,12 +4,18 @@ import {
   createWeeklyPlanWorkout,
   deleteWeeklyPlanWorkout,
   fetchWeeklyPlanWorkouts,
+  getWeekdayFromDate,
   ScheduledWorkoutRecord,
   syncWorkoutLogFromSchedule,
   updateWeeklyPlanWorkout,
 } from "@/lib/database";
+import {
+  formatChipDate,
+  formatLocalDateISO,
+  getCurrentDate,
+  getStartOfWeek,
+} from "@/lib/date";
 import { useAppStore } from "@/stores/app-store";
-import { formatLocalDateISO } from "@/lib/date";
 
 import {
   DayPlan,
@@ -21,28 +27,12 @@ import {
   WeeklyWorkoutInput,
 } from "./types";
 
-const formatChipDate = (date: Date): string => {
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${month}.${day}`;
-};
-
-const getStartOfWeek = (date: Date): Date => {
-  const result = new Date(date);
-  const day = result.getDay();
-  const diffToMonday = (day + 6) % 7;
-  result.setHours(0, 0, 0, 0);
-  result.setDate(result.getDate() - diffToMonday);
-  return result;
-};
-
-const buildEmptyPlan = (weekStart: Date): WeeklyPlan => {
-  const weekEnd = new Date(weekStart);
-  weekEnd.setDate(weekStart.getDate() + 6);
+const buildEmptyPlan = (weekStart: string): WeeklyPlan => {
+  const weekStartDay = getStartOfWeek(weekStart);
+  const weekEndDay = weekStartDay.add(6, "day");
 
   const dayPlans: DayPlan[] = WEEKDAY_ORDER.map((weekday, index) => {
-    const current = new Date(weekStart);
-    current.setDate(weekStart.getDate() + index);
+    const current = weekStartDay.add(index, "day");
     return {
       id: weekday,
       label: WEEKDAY_LABELS[weekday],
@@ -52,12 +42,12 @@ const buildEmptyPlan = (weekStart: Date): WeeklyPlan => {
     };
   });
 
-  const toDateString = (date: Date) => formatLocalDateISO(date);
-
   return {
-    weekStartDate: toDateString(weekStart),
-    weekEndDate: toDateString(weekEnd),
-    weekRange: `${formatChipDate(weekStart)} - ${formatChipDate(weekEnd)}`,
+    weekStartDate: formatLocalDateISO(weekStartDay),
+    weekEndDate: formatLocalDateISO(weekEndDay),
+    weekRange: `${formatChipDate(weekStartDay)} - ${formatChipDate(
+      weekEndDay,
+    )}`,
     dayPlans,
   };
 };
@@ -89,7 +79,8 @@ const mergeWorkoutsIntoPlan = (
   );
 
   workouts.forEach((record) => {
-    const targetDay = dayPlanMap[record.weekday];
+    const weekday = getWeekdayFromDate(record.scheduledDate);
+    const targetDay = dayPlanMap[weekday];
     if (!targetDay) return;
     targetDay.workouts.push(toWeeklyWorkout(record));
   });
@@ -109,9 +100,9 @@ const mergeWorkoutsIntoPlan = (
 };
 
 export const useWeeklyPlan = () => {
-  const anchorDate = useMemo(() => new Date(), []);
+  const anchorDate = useMemo(() => getCurrentDate(), []);
   const initialPlan = useMemo(
-    () => buildEmptyPlan(getStartOfWeek(anchorDate)),
+    () => buildEmptyPlan(formatLocalDateISO(anchorDate)),
     [anchorDate],
   );
 
@@ -125,8 +116,7 @@ export const useWeeklyPlan = () => {
 
   const populatePlan = useCallback(
     (records: ScheduledWorkoutRecord[], weekStartDate: string) => {
-      const weekStart = new Date(`${weekStartDate}T00:00:00`);
-      const basePlan = buildEmptyPlan(weekStart);
+      const basePlan = buildEmptyPlan(weekStartDate);
       setPlan(mergeWorkoutsIntoPlan(basePlan, records));
     },
     [],
@@ -135,20 +125,20 @@ export const useWeeklyPlan = () => {
   const loadWeeklyPlan = useCallback(async () => {
     setIsLoading(true);
     try {
-      const data = await fetchWeeklyPlanWorkouts(anchorDate);
+      const data = await fetchWeeklyPlanWorkouts(anchorDate.toDate());
       populatePlan(data.workouts, data.weekStartDate);
       setError(null);
     } catch (err) {
       console.error("주간 계획 로드 실패:", err);
       setError("주간 계획을 불러오지 못했습니다.");
-      setPlan(buildEmptyPlan(getStartOfWeek(anchorDate)));
+      setPlan(buildEmptyPlan(formatLocalDateISO(anchorDate)));
     } finally {
       setIsLoading(false);
     }
   }, [anchorDate, populatePlan]);
 
   useEffect(() => {
-    void loadWeeklyPlan();
+    loadWeeklyPlan();
   }, [loadWeeklyPlan]);
 
   const addWorkout = useCallback(
@@ -161,7 +151,6 @@ export const useWeeklyPlan = () => {
         }
         const orderIndex = targetDay.workouts.length;
         const created = await createWeeklyPlanWorkout({
-          weekday: dayId,
           scheduledDate: targetDay.dateISO,
           workout,
           orderIndex,

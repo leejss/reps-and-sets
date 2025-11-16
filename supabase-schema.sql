@@ -1,43 +1,23 @@
--- ============================================
--- Supabase 데이터베이스 스키마 설정
--- Rep and Set 앱용
--- ============================================
-
--- ============================================
--- 기존 객체 정리 (Clean Slate)
--- ============================================
-
--- 1. 테이블 삭제 (CASCADE로 트리거, 인덱스, 제약조건도 함께 삭제)
 DROP TABLE IF EXISTS public.workout_logs CASCADE;
 DROP TABLE IF EXISTS public.scheduled_workouts CASCADE;
 DROP TABLE IF EXISTS public.exercises CASCADE;
 DROP TABLE IF EXISTS public.users CASCADE;
-
--- 2. 함수 삭제
 DROP FUNCTION IF EXISTS public.handle_new_user() CASCADE;
 DROP FUNCTION IF EXISTS public.handle_updated_at() CASCADE;
-
--- 3. ENUM 타입 삭제
 DROP TYPE IF EXISTS public.weekday_enum CASCADE;
 
--- ============================================
--- 스키마 재생성
--- ============================================
-
--- 0. 공통 ENUM 정의
+-- Note: weekday_enum is kept for backward compatibility but no longer used
+-- weekday can be derived from scheduled_date
 CREATE TYPE public.weekday_enum AS ENUM ('Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun');
 
--- 1. users 테이블 생성 (Supabase Auth 연동)
 CREATE TABLE IF NOT EXISTS public.users (
   id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
   email TEXT NOT NULL,
   name TEXT NOT NULL,
-  profile_photo TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
 
--- 2. exercises 테이블 생성
 CREATE TABLE IF NOT EXISTS public.exercises (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES public.users(id) ON DELETE CASCADE NOT NULL,
@@ -49,15 +29,11 @@ CREATE TABLE IF NOT EXISTS public.exercises (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
 
--- 3. scheduled_workouts 테이블 생성
 CREATE TABLE IF NOT EXISTS public.scheduled_workouts (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES public.users(id) ON DELETE CASCADE NOT NULL,
   scheduled_date DATE NOT NULL DEFAULT TIMEZONE('utc'::text, NOW())::date,
-  weekday public.weekday_enum,
-  exercise_id UUID REFERENCES public.exercises(id) ON DELETE RESTRICT,
-  exercise_name TEXT NOT NULL,
-  muscle_group TEXT NOT NULL,
+  exercise_id UUID REFERENCES public.exercises(id) ON DELETE SET NULL,
   set_details JSONB NOT NULL DEFAULT '[]'::jsonb,
   note TEXT,
   order_index SMALLINT NOT NULL DEFAULT 0,
@@ -65,13 +41,10 @@ CREATE TABLE IF NOT EXISTS public.scheduled_workouts (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
 
--- 5. workout_logs 테이블 생성
 CREATE TABLE IF NOT EXISTS public.workout_logs (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES public.users(id) ON DELETE CASCADE NOT NULL,
   exercise_id UUID REFERENCES public.exercises(id) ON DELETE SET NULL,
-  exercise_name TEXT NOT NULL,
-  muscle_group TEXT NOT NULL,
   set_details JSONB NOT NULL DEFAULT '[]'::jsonb,
   completed BOOLEAN DEFAULT false NOT NULL,
   workout_date DATE NOT NULL DEFAULT CURRENT_DATE,
@@ -87,8 +60,8 @@ ALTER TABLE public.workout_logs
 -- ============================================
 
 -- exercises 테이블 인덱스
-CREATE INDEX IF NOT EXISTS idx_exercises_user_id ON public.exercises(user_id);
-CREATE INDEX IF NOT EXISTS idx_exercises_muscle_group ON public.exercises(muscle_group);
+CREATE INDEX IF NOT EXISTS idx_exercises_user_id ON public.exercises(user_id) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_exercises_muscle_group ON public.exercises(muscle_group) WHERE deleted_at IS NULL;
 
 -- workout_logs 테이블 인덱스
 CREATE INDEX IF NOT EXISTS idx_workout_logs_user_id ON public.workout_logs(user_id);
@@ -97,7 +70,6 @@ CREATE INDEX IF NOT EXISTS idx_workout_logs_exercise_id ON public.workout_logs(e
 CREATE INDEX IF NOT EXISTS idx_workout_logs_scheduled_workout_id ON public.workout_logs(scheduled_workout_id);
 CREATE INDEX IF NOT EXISTS idx_scheduled_workouts_user_id ON public.scheduled_workouts(user_id);
 CREATE INDEX IF NOT EXISTS idx_scheduled_workouts_date ON public.scheduled_workouts(scheduled_date);
-CREATE INDEX IF NOT EXISTS idx_scheduled_workouts_weekday ON public.scheduled_workouts(weekday);
 
 -- ============================================
 -- Row Level Security (RLS) 정책 설정
@@ -125,7 +97,7 @@ CREATE POLICY "Users can insert own profile"
 -- exercises 테이블 정책
 CREATE POLICY "Users can view own exercises"
   ON public.exercises FOR SELECT
-  USING (auth.uid() = user_id);
+  USING (auth.uid() = user_id AND deleted_at IS NULL);
 
 CREATE POLICY "Users can create own exercises"
   ON public.exercises FOR INSERT
@@ -135,9 +107,10 @@ CREATE POLICY "Users can update own exercises"
   ON public.exercises FOR UPDATE
   USING (auth.uid() = user_id);
 
-CREATE POLICY "Users can delete own exercises"
-  ON public.exercises FOR DELETE
-  USING (auth.uid() = user_id);
+CREATE POLICY "Users can soft delete own exercises"
+  ON public.exercises FOR UPDATE
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
 
 -- workout_logs 테이블 정책
 CREATE POLICY "Users can view own workout logs"

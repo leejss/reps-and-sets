@@ -1,8 +1,8 @@
 import { create } from "zustand";
 import { combine } from "zustand/middleware";
 import * as db from "../lib/database";
+import { formatLocalDateISO } from "../lib/date";
 import { Exercise, TodayWorkout } from "../types";
-import type { WeeklyWorkoutInput } from "../types/weekly-plan";
 import { getAuthStore, useAuthStore } from "./auth-store";
 
 export const useAppStore = create(
@@ -36,6 +36,7 @@ export const useAppStore = create(
 
       /**
        * Supabase에서 오늘의 운동 기록 새로고침
+       * 계획에 있지만 기록에 없는 운동들을 자동으로 생성
        */
       refreshWorkouts: async () => {
         const { isAuthenticated } = useAuthStore.getState();
@@ -44,8 +45,42 @@ export const useAppStore = create(
         set({ isLoadingWorkouts: true });
         try {
           const today = new Date();
-          const data = await db.fetchWorkoutLogs(today);
-          set({ todayWorkouts: data });
+          const dateString = formatLocalDateISO(today);
+
+          // 1. 오늘의 기록과 계획을 병렬로 조회
+          const [workoutLogs, scheduledWorkouts] = await Promise.all([
+            db.fetchWorkoutLogs(today),
+            db.fetchScheduledWorkoutsForDate(dateString),
+          ]);
+
+          // 2. 계획에는 있지만 기록에 없는 운동들을 찾기
+          const logsToCreate = scheduledWorkouts.filter(
+            (scheduled) =>
+              !workoutLogs.some(
+                (log) => log.scheduledWorkoutId === scheduled.id,
+              ),
+          );
+
+          // 3. 자동으로 workout_logs 생성
+          const newLogs = await Promise.all(
+            logsToCreate.map((scheduled) =>
+              db.createWorkoutLog({
+                exerciseId: scheduled.exerciseId,
+                exerciseName: scheduled.exerciseName,
+                muscleGroup: scheduled.muscleGroup,
+                setDetails: scheduled.setDetails.map((set) => ({
+                  ...set,
+                  completed: false,
+                })),
+                completed: false,
+                date: dateString,
+                scheduledWorkoutId: scheduled.id,
+              }),
+            ),
+          );
+
+          // 4. 기존 기록과 새로 생성된 기록을 합쳐서 저장
+          set({ todayWorkouts: [...workoutLogs, ...newLogs] });
         } catch (error) {
           console.error("운동 기록 로드 실패:", error);
         } finally {
@@ -61,13 +96,47 @@ export const useAppStore = create(
 
         try {
           const today = new Date();
-          const [exercisesData, workoutsData] = await Promise.all([
-            db.fetchExercises(),
-            db.fetchWorkoutLogs(today),
-          ]);
+          const dateString = formatLocalDateISO(today);
+
+          // 1. 운동 목록, 오늘의 기록, 오늘의 계획을 병렬로 조회
+          const [exercises, workoutLogs, scheduledWorkouts] = await Promise.all(
+            [
+              db.fetchExercises(),
+              db.fetchWorkoutLogs(today),
+              db.fetchScheduledWorkoutsForDate(dateString),
+            ],
+          );
+
+          // 2. 계획에는 있지만 기록에 없는 운동들을 찾기
+          const logsToCreate = scheduledWorkouts.filter(
+            (scheduled) =>
+              !workoutLogs.some(
+                (log) => log.scheduledWorkoutId === scheduled.id,
+              ),
+          );
+
+          // 3. 자동으로 workout_logs 생성 (계획을 실적으로 변환)
+          const newLogs = await Promise.all(
+            logsToCreate.map((scheduled) =>
+              db.createWorkoutLog({
+                exerciseId: scheduled.exerciseId,
+                exerciseName: scheduled.exerciseName,
+                muscleGroup: scheduled.muscleGroup,
+                setDetails: scheduled.setDetails.map((set) => ({
+                  ...set,
+                  completed: false, // 초기 상태는 미완료
+                })),
+                completed: false,
+                date: dateString,
+                scheduledWorkoutId: scheduled.id,
+              }),
+            ),
+          );
+
+          // 4. 기존 기록과 새로 생성된 기록을 합쳐서 저장
           set({
-            exercises: exercisesData,
-            todayWorkouts: workoutsData,
+            exercises,
+            todayWorkouts: [...workoutLogs, ...newLogs],
           });
         } catch (error) {
           console.error("초기 데이터 로드 실패:", error);
@@ -81,9 +150,6 @@ export const useAppStore = create(
         });
       },
 
-      /**
-       * 운동 추가 (Optimistic Update + Supabase 동기화)
-       */
       addExercise: async (exercise: Omit<Exercise, "id" | "createdAt">) => {
         const { isAuthenticated } = useAuthStore.getState();
         if (!isAuthenticated) {
@@ -181,35 +247,29 @@ export const useAppStore = create(
         }
       },
 
-      // ========================================
-      // 오늘의 운동 기록 관리 (Today Workouts)
-      // ========================================
-
-      /**
-       * 오늘의 운동 추가 (Optimistic Update + Supabase 동기화)
-       */
       addTodayWorkout: async (workout: Omit<TodayWorkout, "id">) => {
         const { isAuthenticated } = useAuthStore.getState();
+
         if (!isAuthenticated) {
           throw new Error("로그인이 필요합니다.");
         }
 
         // Optimistic Update
-        const tempWorkout: TodayWorkout = {
+        const tempWorkout = {
           ...workout,
           id: `temp-${Date.now()}`,
         };
+
         set((state) => ({
           todayWorkouts: [tempWorkout, ...state.todayWorkouts],
         }));
 
         try {
-          const scheduledInput: WeeklyWorkoutInput = {
+          const scheduledInput = {
             exerciseId: workout.exerciseId,
             exerciseName: workout.exerciseName,
             muscleGroup: workout.muscleGroup,
             setDetails: workout.setDetails,
-            note: undefined,
           };
 
           const scheduled = await db.ensureScheduledWorkoutForDate({
@@ -230,12 +290,12 @@ export const useAppStore = create(
             ),
           }));
         } catch (error) {
-          // 실패 시 임시 항목 제거
           set((state) => ({
             todayWorkouts: state.todayWorkouts.filter(
               (w) => w.id !== tempWorkout.id,
             ),
           }));
+
           console.error("운동 기록 추가 실패:", error);
           throw error;
         }

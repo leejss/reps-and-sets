@@ -2,6 +2,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createClient, processLock } from "@supabase/supabase-js";
 import { AppState, Platform } from "react-native";
 import "react-native-url-polyfill/auto";
+import type { Database } from "./database.types";
+
+export type { Database };
 
 // 환경 변수에서 Supabase 설정 가져오기
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
@@ -28,7 +31,7 @@ const ExpoWebSecureStoreAdapter = {
   },
 };
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
     ...(Platform.OS !== "web" ? { storage: ExpoWebSecureStoreAdapter } : {}),
     // 자동 토큰 갱신 활성화
@@ -60,172 +63,3 @@ if (Platform.OS !== "web") {
     }
   });
 }
-
-type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[];
-
-/**
- * 데이터베이스 타입 정의
- *
- * Supabase CLI로 생성된 타입 정의를 여기에 import할 수 있습니다.
- * 예: import { Database } from './database.types';
- */
-export type Database = {
-  public: {
-    Tables: {
-      users: {
-        Row: {
-          id: string;
-          email: string;
-          name: string;
-          profile_photo: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id: string;
-          email: string;
-          name: string;
-          profile_photo?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          email?: string;
-          name?: string;
-          profile_photo?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-      };
-      exercises: {
-        Row: {
-          id: string;
-          user_id: string;
-          name: string;
-          muscle_group: string;
-          description: string | null;
-          link: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          user_id: string;
-          name: string;
-          muscle_group: string;
-          description?: string | null;
-          link?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          user_id?: string;
-          name?: string;
-          muscle_group?: string;
-          description?: string | null;
-          link?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-      };
-      workout_logs: {
-        Row: {
-          id: string;
-          user_id: string;
-          scheduled_workout_id: string | null;
-          exercise_id: string | null;
-          exercise_name: string;
-          muscle_group: string;
-          set_details: Json;
-          completed: boolean;
-          workout_date: string;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          user_id: string;
-          scheduled_workout_id?: string | null;
-          exercise_id?: string | null;
-          exercise_name: string;
-          muscle_group: string;
-          set_details: Json;
-          completed?: boolean;
-          workout_date?: string;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          user_id?: string;
-          scheduled_workout_id?: string | null;
-          exercise_id?: string | null;
-          exercise_name?: string;
-          muscle_group?: string;
-          set_details?: Json;
-          completed?: boolean;
-          workout_date?: string;
-          created_at?: string;
-          updated_at?: string;
-        };
-      };
-      scheduled_workouts: {
-        Row: {
-          id: string;
-          user_id: string;
-          scheduled_date: string;
-          weekday: Database["public"]["Enums"]["weekday_enum"] | null;
-          exercise_id: string | null;
-          exercise_name: string;
-          muscle_group: string;
-          set_details: Json;
-          note: string | null;
-          order_index: number;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          user_id: string;
-          scheduled_date?: string;
-          weekday?: Database["public"]["Enums"]["weekday_enum"] | null;
-          exercise_id?: string | null;
-          exercise_name: string;
-          muscle_group: string;
-          set_details?: Json;
-          note?: string | null;
-          order_index?: number;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          user_id?: string;
-          scheduled_date?: string;
-          weekday?: Database["public"]["Enums"]["weekday_enum"] | null;
-          exercise_id?: string | null;
-          exercise_name?: string;
-          muscle_group?: string;
-          set_details?: Json;
-          note?: string | null;
-          order_index?: number;
-          created_at?: string;
-          updated_at?: string;
-        };
-      };
-    };
-    Views: Record<string, never>;
-    Functions: Record<string, never>;
-    Enums: {
-      weekday_enum: "Mon" | "Tue" | "Wed" | "Thu" | "Fri" | "Sat" | "Sun";
-    };
-  };
-};

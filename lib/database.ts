@@ -1,17 +1,10 @@
-import dayjs from "dayjs";
-
 import { Exercise, SetDetail, TodayWorkout } from "@/types";
 import { Weekday, WeeklyWorkoutInput } from "@/types/weekly-plan";
-
+import dayjs from "dayjs";
 import { formatLocalDateISO } from "./date";
 import { Database, supabase } from "./supabase";
 import { ensureUserProfile } from "./user-profile";
 
-/**
- * 주간 계획 계산용: 해당 주의 월요일 반환
- * @param date - Date 객체 또는 날짜 문자열
- * @returns 해당 주의 월요일 00:00:00 Date 객체
- */
 const getWeekStart = (date: Date | string): Date => {
   const dayjsDate = dayjs(date);
   const day = dayjsDate.day(); // 0 (Sun) - 6 (Sat)
@@ -34,7 +27,7 @@ const WEEKDAY_BY_JS_INDEX: Weekday[] = [
  * @param date - Date 객체 또는 날짜 문자열
  * @returns Weekday 타입 ('Mon', 'Tue', ...)
  */
-const getWeekdayFromDate = (date: Date | string): Weekday => {
+export const getWeekdayFromDate = (date: Date | string): Weekday => {
   return WEEKDAY_BY_JS_INDEX[dayjs(date).day()];
 };
 
@@ -52,12 +45,8 @@ const getAuthenticatedUser = async () => {
   return user;
 };
 
-type ScheduledWorkoutRow =
-  Database["public"]["Tables"]["scheduled_workouts"]["Row"];
-
 export type ScheduledWorkoutRecord = {
   id: string;
-  weekday: Weekday;
   scheduledDate: string;
   exerciseId: string;
   exerciseName: string;
@@ -193,7 +182,16 @@ export async function fetchWorkoutLogs(date: Date): Promise<TodayWorkout[]> {
   }
 
   // 데이터베이스 형식을 앱 형식으로 변환
-  return (data || []).map(mapWorkoutLog);
+  return (data || []).map((row) => ({
+    id: row.id,
+    exerciseId: row.exercise_id || "",
+    exerciseName: row.exercise_name,
+    muscleGroup: row.muscle_group,
+    setDetails: normalizeSetDetails(row.set_details),
+    completed: row.completed,
+    date: row.workout_date,
+    scheduledWorkoutId: row.scheduled_workout_id || undefined,
+  }));
 }
 
 export async function createWorkoutLog(
@@ -208,7 +206,8 @@ export async function createWorkoutLog(
       exercise_id: workout.exerciseId || null,
       exercise_name: workout.exerciseName,
       muscle_group: workout.muscleGroup,
-      set_details: workout.setDetails,
+      set_details:
+        workout.setDetails as unknown as Database["public"]["Tables"]["workout_logs"]["Insert"]["set_details"],
       completed: workout.completed,
       workout_date: workout.date,
       scheduled_workout_id: workout.scheduledWorkoutId ?? null,
@@ -221,7 +220,16 @@ export async function createWorkoutLog(
     throw error;
   }
 
-  return mapWorkoutLog(data);
+  return {
+    id: data.id,
+    exerciseId: data.exercise_id || "",
+    exerciseName: data.exercise_name,
+    muscleGroup: data.muscle_group,
+    setDetails: normalizeSetDetails(data.set_details),
+    completed: data.completed,
+    date: data.workout_date,
+    scheduledWorkoutId: data.scheduled_workout_id || undefined,
+  };
 }
 
 /**
@@ -267,13 +275,22 @@ export async function updateWorkoutLog(
     throw error;
   }
 
-  return mapWorkoutLog(data);
+  return {
+    id: data.id,
+    exerciseId: data.exercise_id || "",
+    exerciseName: data.exercise_name,
+    muscleGroup: data.muscle_group,
+    setDetails: normalizeSetDetails(data.set_details),
+    completed: data.completed,
+    date: data.workout_date,
+    scheduledWorkoutId: data.scheduled_workout_id || undefined,
+  };
 }
 
 export async function syncWorkoutLogFromSchedule(params: {
   scheduledWorkoutId: string;
   workout: WeeklyWorkoutInput;
-}): Promise<TodayWorkout | null> {
+}) {
   const user = await getAuthenticatedUser();
 
   const { data, error } = await supabase
@@ -282,7 +299,8 @@ export async function syncWorkoutLogFromSchedule(params: {
       exercise_id: params.workout.exerciseId,
       exercise_name: params.workout.exerciseName,
       muscle_group: params.workout.muscleGroup,
-      set_details: params.workout.setDetails,
+      set_details: params.workout
+        .setDetails as unknown as Database["public"]["Tables"]["workout_logs"]["Update"]["set_details"],
     })
     .eq("user_id", user.id)
     .eq("scheduled_workout_id", params.scheduledWorkoutId)
@@ -298,24 +316,17 @@ export async function syncWorkoutLogFromSchedule(params: {
     return null;
   }
 
-  return mapWorkoutLog(data);
+  return {
+    id: data.id,
+    exerciseId: data.exercise_id || "",
+    exerciseName: data.exercise_name,
+    muscleGroup: data.muscle_group,
+    setDetails: normalizeSetDetails(data.set_details),
+    completed: data.completed,
+    date: data.workout_date,
+    scheduledWorkoutId: data.scheduled_workout_id || undefined,
+  };
 }
-
-/**
- * 운동 기록 삭제
- */
-export async function deleteWorkoutLog(id: string): Promise<void> {
-  const { error } = await supabase.from("workout_logs").delete().eq("id", id);
-
-  if (error) {
-    console.error("운동 기록 삭제 실패:", error);
-    throw error;
-  }
-}
-
-// ============================================
-// 주간 계획 (Weekly Plan) 함수
-// ============================================
 
 const normalizeSetDetails = (details: unknown): SetDetail[] => {
   if (!Array.isArray(details)) {
@@ -329,32 +340,37 @@ const normalizeSetDetails = (details: unknown): SetDetail[] => {
   }));
 };
 
-const mapScheduledWorkout = (
-  row: ScheduledWorkoutRow,
-): ScheduledWorkoutRecord => ({
-  id: row.id,
-  weekday: (row.weekday as Weekday) ?? getWeekdayFromDate(row.scheduled_date),
-  scheduledDate: row.scheduled_date,
-  exerciseId: row.exercise_id || "",
-  exerciseName: row.exercise_name,
-  muscleGroup: row.muscle_group,
-  setDetails: normalizeSetDetails(row.set_details),
-  note: row.note ?? undefined,
-  orderIndex: row.order_index,
-});
+/**
+ * 특정 날짜의 운동 계획 조회
+ */
+export async function fetchScheduledWorkoutsForDate(
+  date: string,
+): Promise<ScheduledWorkoutRecord[]> {
+  const user = await getAuthenticatedUser();
 
-type WorkoutLogRow = Database["public"]["Tables"]["workout_logs"]["Row"];
+  const { data, error } = await supabase
+    .from("scheduled_workouts")
+    .select("*")
+    .eq("user_id", user.id)
+    .eq("scheduled_date", date)
+    .order("order_index", { ascending: true });
 
-const mapWorkoutLog = (row: WorkoutLogRow): TodayWorkout => ({
-  id: row.id,
-  exerciseId: row.exercise_id || "",
-  exerciseName: row.exercise_name,
-  muscleGroup: row.muscle_group,
-  setDetails: normalizeSetDetails(row.set_details),
-  completed: row.completed,
-  date: row.workout_date,
-  scheduledWorkoutId: row.scheduled_workout_id || undefined,
-});
+  if (error) {
+    console.error("일별 운동 계획 조회 실패:", error);
+    throw error;
+  }
+
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    scheduledDate: row.scheduled_date,
+    exerciseId: row.exercise_id || "",
+    exerciseName: row.exercise_name,
+    muscleGroup: row.muscle_group,
+    setDetails: normalizeSetDetails(row.set_details),
+    note: row.note ?? undefined,
+    orderIndex: row.order_index,
+  }));
+}
 
 export async function fetchWeeklyPlanWorkouts(date: Date): Promise<{
   weekStartDate: string;
@@ -383,12 +399,20 @@ export async function fetchWeeklyPlanWorkouts(date: Date): Promise<{
 
   return {
     weekStartDate: startDate,
-    workouts: (data ?? []).map(mapScheduledWorkout),
+    workouts: (data ?? []).map((row) => ({
+      id: row.id,
+      scheduledDate: row.scheduled_date,
+      exerciseId: row.exercise_id || "",
+      exerciseName: row.exercise_name,
+      muscleGroup: row.muscle_group,
+      setDetails: normalizeSetDetails(row.set_details),
+      note: row.note ?? undefined,
+      orderIndex: row.order_index,
+    })),
   };
 }
 
 export async function createWeeklyPlanWorkout(params: {
-  weekday: Weekday;
   scheduledDate: string;
   workout: WeeklyWorkoutInput;
   orderIndex: number;
@@ -400,11 +424,11 @@ export async function createWeeklyPlanWorkout(params: {
     .insert({
       user_id: user.id,
       scheduled_date: params.scheduledDate,
-      weekday: params.weekday,
       exercise_id: params.workout.exerciseId,
       exercise_name: params.workout.exerciseName,
       muscle_group: params.workout.muscleGroup,
-      set_details: params.workout.setDetails,
+      set_details: params.workout
+        .setDetails as unknown as Database["public"]["Tables"]["scheduled_workouts"]["Insert"]["set_details"],
       note: params.workout.note ?? null,
       order_index: params.orderIndex,
     })
@@ -416,7 +440,16 @@ export async function createWeeklyPlanWorkout(params: {
     throw error;
   }
 
-  return mapScheduledWorkout(data);
+  return {
+    id: data.id,
+    scheduledDate: data.scheduled_date,
+    exerciseId: data.exercise_id || "",
+    exerciseName: data.exercise_name,
+    muscleGroup: data.muscle_group,
+    setDetails: normalizeSetDetails(data.set_details),
+    note: data.note ?? undefined,
+    orderIndex: data.order_index,
+  };
 }
 
 export async function updateWeeklyPlanWorkout(
@@ -429,7 +462,8 @@ export async function updateWeeklyPlanWorkout(
       exercise_id: payload.exerciseId,
       exercise_name: payload.exerciseName,
       muscle_group: payload.muscleGroup,
-      set_details: payload.setDetails,
+      set_details:
+        payload.setDetails as unknown as Database["public"]["Tables"]["scheduled_workouts"]["Update"]["set_details"],
       note: payload.note ?? null,
     })
     .eq("id", id)
@@ -441,7 +475,16 @@ export async function updateWeeklyPlanWorkout(
     throw error;
   }
 
-  return mapScheduledWorkout(data);
+  return {
+    id: data.id,
+    scheduledDate: data.scheduled_date,
+    exerciseId: data.exercise_id || "",
+    exerciseName: data.exercise_name,
+    muscleGroup: data.muscle_group,
+    setDetails: normalizeSetDetails(data.set_details),
+    note: data.note ?? undefined,
+    orderIndex: data.order_index,
+  };
 }
 
 export async function deleteWeeklyPlanWorkout(id: string): Promise<void> {
@@ -467,8 +510,6 @@ export async function ensureScheduledWorkoutForDate(params: {
 
   const user = await getAuthenticatedUser();
 
-  const weekday = getWeekdayFromDate(params.date);
-
   const { data: existing, error: existingError } = await supabase
     .from("scheduled_workouts")
     .select("*")
@@ -483,7 +524,17 @@ export async function ensureScheduledWorkoutForDate(params: {
   }
 
   if (existing && existing.length > 0) {
-    return mapScheduledWorkout(existing[0]);
+    const row = existing[0];
+    return {
+      id: row.id,
+      scheduledDate: row.scheduled_date,
+      exerciseId: row.exercise_id || "",
+      exerciseName: row.exercise_name,
+      muscleGroup: row.muscle_group,
+      setDetails: normalizeSetDetails(row.set_details),
+      note: row.note ?? undefined,
+      orderIndex: row.order_index,
+    };
   }
 
   const { count, error: countError } = await supabase
@@ -500,7 +551,6 @@ export async function ensureScheduledWorkoutForDate(params: {
   const orderIndex = count ?? 0;
 
   return createWeeklyPlanWorkout({
-    weekday,
     scheduledDate: params.date,
     workout: params.workout,
     orderIndex,

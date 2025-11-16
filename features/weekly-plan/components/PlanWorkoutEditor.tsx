@@ -1,3 +1,5 @@
+import { useColor } from "@/constants/colors";
+import { Exercise, SetDetail } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
 import {
@@ -12,12 +14,11 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-
-import { useColor } from "@/constants/colors";
-import { Exercise, SetDetail } from "@/types";
-
 import { SafeAreaView } from "react-native-safe-area-context";
 import { WeeklyWorkoutInput } from "../types";
+
+const MIN_SETS = 1;
+const MAX_SETS = 20;
 
 type PlanWorkoutEditorProps = {
   visible: boolean;
@@ -49,6 +50,7 @@ export const PlanWorkoutEditor = ({
   const [uniformWeight, setUniformWeight] = useState("");
   const [note, setNote] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<string | null>(null);
 
   const selectedExercise = exercises.find((e) => e.id === selectedExerciseId);
   const fallbackExercise = initialValues
@@ -93,9 +95,10 @@ export const PlanWorkoutEditor = ({
   useEffect(() => {
     if (!visible) {
       setIsSubmitting(false);
+      return;
     }
 
-    if (visible && initialValues) {
+    if (initialValues) {
       setSelectedExerciseId(initialValues.exerciseId);
       setNumberOfSets(String(initialValues.setDetails.length));
       setSetDetails(initialValues.setDetails);
@@ -114,20 +117,17 @@ export const PlanWorkoutEditor = ({
             : "",
         );
       }
-    } else if (visible && !initialValues) {
-      setSelectedExerciseId(null);
-      setNumberOfSets("");
-      setSetDetails([]);
-      setUseUniformValues(true);
-      setUniformReps("");
-      setUniformWeight("");
-      setNote("");
+      return;
     }
-  }, [visible, initialValues]);
 
-  const handleSelectExercise = (exercise: Exercise) => {
-    setSelectedExerciseId(exercise.id);
-  };
+    setSelectedExerciseId(null);
+    setNumberOfSets("");
+    setSetDetails([]);
+    setUseUniformValues(true);
+    setUniformReps("");
+    setUniformWeight("");
+    setNote("");
+  }, [visible, initialValues]);
 
   const handleSetDetailChange = (
     index: number,
@@ -146,10 +146,12 @@ export const PlanWorkoutEditor = ({
   const isValid =
     !!activeExercise &&
     setDetails.length > 0 &&
-    setDetails.some((set) => set.reps > 0);
+    setDetails.some((set) => set.reps > 0) &&
+    !errors &&
+    !isSubmitting;
 
   const handleSubmit = async () => {
-    if (!isValid || !activeExercise || isSubmitting) return;
+    if (!isValid || !activeExercise || isSubmitting || errors) return;
     try {
       setIsSubmitting(true);
       await onSubmit({
@@ -241,7 +243,9 @@ export const PlanWorkoutEditor = ({
                           borderWidth: isSelected ? 2 : 1,
                         },
                       ]}
-                      onPress={() => handleSelectExercise(exercise)}
+                      onPress={() => {
+                        setSelectedExerciseId(exercise.id);
+                      }}
                       activeOpacity={0.75}
                     >
                       <View style={styles.exerciseCardContent}>
@@ -348,9 +352,26 @@ export const PlanWorkoutEditor = ({
                     placeholder="예: 3"
                     placeholderTextColor={colors.input.placeholder}
                     value={numberOfSets}
-                    onChangeText={setNumberOfSets}
                     keyboardType="numeric"
+                    onChangeText={(val) => {
+                      const num = parseInt(val);
+                      if (num < MIN_SETS || num > MAX_SETS) {
+                        setErrors(
+                          `세트 수는 ${MIN_SETS}에서 ${MAX_SETS} 사이여야 합니다.`,
+                        );
+                        return;
+                      }
+
+                      setNumberOfSets(val);
+                    }}
                   />
+                  {errors && (
+                    <View>
+                      <Text style={{ color: "red", marginTop: 4 }}>
+                        {errors}
+                      </Text>
+                    </View>
+                  )}
                 </View>
 
                 {setDetails.length > 0 && (
