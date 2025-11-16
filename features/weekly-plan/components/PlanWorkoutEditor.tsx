@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -25,7 +26,7 @@ type PlanWorkoutEditorProps = {
   exercises: Exercise[];
   initialValues?: WeeklyWorkoutInput;
   onClose: () => void;
-  onSubmit: (payload: WeeklyWorkoutInput) => void;
+  onSubmit: (payload: WeeklyWorkoutInput) => Promise<void> | void;
 };
 
 export const PlanWorkoutEditor = ({
@@ -47,6 +48,7 @@ export const PlanWorkoutEditor = ({
   const [uniformReps, setUniformReps] = useState("");
   const [uniformWeight, setUniformWeight] = useState("");
   const [note, setNote] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const selectedExercise = exercises.find((e) => e.id === selectedExerciseId);
   const fallbackExercise = initialValues
@@ -89,6 +91,10 @@ export const PlanWorkoutEditor = ({
   }, [uniformReps, uniformWeight, useUniformValues]);
 
   useEffect(() => {
+    if (!visible) {
+      setIsSubmitting(false);
+    }
+
     if (visible && initialValues) {
       setSelectedExerciseId(initialValues.exerciseId);
       setNumberOfSets(String(initialValues.setDetails.length));
@@ -142,15 +148,20 @@ export const PlanWorkoutEditor = ({
     setDetails.length > 0 &&
     setDetails.some((set) => set.reps > 0);
 
-  const handleSubmit = () => {
-    if (!isValid || !activeExercise) return;
-    onSubmit({
-      exerciseId: activeExercise.id,
-      exerciseName: activeExercise.name,
-      muscleGroup: activeExercise.muscleGroup,
-      setDetails: setDetails,
-      note: note.trim() ? note.trim() : undefined,
-    });
+  const handleSubmit = async () => {
+    if (!isValid || !activeExercise || isSubmitting) return;
+    try {
+      setIsSubmitting(true);
+      await onSubmit({
+        exerciseId: activeExercise.id,
+        exerciseName: activeExercise.name,
+        muscleGroup: activeExercise.muscleGroup,
+        setDetails: setDetails,
+        note: note.trim() ? note.trim() : undefined,
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -283,7 +294,7 @@ export const PlanWorkoutEditor = ({
 
             {activeExercise && (
               <View style={styles.detailsSection}>
-                <View
+                {/* <View
                   style={[
                     styles.selectedExerciseBanner,
                     { backgroundColor: colors.tag.background },
@@ -313,7 +324,7 @@ export const PlanWorkoutEditor = ({
                       {selectedExercise ? "" : " (현재 운동 목록에 없음)"}
                     </Text>
                   </View>
-                </View>
+                </View> */}
 
                 <Text
                   style={[styles.sectionTitle, { color: colors.text.primary }]}
@@ -579,18 +590,22 @@ export const PlanWorkoutEditor = ({
                 styles.modalSubmit,
                 {
                   backgroundColor: colors.primary,
-                  opacity: isValid ? 1 : 0.4,
+                  opacity: isValid && !isSubmitting ? 1 : 0.4,
                 },
               ]}
-              disabled={!isValid}
+              disabled={!isValid || isSubmitting}
               onPress={handleSubmit}
               activeOpacity={0.85}
             >
-              <Ionicons
-                name="checkmark"
-                size={20}
-                color={colors.button.primary.text}
-              />
+              {isSubmitting ? (
+                <ActivityIndicator color={colors.button.primary.text} />
+              ) : (
+                <Ionicons
+                  name="checkmark"
+                  size={20}
+                  color={colors.button.primary.text}
+                />
+              )}
               <Text
                 style={[
                   styles.modalSubmitText,

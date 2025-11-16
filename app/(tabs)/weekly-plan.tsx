@@ -12,7 +12,7 @@ import {
 import { useWeeklyPlan } from "@/features/weekly-plan/useWeeklyPlan";
 import { useAppStore } from "@/stores/app-store";
 import React, { useMemo, useState } from "react";
-import { ScrollView, StyleSheet } from "react-native";
+import { Alert, ScrollView, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 type EditorState = {
@@ -32,6 +32,10 @@ export default function WeeklyPlanScreen() {
     addWorkout,
     editWorkout,
     removeWorkout,
+    isLoading,
+    error,
+    isMutating,
+    refresh,
   } = useWeeklyPlan();
 
   const selectedPlan = useMemo(
@@ -47,21 +51,25 @@ export default function WeeklyPlanScreen() {
     workout: null,
   });
 
-  const openCreateEditor = () =>
+  const openCreateEditor = () => {
+    if (isLoading || isMutating) return;
     setEditorState({
       visible: true,
       mode: "create",
       targetDay: selectedPlan.id,
       workout: null,
     });
+  };
 
-  const openEditEditor = (workout: WeeklyWorkout) =>
+  const openEditEditor = (workout: WeeklyWorkout) => {
+    if (isLoading || isMutating) return;
     setEditorState({
       visible: true,
       mode: "edit",
       targetDay: selectedPlan.id,
       workout,
     });
+  };
 
   const closeEditor = () =>
     setEditorState((prev) => ({
@@ -69,13 +77,37 @@ export default function WeeklyPlanScreen() {
       visible: false,
     }));
 
-  const handleSubmitEditor = (payload: WeeklyWorkoutInput) => {
-    if (editorState.mode === "edit" && editorState.workout) {
-      editWorkout(editorState.targetDay, editorState.workout.id, payload);
-    } else {
-      addWorkout(editorState.targetDay, payload);
+  const handleSubmitEditor = async (payload: WeeklyWorkoutInput) => {
+    try {
+      if (editorState.mode === "edit" && editorState.workout) {
+        await editWorkout(
+          editorState.targetDay,
+          editorState.workout.id,
+          payload,
+        );
+      } else {
+        await addWorkout(editorState.targetDay, payload);
+      }
+      closeEditor();
+    } catch (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : "주간 계획을 저장하는 중 오류가 발생했습니다.";
+      Alert.alert("저장 실패", message);
     }
-    closeEditor();
+  };
+
+  const handleDeleteWorkout = async (workoutId: string) => {
+    try {
+      await removeWorkout(selectedPlan.id, workoutId);
+    } catch (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : "운동을 삭제하는 중 오류가 발생했습니다.";
+      Alert.alert("삭제 실패", message);
+    }
   };
 
   return (
@@ -96,7 +128,11 @@ export default function WeeklyPlanScreen() {
           dayPlan={selectedPlan}
           onAdd={openCreateEditor}
           onEdit={openEditEditor}
-          onDelete={(workoutId) => removeWorkout(selectedPlan.id, workoutId)}
+          onDelete={handleDeleteWorkout}
+          isLoading={isLoading}
+          errorMessage={error}
+          onRetry={refresh}
+          disabled={isMutating}
         />
       </ScrollView>
 

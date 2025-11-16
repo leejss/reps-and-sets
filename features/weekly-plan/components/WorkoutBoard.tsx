@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import {
+  ActivityIndicator,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -16,6 +17,10 @@ type WorkoutBoardProps = {
   onAdd: () => void;
   onEdit: (workout: WeeklyWorkout) => void;
   onDelete: (workoutId: string) => void;
+  isLoading?: boolean;
+  errorMessage?: string | null;
+  onRetry?: () => void;
+  disabled?: boolean;
 };
 
 export const WorkoutBoard = ({
@@ -23,36 +28,65 @@ export const WorkoutBoard = ({
   onAdd,
   onEdit,
   onDelete,
+  isLoading = false,
+  errorMessage,
+  onRetry,
+  disabled = false,
 }: WorkoutBoardProps) => {
   const colors = useColor();
+  const isInteractive = !isLoading && !disabled;
 
-  return (
-    <View style={[styles.workoutBoard, { backgroundColor: colors.surface }]}>
-      <View style={styles.boardHeader}>
-        <View>
-          <Text style={[styles.boardTitle, { color: colors.text.primary }]}>
-            {dayPlan.label} 계획
-          </Text>
-          <Text style={[styles.boardMeta, { color: colors.text.secondary }]}>
-            {dayPlan.dateLabel} · {dayPlan.workouts.length}개의 운동
+  const renderBody = () => {
+    if (isLoading) {
+      return (
+        <View style={styles.feedbackState}>
+          <ActivityIndicator color={colors.primary} size="small" />
+          <Text style={[styles.feedbackText, { color: colors.text.secondary }]}>
+            주간 계획을 불러오는 중입니다...
           </Text>
         </View>
-        <TouchableOpacity
-          style={[
-            styles.headerAddButton,
-            { backgroundColor: colors.iconButton.background },
-          ]}
-          onPress={onAdd}
-          activeOpacity={0.85}
-        >
-          <Ionicons name="add" size={18} color={colors.text.primary} />
-          <Text style={[styles.headerAddLabel, { color: colors.text.primary }]}>
-            추가
-          </Text>
-        </TouchableOpacity>
-      </View>
+      );
+    }
 
-      {dayPlan.workouts.length === 0 ? (
+    if (errorMessage) {
+      return (
+        <View
+          style={[
+            styles.feedbackState,
+            styles.errorState,
+            { borderColor: colors.status.error },
+          ]}
+        >
+          <Ionicons
+            name="warning-outline"
+            size={18}
+            color={colors.status.error}
+          />
+          <Text style={[styles.feedbackText, { color: colors.status.error }]}>
+            {errorMessage}
+          </Text>
+          {onRetry ? (
+            <TouchableOpacity
+              style={[
+                styles.retryButton,
+                { backgroundColor: colors.status.error },
+              ]}
+              onPress={onRetry}
+              activeOpacity={0.8}
+            >
+              <Text
+                style={[styles.retryText, { color: colors.button.primary.text }]}
+              >
+                다시 시도
+              </Text>
+            </TouchableOpacity>
+          ) : null}
+        </View>
+      );
+    }
+
+    if (dayPlan.workouts.length === 0) {
+      return (
         <View
           style={[
             styles.emptyState,
@@ -73,16 +107,50 @@ export const WorkoutBoard = ({
             운동을 추가해 루틴을 완성하세요.
           </Text>
         </View>
-      ) : (
-        dayPlan.workouts.map((workout) => (
-          <WorkoutCard
-            key={workout.id}
-            workout={workout}
-            onEdit={onEdit}
-            onDelete={onDelete}
-          />
-        ))
-      )}
+      );
+    }
+
+    return dayPlan.workouts.map((workout) => (
+      <WorkoutCard
+        key={workout.id}
+        workout={workout}
+        onEdit={onEdit}
+        onDelete={onDelete}
+      />
+    ));
+  };
+
+  return (
+    <View style={[styles.workoutBoard, { backgroundColor: colors.surface }]}>
+      <View style={styles.boardHeader}>
+        <View>
+          <Text style={[styles.boardTitle, { color: colors.text.primary }]}>
+            {dayPlan.label} 계획
+          </Text>
+          <Text style={[styles.boardMeta, { color: colors.text.secondary }]}>
+            {dayPlan.dateLabel} · {dayPlan.workouts.length}개의 운동
+          </Text>
+        </View>
+        <TouchableOpacity
+          style={[
+            styles.headerAddButton,
+            {
+              backgroundColor: colors.iconButton.background,
+              opacity: isInteractive ? 1 : 0.5,
+            },
+          ]}
+          onPress={isInteractive ? onAdd : undefined}
+          activeOpacity={0.85}
+          disabled={!isInteractive}
+        >
+          <Ionicons name="add" size={18} color={colors.text.primary} />
+          <Text style={[styles.headerAddLabel, { color: colors.text.primary }]}>
+            추가
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {renderBody()}
     </View>
   );
 };
@@ -202,6 +270,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
   },
+  feedbackState: {
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 20,
+    alignItems: "center",
+    gap: 8,
+  },
+  errorState: {
+    borderStyle: "solid",
+  },
   emptyTitle: {
     fontSize: 16,
     fontWeight: "600",
@@ -209,6 +287,20 @@ const styles = StyleSheet.create({
   emptyCaption: {
     fontSize: 14,
     textAlign: "center",
+  },
+  feedbackText: {
+    fontSize: 14,
+    textAlign: "center",
+  },
+  retryButton: {
+    marginTop: 4,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 999,
+  },
+  retryText: {
+    fontSize: 13,
+    fontWeight: "600",
   },
   workoutCard: {
     borderWidth: 1,

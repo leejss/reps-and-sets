@@ -5,8 +5,11 @@
  * Single Responsibility Principle을 따라 각 함수는 하나의 책임만 가집니다.
  */
 
-import { Exercise, SetDetail, TodayWorkout } from "../types";
-import { supabase } from "./supabase";
+import { Exercise, SetDetail, TodayWorkout } from "@/types";
+import { Weekday, WeeklyWorkoutInput } from "@/types/weekly-plan";
+
+import { Database, supabase } from "./supabase";
+import { ensureUserProfile } from "./user-profile";
 
 // ============================================
 // 타입 변환 헬퍼
@@ -26,6 +29,61 @@ const formatDateOnly = (date: Date): string => {
   return date.toISOString().split("T")[0];
 };
 
+/**
+ * 주간 계획 계산용: 해당 주의 월요일 반환
+ */
+const getWeekStart = (date: Date): Date => {
+  const cloned = new Date(date);
+  const day = cloned.getDay(); // 0 (Sun) - 6 (Sat)
+  const diffToMonday = (day + 6) % 7;
+  cloned.setHours(0, 0, 0, 0);
+  cloned.setDate(cloned.getDate() - diffToMonday);
+  return cloned;
+};
+
+const WEEKDAY_BY_JS_INDEX: Weekday[] = [
+  "Sun",
+  "Mon",
+  "Tue",
+  "Wed",
+  "Thu",
+  "Fri",
+  "Sat",
+];
+
+const getWeekdayFromDate = (date: Date): Weekday => {
+  return WEEKDAY_BY_JS_INDEX[date.getDay()];
+};
+
+const getAuthenticatedUser = async () => {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error("인증되지 않은 사용자입니다.");
+  }
+
+  await ensureUserProfile(user);
+
+  return user;
+};
+
+type ScheduledWorkoutRow =
+  Database["public"]["Tables"]["scheduled_workouts"]["Row"];
+
+export type ScheduledWorkoutRecord = {
+  id: string;
+  weekday: Weekday;
+  scheduledDate: string;
+  exerciseId: string;
+  exerciseName: string;
+  muscleGroup: string;
+  setDetails: SetDetail[];
+  note?: string;
+  orderIndex: number;
+};
+
 // ============================================
 // Exercise CRUD 함수
 // ============================================
@@ -34,13 +92,7 @@ const formatDateOnly = (date: Date): string => {
  * 현재 사용자의 모든 운동 목록 조회
  */
 export async function fetchExercises(): Promise<Exercise[]> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    throw new Error("인증되지 않은 사용자입니다.");
-  }
+  const user = await getAuthenticatedUser();
 
   const { data, error } = await supabase
     .from("exercises")
@@ -70,13 +122,7 @@ export async function fetchExercises(): Promise<Exercise[]> {
 export async function createExercise(
   exercise: Omit<Exercise, "id" | "createdAt">,
 ): Promise<Exercise> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    throw new Error("인증되지 않은 사용자입니다.");
-  }
+  const user = await getAuthenticatedUser();
 
   const { data, error } = await supabase
     .from("exercises")
@@ -159,13 +205,7 @@ export async function deleteExercise(id: string): Promise<void> {
  * 특정 날짜의 운동 기록 조회
  */
 export async function fetchWorkoutLogs(date: Date): Promise<TodayWorkout[]> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    throw new Error("인증되지 않은 사용자입니다.");
-  }
+  const user = await getAuthenticatedUser();
 
   const dateString = formatDateOnly(date);
 
@@ -190,6 +230,7 @@ export async function fetchWorkoutLogs(date: Date): Promise<TodayWorkout[]> {
     setDetails: log.set_details as SetDetail[],
     completed: log.completed,
     date: log.workout_date,
+    scheduledWorkoutId: log.scheduled_workout_id || undefined,
   }));
 }
 
@@ -199,13 +240,7 @@ export async function fetchWorkoutLogs(date: Date): Promise<TodayWorkout[]> {
 export async function createWorkoutLog(
   workout: Omit<TodayWorkout, "id">,
 ): Promise<TodayWorkout> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    throw new Error("인증되지 않은 사용자입니다.");
-  }
+  const user = await getAuthenticatedUser();
 
   const { data, error } = await supabase
     .from("workout_logs")
@@ -217,6 +252,7 @@ export async function createWorkoutLog(
       set_details: workout.setDetails,
       completed: workout.completed,
       workout_date: workout.date,
+      scheduled_workout_id: workout.scheduledWorkoutId ?? null,
     })
     .select()
     .single();
@@ -234,6 +270,7 @@ export async function createWorkoutLog(
     setDetails: data.set_details as SetDetail[],
     completed: data.completed,
     date: data.workout_date,
+    scheduledWorkoutId: data.scheduled_workout_id || undefined,
   };
 }
 
@@ -244,7 +281,7 @@ export async function updateWorkoutLog(
   id: string,
   workout: Partial<Omit<TodayWorkout, "id">>,
 ): Promise<TodayWorkout> {
-  const updateData: any = {};
+  const updateData: Record<string, unknown> = {};
 
   if (workout.exerciseId !== undefined) {
     updateData.exercise_id = workout.exerciseId || null;
@@ -263,6 +300,9 @@ export async function updateWorkoutLog(
   }
   if (workout.date !== undefined) {
     updateData.workout_date = workout.date;
+  }
+  if (workout.scheduledWorkoutId !== undefined) {
+    updateData.scheduled_workout_id = workout.scheduledWorkoutId ?? null;
   }
 
   const { data, error } = await supabase
@@ -285,6 +325,7 @@ export async function updateWorkoutLog(
     setDetails: data.set_details as SetDetail[],
     completed: data.completed,
     date: data.workout_date,
+    scheduledWorkoutId: data.scheduled_workout_id || undefined,
   };
 }
 
@@ -301,6 +342,190 @@ export async function deleteWorkoutLog(id: string): Promise<void> {
 }
 
 // ============================================
+// 주간 계획 (Weekly Plan) 함수
+// ============================================
+
+const normalizeSetDetails = (details: unknown): SetDetail[] => {
+  if (!Array.isArray(details)) {
+    return [];
+  }
+
+  return (details as (Partial<SetDetail> | null | undefined)[]).map((set) => ({
+    reps: typeof set?.reps === "number" ? set.reps : 0,
+    weight: typeof set?.weight === "number" ? set.weight : undefined,
+    completed: Boolean(set?.completed),
+  }));
+};
+
+const mapScheduledWorkout = (
+  row: ScheduledWorkoutRow,
+): ScheduledWorkoutRecord => ({
+  id: row.id,
+  weekday:
+    (row.weekday as Weekday) ??
+    getWeekdayFromDate(new Date(row.scheduled_date)),
+  scheduledDate: row.scheduled_date,
+  exerciseId: row.exercise_id || "",
+  exerciseName: row.exercise_name,
+  muscleGroup: row.muscle_group,
+  setDetails: normalizeSetDetails(row.set_details),
+  note: row.note ?? undefined,
+  orderIndex: row.order_index,
+});
+
+export async function fetchWeeklyPlanWorkouts(date: Date): Promise<{
+  weekStartDate: string;
+  workouts: ScheduledWorkoutRecord[];
+}> {
+  const user = await getAuthenticatedUser();
+
+  const weekStart = getWeekStart(date);
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate() + 6);
+  const startDate = formatDateOnly(weekStart);
+  const endDate = formatDateOnly(weekEnd);
+
+  const { data, error } = await supabase
+    .from("scheduled_workouts")
+    .select("*")
+    .eq("user_id", user.id)
+    .gte("scheduled_date", startDate)
+    .lte("scheduled_date", endDate)
+    .order("scheduled_date", { ascending: true })
+    .order("order_index", { ascending: true });
+
+  if (error) {
+    console.error("주간 운동 계획 조회 실패:", error);
+    throw error;
+  }
+
+  return {
+    weekStartDate: startDate,
+    workouts: (data ?? []).map(mapScheduledWorkout),
+  };
+}
+
+export async function createWeeklyPlanWorkout(params: {
+  weekday: Weekday;
+  scheduledDate: string;
+  workout: WeeklyWorkoutInput;
+  orderIndex: number;
+}): Promise<ScheduledWorkoutRecord> {
+  const user = await getAuthenticatedUser();
+
+  const { data, error } = await supabase
+    .from("scheduled_workouts")
+    .insert({
+      user_id: user.id,
+      scheduled_date: params.scheduledDate,
+      weekday: params.weekday,
+      exercise_id: params.workout.exerciseId,
+      exercise_name: params.workout.exerciseName,
+      muscle_group: params.workout.muscleGroup,
+      set_details: params.workout.setDetails,
+      note: params.workout.note ?? null,
+      order_index: params.orderIndex,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error("주간 운동 계획 저장 실패:", error);
+    throw error;
+  }
+
+  return mapScheduledWorkout(data);
+}
+
+export async function updateWeeklyPlanWorkout(
+  id: string,
+  payload: WeeklyWorkoutInput,
+): Promise<ScheduledWorkoutRecord> {
+  const { data, error } = await supabase
+    .from("scheduled_workouts")
+    .update({
+      exercise_id: payload.exerciseId,
+      exercise_name: payload.exerciseName,
+      muscle_group: payload.muscleGroup,
+      set_details: payload.setDetails,
+      note: payload.note ?? null,
+    })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("주간 운동 계획 수정 실패:", error);
+    throw error;
+  }
+
+  return mapScheduledWorkout(data);
+}
+
+export async function deleteWeeklyPlanWorkout(id: string): Promise<void> {
+  const { error } = await supabase
+    .from("scheduled_workouts")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    console.error("주간 운동 계획 삭제 실패:", error);
+    throw error;
+  }
+}
+
+export async function ensureScheduledWorkoutForDate(params: {
+  date: string;
+  workout: WeeklyWorkoutInput;
+}): Promise<ScheduledWorkoutRecord> {
+  const planned = new Date(`${params.date}T00:00:00`);
+  if (Number.isNaN(planned.getTime())) {
+    throw new Error("유효하지 않은 날짜입니다.");
+  }
+
+  const user = await getAuthenticatedUser();
+
+  const weekday = getWeekdayFromDate(planned);
+
+  const { data: existing, error: existingError } = await supabase
+    .from("scheduled_workouts")
+    .select("*")
+    .eq("user_id", user.id)
+    .eq("scheduled_date", params.date)
+    .eq("exercise_id", params.workout.exerciseId)
+    .limit(1);
+
+  if (existingError) {
+    console.error("주간 계획 항목 조회 실패:", existingError);
+    throw existingError;
+  }
+
+  if (existing && existing.length > 0) {
+    return mapScheduledWorkout(existing[0]);
+  }
+
+  const { count, error: countError } = await supabase
+    .from("scheduled_workouts")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", user.id)
+    .eq("scheduled_date", params.date);
+
+  if (countError) {
+    console.error("주간 계획 세기 실패:", countError);
+    throw countError;
+  }
+
+  const orderIndex = count ?? 0;
+
+  return createWeeklyPlanWorkout({
+    weekday,
+    scheduledDate: params.date,
+    workout: params.workout,
+    orderIndex,
+  });
+}
+
+// ============================================
 // 사용자 프로필 함수
 // ============================================
 
@@ -308,13 +533,7 @@ export async function deleteWorkoutLog(id: string): Promise<void> {
  * 사용자 프로필 조회
  */
 export async function fetchUserProfile() {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    throw new Error("인증되지 않은 사용자입니다.");
-  }
+  const user = await getAuthenticatedUser();
 
   const { data, error } = await supabase
     .from("users")
@@ -337,13 +556,7 @@ export async function updateUserProfile(updates: {
   name?: string;
   profile_photo?: string;
 }) {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    throw new Error("인증되지 않은 사용자입니다.");
-  }
+  const user = await getAuthenticatedUser();
 
   const { data, error } = await supabase
     .from("users")

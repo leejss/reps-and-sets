@@ -6,6 +6,7 @@ import type { Session } from "@supabase/supabase-js";
 import { create } from "zustand";
 import { combine } from "zustand/middleware";
 import { supabase } from "../lib/supabase";
+import { ensureUserProfile } from "../lib/user-profile";
 
 // Google Sign-In 초기화
 GoogleSignin.configure({
@@ -14,6 +15,18 @@ GoogleSignin.configure({
   scopes: ["profile", "email"],
   offlineAccess: true,
 });
+
+const syncUserProfile = async (session: Session | null) => {
+  if (!session?.user) {
+    return;
+  }
+
+  try {
+    await ensureUserProfile(session.user);
+  } catch (error) {
+    console.error("사용자 프로필 동기화 실패:", error);
+  }
+};
 
 export const useAuthStore = create(
   combine(
@@ -28,6 +41,8 @@ export const useAuthStore = create(
           session,
           isAuthenticated: !!session,
         });
+
+        void syncUserProfile(session);
       },
 
       setLoading: (loading: boolean) => {
@@ -53,6 +68,8 @@ export const useAuthStore = create(
           isAuthenticated: !!session,
         });
 
+        await syncUserProfile(session);
+
         set({ isLoading: false });
 
         supabase.auth.onAuthStateChange((_event, session) => {
@@ -61,6 +78,8 @@ export const useAuthStore = create(
             session,
             isAuthenticated: !!session,
           });
+
+          void syncUserProfile(session);
         });
       },
 
@@ -145,7 +164,6 @@ export const useAuthStore = create(
     }),
   ),
 );
-// TODO: if session is not null, update public.user data
 export const getAuthStore = () => {
   return useAuthStore.getState();
 };

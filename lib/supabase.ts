@@ -61,6 +61,14 @@ if (Platform.OS !== "web") {
   });
 }
 
+type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[];
+
 /**
  * 데이터베이스 타입 정의
  *
@@ -132,10 +140,11 @@ export type Database = {
         Row: {
           id: string;
           user_id: string;
+          scheduled_workout_id: string | null;
           exercise_id: string | null;
           exercise_name: string;
           muscle_group: string;
-          set_details: any; // JSONB
+          set_details: Json;
           completed: boolean;
           workout_date: string;
           created_at: string;
@@ -144,10 +153,11 @@ export type Database = {
         Insert: {
           id?: string;
           user_id: string;
+          scheduled_workout_id?: string | null;
           exercise_id?: string | null;
           exercise_name: string;
           muscle_group: string;
-          set_details: any;
+          set_details: Json;
           completed?: boolean;
           workout_date?: string;
           created_at?: string;
@@ -156,16 +166,66 @@ export type Database = {
         Update: {
           id?: string;
           user_id?: string;
+          scheduled_workout_id?: string | null;
           exercise_id?: string | null;
           exercise_name?: string;
           muscle_group?: string;
-          set_details?: any;
+          set_details?: Json;
           completed?: boolean;
           workout_date?: string;
           created_at?: string;
           updated_at?: string;
         };
       };
+      scheduled_workouts: {
+        Row: {
+          id: string;
+          user_id: string;
+          scheduled_date: string;
+          weekday: Database["public"]["Enums"]["weekday_enum"] | null;
+          exercise_id: string | null;
+          exercise_name: string;
+          muscle_group: string;
+          set_details: Json;
+          note: string | null;
+          order_index: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          scheduled_date?: string;
+          weekday?: Database["public"]["Enums"]["weekday_enum"] | null;
+          exercise_id?: string | null;
+          exercise_name: string;
+          muscle_group: string;
+          set_details?: Json;
+          note?: string | null;
+          order_index?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          scheduled_date?: string;
+          weekday?: Database["public"]["Enums"]["weekday_enum"] | null;
+          exercise_id?: string | null;
+          exercise_name?: string;
+          muscle_group?: string;
+          set_details?: Json;
+          note?: string | null;
+          order_index?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+    };
+    Views: Record<string, never>;
+    Functions: Record<string, never>;
+    Enums: {
+      weekday_enum: "Mon" | "Tue" | "Wed" | "Thu" | "Fri" | "Sat" | "Sun";
     };
   };
 };

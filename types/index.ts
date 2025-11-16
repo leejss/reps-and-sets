@@ -27,6 +27,7 @@ export interface TodayWorkout {
   setDetails: SetDetail[]; // 각 세트별 상세 정보 (reps, weight, completed)
   completed: boolean; // 전체 완료 여부 (모든 세트 완료 시 true)
   date: string;
+  scheduledWorkoutId?: string;
 }
 
 export interface User {

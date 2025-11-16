@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { combine } from "zustand/middleware";
 import * as db from "../lib/database";
 import { Exercise, TodayWorkout } from "../types";
+import type { WeeklyWorkoutInput } from "../types/weekly-plan";
 import { getAuthStore, useAuthStore } from "./auth-store";
 
 export const useAppStore = create(
@@ -203,8 +204,24 @@ export const useAppStore = create(
         }));
 
         try {
+          const scheduledInput: WeeklyWorkoutInput = {
+            exerciseId: workout.exerciseId,
+            exerciseName: workout.exerciseName,
+            muscleGroup: workout.muscleGroup,
+            setDetails: workout.setDetails,
+            note: undefined,
+          };
+
+          const scheduled = await db.ensureScheduledWorkoutForDate({
+            date: workout.date,
+            workout: scheduledInput,
+          });
+
           // Supabase에 저장
-          const newWorkout = await db.createWorkoutLog(workout);
+          const newWorkout = await db.createWorkoutLog({
+            ...workout,
+            scheduledWorkoutId: scheduled.id,
+          });
 
           // 임시 항목을 실제 데이터로 교체
           set((state) => ({

@@ -3,6 +3,30 @@
 -- Rep and Set 앱용
 -- ============================================
 
+-- ============================================
+-- 기존 객체 정리 (Clean Slate)
+-- ============================================
+
+-- 1. 테이블 삭제 (CASCADE로 트리거, 인덱스, 제약조건도 함께 삭제)
+DROP TABLE IF EXISTS public.workout_logs CASCADE;
+DROP TABLE IF EXISTS public.scheduled_workouts CASCADE;
+DROP TABLE IF EXISTS public.exercises CASCADE;
+DROP TABLE IF EXISTS public.users CASCADE;
+
+-- 2. 함수 삭제
+DROP FUNCTION IF EXISTS public.handle_new_user() CASCADE;
+DROP FUNCTION IF EXISTS public.handle_updated_at() CASCADE;
+
+-- 3. ENUM 타입 삭제
+DROP TYPE IF EXISTS public.weekday_enum CASCADE;
+
+-- ============================================
+-- 스키마 재생성
+-- ============================================
+
+-- 0. 공통 ENUM 정의
+CREATE TYPE public.weekday_enum AS ENUM ('Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun');
+
 -- 1. users 테이블 생성 (Supabase Auth 연동)
 CREATE TABLE IF NOT EXISTS public.users (
   id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
@@ -25,7 +49,23 @@ CREATE TABLE IF NOT EXISTS public.exercises (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
 
--- 3. workout_logs 테이블 생성
+-- 3. scheduled_workouts 테이블 생성
+CREATE TABLE IF NOT EXISTS public.scheduled_workouts (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES public.users(id) ON DELETE CASCADE NOT NULL,
+  scheduled_date DATE NOT NULL DEFAULT TIMEZONE('utc'::text, NOW())::date,
+  weekday public.weekday_enum,
+  exercise_id UUID REFERENCES public.exercises(id) ON DELETE RESTRICT,
+  exercise_name TEXT NOT NULL,
+  muscle_group TEXT NOT NULL,
+  set_details JSONB NOT NULL DEFAULT '[]'::jsonb,
+  note TEXT,
+  order_index SMALLINT NOT NULL DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+);
+
+-- 5. workout_logs 테이블 생성
 CREATE TABLE IF NOT EXISTS public.workout_logs (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES public.users(id) ON DELETE CASCADE NOT NULL,
@@ -39,6 +79,9 @@ CREATE TABLE IF NOT EXISTS public.workout_logs (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
 
+ALTER TABLE public.workout_logs
+  ADD COLUMN IF NOT EXISTS scheduled_workout_id UUID REFERENCES public.scheduled_workouts(id) ON DELETE SET NULL;
+
 -- ============================================
 -- 인덱스 생성 (성능 최적화)
 -- ============================================
@@ -51,6 +94,10 @@ CREATE INDEX IF NOT EXISTS idx_exercises_muscle_group ON public.exercises(muscle
 CREATE INDEX IF NOT EXISTS idx_workout_logs_user_id ON public.workout_logs(user_id);
 CREATE INDEX IF NOT EXISTS idx_workout_logs_workout_date ON public.workout_logs(workout_date);
 CREATE INDEX IF NOT EXISTS idx_workout_logs_exercise_id ON public.workout_logs(exercise_id);
+CREATE INDEX IF NOT EXISTS idx_workout_logs_scheduled_workout_id ON public.workout_logs(scheduled_workout_id);
+CREATE INDEX IF NOT EXISTS idx_scheduled_workouts_user_id ON public.scheduled_workouts(user_id);
+CREATE INDEX IF NOT EXISTS idx_scheduled_workouts_date ON public.scheduled_workouts(scheduled_date);
+CREATE INDEX IF NOT EXISTS idx_scheduled_workouts_weekday ON public.scheduled_workouts(weekday);
 
 -- ============================================
 -- Row Level Security (RLS) 정책 설정
@@ -60,6 +107,7 @@ CREATE INDEX IF NOT EXISTS idx_workout_logs_exercise_id ON public.workout_logs(e
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.exercises ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.workout_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.scheduled_workouts ENABLE ROW LEVEL SECURITY;
 
 -- users 테이블 정책
 CREATE POLICY "Users can view own profile"
@@ -108,6 +156,24 @@ CREATE POLICY "Users can delete own workout logs"
   ON public.workout_logs FOR DELETE
   USING (auth.uid() = user_id);
 
+-- scheduled_workouts 테이블 정책
+CREATE POLICY "Users can view own scheduled workouts"
+  ON public.scheduled_workouts FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own scheduled workouts"
+  ON public.scheduled_workouts FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own scheduled workouts"
+  ON public.scheduled_workouts FOR UPDATE
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own scheduled workouts"
+  ON public.scheduled_workouts FOR DELETE
+  USING (auth.uid() = user_id);
+
 -- ============================================
 -- 트리거 함수: updated_at 자동 업데이트
 -- ============================================
@@ -133,6 +199,11 @@ CREATE TRIGGER set_updated_at
 
 CREATE TRIGGER set_updated_at
   BEFORE UPDATE ON public.workout_logs
+  FOR EACH ROW
+  EXECUTE FUNCTION public.handle_updated_at();
+
+CREATE TRIGGER set_updated_at
+  BEFORE UPDATE ON public.scheduled_workouts
   FOR EACH ROW
   EXECUTE FUNCTION public.handle_updated_at();
 
