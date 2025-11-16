@@ -1,9 +1,4 @@
-/**
- * 데이터베이스 헬퍼 함수
- *
- * Supabase 데이터베이스와 상호작용하는 모든 함수를 정의합니다.
- * Single Responsibility Principle을 따라 각 함수는 하나의 책임만 가집니다.
- */
+import dayjs from "dayjs";
 
 import { Exercise, SetDetail, TodayWorkout } from "@/types";
 import { Weekday, WeeklyWorkoutInput } from "@/types/weekly-plan";
@@ -12,27 +7,16 @@ import { formatLocalDateISO } from "./date";
 import { Database, supabase } from "./supabase";
 import { ensureUserProfile } from "./user-profile";
 
-// ============================================
-// 타입 변환 헬퍼
-// ============================================
-
-/**
- * 데이터베이스의 Date 문자열을 JavaScript Date 객체로 변환
- */
-const parseDate = (dateString: string): Date => {
-  return new Date(dateString);
-};
-
 /**
  * 주간 계획 계산용: 해당 주의 월요일 반환
+ * @param date - Date 객체 또는 날짜 문자열
+ * @returns 해당 주의 월요일 00:00:00 Date 객체
  */
-const getWeekStart = (date: Date): Date => {
-  const cloned = new Date(date);
-  const day = cloned.getDay(); // 0 (Sun) - 6 (Sat)
+const getWeekStart = (date: Date | string): Date => {
+  const dayjsDate = dayjs(date);
+  const day = dayjsDate.day(); // 0 (Sun) - 6 (Sat)
   const diffToMonday = (day + 6) % 7;
-  cloned.setHours(0, 0, 0, 0);
-  cloned.setDate(cloned.getDate() - diffToMonday);
-  return cloned;
+  return dayjsDate.subtract(diffToMonday, "day").startOf("day").toDate();
 };
 
 const WEEKDAY_BY_JS_INDEX: Weekday[] = [
@@ -45,8 +29,13 @@ const WEEKDAY_BY_JS_INDEX: Weekday[] = [
   "Sat",
 ];
 
-const getWeekdayFromDate = (date: Date): Weekday => {
-  return WEEKDAY_BY_JS_INDEX[date.getDay()];
+/**
+ * Date 객체에서 Weekday 문자열 반환
+ * @param date - Date 객체 또는 날짜 문자열
+ * @returns Weekday 타입 ('Mon', 'Tue', ...)
+ */
+const getWeekdayFromDate = (date: Date | string): Weekday => {
+  return WEEKDAY_BY_JS_INDEX[dayjs(date).day()];
 };
 
 const getAuthenticatedUser = async () => {
@@ -78,10 +67,6 @@ export type ScheduledWorkoutRecord = {
   orderIndex: number;
 };
 
-// ============================================
-// Exercise CRUD 함수
-// ============================================
-
 /**
  * 현재 사용자의 모든 운동 목록 조회
  */
@@ -99,14 +84,13 @@ export async function fetchExercises(): Promise<Exercise[]> {
     throw error;
   }
 
-  // 데이터베이스 형식을 앱 형식으로 변환
   return (data || []).map((exercise) => ({
     id: exercise.id,
     name: exercise.name,
     muscleGroup: exercise.muscle_group,
     description: exercise.description || undefined,
     link: exercise.link || undefined,
-    createdAt: parseDate(exercise.created_at),
+    createdAt: dayjs(exercise.created_at).toDate(),
   }));
 }
 
@@ -141,7 +125,7 @@ export async function createExercise(
     muscleGroup: data.muscle_group,
     description: data.description || undefined,
     link: data.link || undefined,
-    createdAt: parseDate(data.created_at),
+    createdAt: dayjs(data.created_at).toDate(),
   };
 }
 
@@ -175,7 +159,7 @@ export async function updateExercise(
     muscleGroup: data.muscle_group,
     description: data.description || undefined,
     link: data.link || undefined,
-    createdAt: parseDate(data.created_at),
+    createdAt: dayjs(data.created_at).toDate(),
   };
 }
 
@@ -191,13 +175,6 @@ export async function deleteExercise(id: string): Promise<void> {
   }
 }
 
-// ============================================
-// Workout Log CRUD 함수
-// ============================================
-
-/**
- * 특정 날짜의 운동 기록 조회
- */
 export async function fetchWorkoutLogs(date: Date): Promise<TodayWorkout[]> {
   const user = await getAuthenticatedUser();
 
@@ -219,9 +196,6 @@ export async function fetchWorkoutLogs(date: Date): Promise<TodayWorkout[]> {
   return (data || []).map(mapWorkoutLog);
 }
 
-/**
- * 새 운동 기록 생성
- */
 export async function createWorkoutLog(
   workout: Omit<TodayWorkout, "id">,
 ): Promise<TodayWorkout> {
@@ -359,9 +333,7 @@ const mapScheduledWorkout = (
   row: ScheduledWorkoutRow,
 ): ScheduledWorkoutRecord => ({
   id: row.id,
-  weekday:
-    (row.weekday as Weekday) ??
-    getWeekdayFromDate(new Date(row.scheduled_date)),
+  weekday: (row.weekday as Weekday) ?? getWeekdayFromDate(row.scheduled_date),
   scheduledDate: row.scheduled_date,
   exerciseId: row.exercise_id || "",
   exerciseName: row.exercise_name,
@@ -378,7 +350,7 @@ const mapWorkoutLog = (row: WorkoutLogRow): TodayWorkout => ({
   exerciseId: row.exercise_id || "",
   exerciseName: row.exercise_name,
   muscleGroup: row.muscle_group,
-  setDetails: row.set_details as SetDetail[],
+  setDetails: normalizeSetDetails(row.set_details),
   completed: row.completed,
   date: row.workout_date,
   scheduledWorkoutId: row.scheduled_workout_id || undefined,
@@ -390,11 +362,10 @@ export async function fetchWeeklyPlanWorkouts(date: Date): Promise<{
 }> {
   const user = await getAuthenticatedUser();
 
-  const weekStart = getWeekStart(date);
-  const weekEnd = new Date(weekStart);
-  weekEnd.setDate(weekStart.getDate() + 6);
-  const startDate = formatLocalDateISO(weekStart);
-  const endDate = formatLocalDateISO(weekEnd);
+  const weekStart = dayjs(getWeekStart(date));
+  const weekEnd = weekStart.add(6, "day");
+  const startDate = formatLocalDateISO(weekStart.toDate());
+  const endDate = formatLocalDateISO(weekEnd.toDate());
 
   const { data, error } = await supabase
     .from("scheduled_workouts")
@@ -489,14 +460,14 @@ export async function ensureScheduledWorkoutForDate(params: {
   date: string;
   workout: WeeklyWorkoutInput;
 }): Promise<ScheduledWorkoutRecord> {
-  const planned = new Date(`${params.date}T00:00:00`);
-  if (Number.isNaN(planned.getTime())) {
+  const planned = dayjs(params.date);
+  if (!planned.isValid()) {
     throw new Error("유효하지 않은 날짜입니다.");
   }
 
   const user = await getAuthenticatedUser();
 
-  const weekday = getWeekdayFromDate(planned);
+  const weekday = getWeekdayFromDate(params.date);
 
   const { data: existing, error: existingError } = await supabase
     .from("scheduled_workouts")
