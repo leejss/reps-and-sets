@@ -1,45 +1,37 @@
 import type { User } from "@supabase/supabase-js";
 
+import { insertUserProfileRow, UserInsertPayload } from "./queries/users.query";
 import { supabase } from "./supabase";
 
-/**
- * 동일한 세션 동안 불필요한 조회를 방지하기 위한 캐시
- */
 let ensuredUserId: string | null = null;
 
-type ProfilePayload = {
-  id: string;
-  email: string;
-  name: string;
-  profile_photo: string | null;
+const pickFirstNonEmpty = (...values: unknown[]): string | undefined => {
+  for (const value of values) {
+    if (typeof value !== "string") continue;
+    const trimmed = value.trim();
+    if (trimmed) return trimmed;
+  }
+  return undefined;
 };
 
-const buildProfilePayload = (user: User): ProfilePayload => {
+const buildProfilePayload = (user: User): UserInsertPayload => {
   const metadata = user.user_metadata ?? {};
-  const fallbackName =
-    (typeof metadata.name === "string" && metadata.name.trim()) ||
-    (typeof metadata.full_name === "string" && metadata.full_name.trim()) ||
-    (typeof metadata.user_name === "string" && metadata.user_name.trim()) ||
-    user.email?.split("@")[0] ||
+  const name =
+    pickFirstNonEmpty(metadata.name, metadata.full_name, metadata.user_name) ??
+    user.email?.split("@")[0] ??
     "User";
 
-  const avatar =
+  const profile_photo =
     typeof metadata.avatar_url === "string" ? metadata.avatar_url : null;
 
   return {
     id: user.id,
     email: user.email ?? "",
-    name: fallbackName,
-    profile_photo: avatar,
+    name,
+    profile_photo,
   };
 };
 
-/**
- * auth.users에 존재하지만 public.users에는 아직 없는 레코드를 안전하게 생성합니다.
- *
- * Supabase 공식 가이드(Manage User Data)에 따라 auth.users와 1:1 관계를 유지해야
- * exercise, workout 등 다른 테이블의 외래키 제약조건을 만족시킬 수 있습니다.
- */
 export const ensureUserProfile = async (
   userOverride?: User | null,
 ): Promise<void> => {
@@ -73,7 +65,7 @@ export const ensureUserProfile = async (
 
   if (!existing) {
     const payload = buildProfilePayload(targetUser);
-    const { error: insertError } = await supabase.from("users").insert(payload);
+    const { error: insertError } = await insertUserProfileRow(payload);
 
     if (insertError) {
       // 중복 삽입 시도는 무시 (다른 클라이언트가 선행해도 OK)
