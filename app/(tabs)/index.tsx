@@ -1,5 +1,6 @@
 import { FloatingActionButton } from "@/components/floating-action-button";
 import { useColor } from "@/constants/colors";
+import { formatKoreanHeaderDate } from "@/lib/date";
 import { useAppStore } from "@/stores/app-store";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
@@ -15,13 +16,11 @@ import { RouteHelpers, Routes } from "../route-config";
 
 export default function HomeScreen() {
   const todayWorkouts = useAppStore((state) => state.todayWorkouts);
-  const toggleWorkoutComplete = useAppStore((state) => state.toggleWorkoutComplete);
+  const toggleWorkoutComplete = useAppStore(
+    (state) => state.toggleWorkoutComplete,
+  );
   const colors = useColor();
-  const today = new Date().toLocaleDateString("ko-KR", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-  });
+  const today = formatKoreanHeaderDate();
 
   const navigateToRegister = () => {
     router.push(Routes.WORKOUT_REGISTER);

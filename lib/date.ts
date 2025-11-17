@@ -15,3 +15,11 @@ export const getStartOfWeek = (date: Date | string | Dayjs): Dayjs => {
 export const getCurrentDate = (): Dayjs => {
   return dayjs();
 };
+
+export const formatKoreanHeaderDate = (date: Date = new Date()): string => {
+  return date.toLocaleDateString("ko-KR", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  });
+};

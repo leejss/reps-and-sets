@@ -3,9 +3,8 @@ import type {
   WeeklyPlanWorkoutsResult,
 } from "@/lib/types";
 import { WeeklyWorkoutInput } from "@/types/weekly-plan";
-import dayjs from "dayjs";
 import type { TablesInsert, TablesUpdate } from "../database.types";
-import { formatLocalDateISO } from "../date";
+import { formatLocalDateISO, getStartOfWeek } from "../date";
 import { supabase } from "../supabase";
 import { getAuthenticatedUser, normalizeSetDetails } from "../utils";
 
@@ -32,17 +31,10 @@ export async function fetchWeeklyPlanWorkouts(
 ): Promise<WeeklyPlanWorkoutsResult> {
   const user = await getAuthenticatedUser();
 
-  const getWeekStart = (date: Date | string): Date => {
-    const dayjsDate = dayjs(date);
-    const day = dayjsDate.day(); // 0 (Sun) - 6 (Sat)
-    const diffToMonday = (day + 6) % 7;
-    return dayjsDate.subtract(diffToMonday, "day").startOf("day").toDate();
-  };
-
-  const weekStart = dayjs(getWeekStart(date));
+  const weekStart = getStartOfWeek(date);
   const weekEnd = weekStart.add(6, "day");
-  const startDate = formatLocalDateISO(weekStart.toDate());
-  const endDate = formatLocalDateISO(weekEnd.toDate());
+  const startDate = formatLocalDateISO(weekStart);
+  const endDate = formatLocalDateISO(weekEnd);
 
   const { data, error } = await supabase
     .from("scheduled_workouts")
