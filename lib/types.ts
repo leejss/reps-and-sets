@@ -27,7 +27,6 @@ export interface TodayWorkout {
   setDetails: SetDetail[];
   completed: boolean;
   date: string;
-  scheduledWorkoutId?: string;
 }
 
 export interface User {

@@ -40,7 +40,6 @@ export const fetchTodayWorkouts = async (
     setDetails: mapSetDetailsFromSession(exercise.sets),
     completed: exercise.isCompleted,
     date: dateISO,
-    scheduledWorkoutId: undefined,
   }));
 };
 
@@ -71,7 +70,6 @@ export const createTodayWorkout = async (
     setDetails,
     completed: sessionExercise.isCompleted,
     date: formatLocalDateISO(session.date),
-    scheduledWorkoutId: undefined,
   };
 };
 
