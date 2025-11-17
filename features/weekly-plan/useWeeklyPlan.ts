@@ -5,21 +5,22 @@ import {
   getStartOfWeek,
 } from "@/lib/date";
 import {
-  createWeeklyPlanWorkout,
-  deleteWeeklyPlanWorkout,
-  fetchWeeklyPlanWorkouts,
-  updateWeeklyPlanWorkout,
-} from "@/lib/queries/scheduledWorkouts.query";
-import { syncWorkoutLogFromSchedule } from "@/lib/queries/workoutLogs.query";
-import type { ScheduledWorkoutRecord } from "@/lib/types";
+  createSessionExerciseWithSets,
+  deleteSessionExercise,
+  fetchSessionDetail,
+  fetchSessionsInRange,
+  getOrCreateSessionForDate,
+  updateSessionExerciseAndSets,
+  type SessionExercise,
+} from "@/lib/queries/workoutSessions.query";
 import { getWeekdayFromDate } from "@/lib/utils";
-import { useAppStore } from "@/stores/app-store";
 import {
   DayPlan,
   Weekday,
   WEEKDAY_LABELS,
   WEEKDAY_ORDER,
   WeeklyPlan,
+  WeeklyWorkout,
   WeeklyWorkoutInput,
 } from "@/types/weekly-plan";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -51,10 +52,10 @@ const buildEmptyPlan = (weekStart: string): WeeklyPlan => {
 
 const mergeWorkoutsIntoPlan = (
   basePlan: WeeklyPlan,
-  workouts: ScheduledWorkoutRecord[],
+  workouts: WeeklyWorkout[],
 ): WeeklyPlan => {
   const orderMap = workouts.reduce<Record<string, number>>((acc, record) => {
-    acc[record.id] = record.orderIndex;
+    acc[record.id] = record.orderInSession;
     return acc;
   }, {});
 
@@ -87,6 +88,25 @@ const mergeWorkoutsIntoPlan = (
   };
 };
 
+const mapSessionExerciseToWeeklyWorkout = (
+  session: { id: string; date: string },
+  exercise: SessionExercise,
+): WeeklyWorkout => ({
+  id: exercise.id,
+  sessionId: session.id,
+  scheduledDate: session.date,
+  exerciseId: exercise.exerciseId,
+  exerciseName: exercise.exerciseName,
+  muscleGroup: exercise.muscleGroup,
+  orderInSession: exercise.orderInSession,
+  setDetails: exercise.sets.map((set) => ({
+    reps: set.plannedReps ?? 0,
+    weight: set.plannedWeight ?? undefined,
+    completed: false,
+  })),
+  note: undefined,
+});
+
 export const useWeeklyPlan = () => {
   const anchorDate = useMemo(() => getCurrentDate(), []);
   const initialPlan = useMemo(
@@ -94,7 +114,6 @@ export const useWeeklyPlan = () => {
     [anchorDate],
   );
 
-  const refreshTodayWorkouts = useAppStore((state) => state.refreshWorkouts);
   const [plan, setPlan] = useState<WeeklyPlan>(initialPlan);
   const [selectedDay, setSelectedDay] = useState<Weekday>("Mon");
   const [isLoading, setIsLoading] = useState(true);
@@ -104,9 +123,27 @@ export const useWeeklyPlan = () => {
   const loadWeeklyPlan = useCallback(async () => {
     setIsLoading(true);
     try {
-      const data = await fetchWeeklyPlanWorkouts(anchorDate.toDate());
-      const basePlan = buildEmptyPlan(data.weekStartDate);
-      setPlan(mergeWorkoutsIntoPlan(basePlan, data.workouts));
+      const weekStartDay = getStartOfWeek(anchorDate);
+      const weekEndDay = weekStartDay.add(6, "day");
+      const weekStart = formatLocalDateISO(weekStartDay);
+      const weekEnd = formatLocalDateISO(weekEndDay);
+
+      const sessions = await fetchSessionsInRange(weekStart, weekEnd);
+      const detailsList = await Promise.all(
+        sessions.map((session) => fetchSessionDetail(session.id)),
+      );
+
+      const workouts: WeeklyWorkout[] = [];
+
+      sessions.forEach((session, index) => {
+        const exercises = detailsList[index];
+        exercises.forEach((exercise) => {
+          workouts.push(mapSessionExerciseToWeeklyWorkout(session, exercise));
+        });
+      });
+
+      const basePlan = buildEmptyPlan(weekStart);
+      setPlan(mergeWorkoutsIntoPlan(basePlan, workouts));
       setError(null);
     } catch (err) {
       console.error("주간 계획 로드 실패:", err);
@@ -129,12 +166,23 @@ export const useWeeklyPlan = () => {
         if (!targetDay) {
           throw new Error("선택한 요일 정보를 찾을 수 없습니다.");
         }
-        const orderIndex = targetDay.workouts.length;
-        const created = await createWeeklyPlanWorkout({
-          scheduledDate: targetDay.dateISO,
-          workout,
-          orderIndex,
+        const session = await getOrCreateSessionForDate(targetDay.dateISO);
+
+        const orderInSession = targetDay.workouts.length;
+        const sessionExercise = await createSessionExerciseWithSets({
+          sessionId: session.id,
+          exerciseId: workout.exerciseId,
+          orderInSession,
+          plannedSets: workout.setDetails.map((set) => ({
+            reps: set.reps,
+            weight: set.weight,
+          })),
         });
+
+        const created: WeeklyWorkout = {
+          ...mapSessionExerciseToWeeklyWorkout(session, sessionExercise),
+          note: workout.note,
+        };
         setPlan((prev) => {
           const nextDayPlans = prev.dayPlans.map((day) =>
             day.id === dayId
@@ -157,7 +205,30 @@ export const useWeeklyPlan = () => {
     async (dayId: Weekday, workoutId: string, payload: WeeklyWorkoutInput) => {
       setIsMutating(true);
       try {
-        const updated = await updateWeeklyPlanWorkout(workoutId, payload);
+        const current = plan.dayPlans
+          .flatMap((day) => day.workouts)
+          .find((w) => w.id === workoutId);
+
+        if (!current) {
+          throw new Error("수정할 운동을 찾을 수 없습니다.");
+        }
+
+        const updatedExercise = await updateSessionExerciseAndSets({
+          sessionExerciseId: workoutId,
+          exerciseId: payload.exerciseId,
+          plannedSets: payload.setDetails.map((set) => ({
+            reps: set.reps,
+            weight: set.weight,
+          })),
+        });
+
+        const updated: WeeklyWorkout = {
+          ...mapSessionExerciseToWeeklyWorkout(
+            { id: current.sessionId, date: current.scheduledDate },
+            updatedExercise,
+          ),
+          note: payload.note ?? current.note,
+        };
         setPlan((prev) => {
           const nextDayPlans = prev.dayPlans.map((day) =>
             day.id === dayId
@@ -171,30 +242,18 @@ export const useWeeklyPlan = () => {
           );
           return { ...prev, dayPlans: nextDayPlans };
         });
-
-        try {
-          const synced = await syncWorkoutLogFromSchedule({
-            scheduledWorkoutId: updated.id,
-            workout: payload,
-          });
-          if (synced) {
-            await refreshTodayWorkouts();
-          }
-        } catch (syncError) {
-          console.error("오늘의 운동 동기화 실패:", syncError);
-        }
       } finally {
         setIsMutating(false);
       }
     },
-    [refreshTodayWorkouts],
+    [plan.dayPlans],
   );
 
   const removeWorkout = useCallback(
     async (dayId: Weekday, workoutId: string) => {
       setIsMutating(true);
       try {
-        await deleteWeeklyPlanWorkout(workoutId);
+        await deleteSessionExercise(workoutId);
         setPlan((prev) => {
           const nextDayPlans = prev.dayPlans.map((day) =>
             day.id === dayId

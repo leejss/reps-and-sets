@@ -18,190 +18,193 @@ export type Database = {
         Row: {
           created_at: string;
           description: string | null;
+          external_link: string | null;
           id: string;
-          link: string | null;
-          muscle_group: string;
           name: string;
+          target_muscle_group: string;
           updated_at: string;
-          user_id: string;
+          user_id: string | null;
         };
         Insert: {
           created_at?: string;
           description?: string | null;
+          external_link?: string | null;
           id?: string;
-          link?: string | null;
-          muscle_group: string;
           name: string;
+          target_muscle_group: string;
           updated_at?: string;
-          user_id: string;
+          user_id?: string | null;
         };
         Update: {
           created_at?: string;
           description?: string | null;
+          external_link?: string | null;
           id?: string;
-          link?: string | null;
-          muscle_group?: string;
           name?: string;
+          target_muscle_group?: string;
           updated_at?: string;
-          user_id?: string;
+          user_id?: string | null;
         };
         Relationships: [
           {
             foreignKeyName: "exercises_user_id_fkey";
             columns: ["user_id"];
             isOneToOne: false;
-            referencedRelation: "users";
+            referencedRelation: "profiles";
             referencedColumns: ["id"];
           },
         ];
       };
-      scheduled_workouts: {
+      profiles: {
         Row: {
           created_at: string;
-          exercise_id: string | null;
-          exercise_name: string;
+          display_name: string | null;
           id: string;
-          muscle_group: string;
-          note: string | null;
-          order_index: number;
-          scheduled_date: string;
-          set_details: Json;
-          updated_at: string;
-          user_id: string;
-          weekday: Database["public"]["Enums"]["weekday_enum"] | null;
-        };
-        Insert: {
-          created_at?: string;
-          exercise_id?: string | null;
-          exercise_name: string;
-          id?: string;
-          muscle_group: string;
-          note?: string | null;
-          order_index?: number;
-          scheduled_date?: string;
-          set_details?: Json;
-          updated_at?: string;
-          user_id: string;
-          weekday?: Database["public"]["Enums"]["weekday_enum"] | null;
-        };
-        Update: {
-          created_at?: string;
-          exercise_id?: string | null;
-          exercise_name?: string;
-          id?: string;
-          muscle_group?: string;
-          note?: string | null;
-          order_index?: number;
-          scheduled_date?: string;
-          set_details?: Json;
-          updated_at?: string;
-          user_id?: string;
-          weekday?: Database["public"]["Enums"]["weekday_enum"] | null;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "scheduled_workouts_exercise_id_fkey";
-            columns: ["exercise_id"];
-            isOneToOne: false;
-            referencedRelation: "exercises";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "scheduled_workouts_user_id_fkey";
-            columns: ["user_id"];
-            isOneToOne: false;
-            referencedRelation: "users";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
-      users: {
-        Row: {
-          created_at: string;
-          email: string;
-          id: string;
-          name: string;
-          profile_photo: string | null;
           updated_at: string;
         };
         Insert: {
           created_at?: string;
-          email: string;
+          display_name?: string | null;
           id: string;
-          name: string;
-          profile_photo?: string | null;
           updated_at?: string;
         };
         Update: {
           created_at?: string;
-          email?: string;
+          display_name?: string | null;
           id?: string;
-          name?: string;
-          profile_photo?: string | null;
           updated_at?: string;
         };
         Relationships: [];
       };
-      workout_logs: {
+      workout_session_exercises: {
         Row: {
-          completed: boolean;
           created_at: string;
-          exercise_id: string | null;
-          exercise_name: string;
+          exercise_id: string;
           id: string;
-          muscle_group: string;
-          scheduled_workout_id: string | null;
-          set_details: Json;
+          is_completed: boolean;
+          order_in_session: number;
+          session_id: string;
           updated_at: string;
-          user_id: string;
-          workout_date: string;
         };
         Insert: {
-          completed?: boolean;
           created_at?: string;
-          exercise_id?: string | null;
-          exercise_name: string;
+          exercise_id: string;
           id?: string;
-          muscle_group: string;
-          scheduled_workout_id?: string | null;
-          set_details?: Json;
+          is_completed?: boolean;
+          order_in_session?: number;
+          session_id: string;
           updated_at?: string;
-          user_id: string;
-          workout_date?: string;
         };
         Update: {
-          completed?: boolean;
           created_at?: string;
-          exercise_id?: string | null;
-          exercise_name?: string;
+          exercise_id?: string;
           id?: string;
-          muscle_group?: string;
-          scheduled_workout_id?: string | null;
-          set_details?: Json;
+          is_completed?: boolean;
+          order_in_session?: number;
+          session_id?: string;
           updated_at?: string;
-          user_id?: string;
-          workout_date?: string;
         };
         Relationships: [
           {
-            foreignKeyName: "workout_logs_exercise_id_fkey";
+            foreignKeyName: "workout_session_exercises_exercise_id_fkey";
             columns: ["exercise_id"];
             isOneToOne: false;
             referencedRelation: "exercises";
             referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "workout_logs_scheduled_workout_id_fkey";
-            columns: ["scheduled_workout_id"];
+            foreignKeyName: "workout_session_exercises_session_id_fkey";
+            columns: ["session_id"];
             isOneToOne: false;
-            referencedRelation: "scheduled_workouts";
+            referencedRelation: "workout_sessions";
             referencedColumns: ["id"];
           },
+        ];
+      };
+      workout_sessions: {
+        Row: {
+          created_at: string;
+          id: string;
+          session_date: string;
+          status: Database["public"]["Enums"]["workout_status_enum"];
+          title: string | null;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          session_date: string;
+          status?: Database["public"]["Enums"]["workout_status_enum"];
+          title?: string | null;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          session_date?: string;
+          status?: Database["public"]["Enums"]["workout_status_enum"];
+          title?: string | null;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
           {
-            foreignKeyName: "workout_logs_user_id_fkey";
+            foreignKeyName: "workout_sessions_user_id_fkey";
             columns: ["user_id"];
             isOneToOne: false;
-            referencedRelation: "users";
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      workout_sets: {
+        Row: {
+          actual_reps: number | null;
+          actual_weight: number | null;
+          completed_at: string | null;
+          created_at: string;
+          id: string;
+          is_completed: boolean;
+          planned_reps: number | null;
+          planned_weight: number | null;
+          session_exercise_id: string;
+          set_order: number;
+          updated_at: string;
+        };
+        Insert: {
+          actual_reps?: number | null;
+          actual_weight?: number | null;
+          completed_at?: string | null;
+          created_at?: string;
+          id?: string;
+          is_completed?: boolean;
+          planned_reps?: number | null;
+          planned_weight?: number | null;
+          session_exercise_id: string;
+          set_order: number;
+          updated_at?: string;
+        };
+        Update: {
+          actual_reps?: number | null;
+          actual_weight?: number | null;
+          completed_at?: string | null;
+          created_at?: string;
+          id?: string;
+          is_completed?: boolean;
+          planned_reps?: number | null;
+          planned_weight?: number | null;
+          session_exercise_id?: string;
+          set_order?: number;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "workout_sets_session_exercise_id_fkey";
+            columns: ["session_exercise_id"];
+            isOneToOne: false;
+            referencedRelation: "workout_session_exercises";
             referencedColumns: ["id"];
           },
         ];
@@ -214,7 +217,7 @@ export type Database = {
       [_ in never]: never;
     };
     Enums: {
-      weekday_enum: "Mon" | "Tue" | "Wed" | "Thu" | "Fri" | "Sat" | "Sun";
+      workout_status_enum: "planned" | "in_progress" | "completed";
     };
     CompositeTypes: {
       [_ in never]: never;
@@ -345,7 +348,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      weekday_enum: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+      workout_status_enum: ["planned", "in_progress", "completed"],
     },
   },
 } as const;
