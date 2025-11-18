@@ -1,3 +1,5 @@
+import { useColor } from "@/constants/colors";
+import { DayPlan, WeeklyWorkout } from "@/types/weekly-plan";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import {
@@ -7,10 +9,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-
-import { useColor } from "@/constants/colors";
-
-import { DayPlan, WeeklyWorkout } from "../types";
 
 type WorkoutBoardProps = {
   dayPlan: DayPlan;
@@ -75,7 +73,10 @@ export const WorkoutBoard = ({
               activeOpacity={0.8}
             >
               <Text
-                style={[styles.retryText, { color: colors.button.primary.text }]}
+                style={[
+                  styles.retryText,
+                  { color: colors.button.primary.text },
+                ]}
               >
                 다시 시도
               </Text>
@@ -164,15 +165,22 @@ type WorkoutCardProps = {
 const WorkoutCard = ({ workout, onEdit, onDelete }: WorkoutCardProps) => {
   const colors = useColor();
 
-  const repsValues = workout.setDetails.map((s) => s.reps);
-  const minReps = Math.min(...repsValues);
-  const maxReps = Math.max(...repsValues);
+  const repsValues = workout.setDetails
+    .map((s) => s.plannedReps)
+    .filter((r): r is number => r != null && r > 0);
+  const hasReps = repsValues.length > 0;
+  const minReps = hasReps ? Math.min(...repsValues) : null;
+  const maxReps = hasReps ? Math.max(...repsValues) : null;
   const repsDisplay =
-    minReps === maxReps ? `${minReps}회` : `${minReps}-${maxReps}회`;
+    minReps != null && maxReps != null
+      ? minReps === maxReps
+        ? `${minReps}회`
+        : `${minReps}-${maxReps}회`
+      : null;
 
   const weights = workout.setDetails
-    .map((s) => s.weight)
-    .filter((w): w is number => w !== undefined);
+    .map((s) => s.plannedWeight)
+    .filter((w): w is number => w != null && w > 0);
   const weightDisplay =
     weights.length > 0
       ? weights.length === 1 || Math.min(...weights) === Math.max(...weights)
@@ -195,7 +203,8 @@ const WorkoutCard = ({ workout, onEdit, onDelete }: WorkoutCardProps) => {
           {workout.exerciseName}
         </Text>
         <Text style={[styles.workoutDetail, { color: colors.text.secondary }]}>
-          {workout.muscleGroup} · {workout.setDetails.length}세트 × {repsDisplay}
+          {workout.muscleGroup} · {workout.setDetails.length}세트
+          {repsDisplay && ` × ${repsDisplay}`}
           {weightDisplay && ` @ ${weightDisplay}`}
         </Text>
         {workout.note ? (
@@ -213,10 +222,17 @@ const WorkoutCard = ({ workout, onEdit, onDelete }: WorkoutCardProps) => {
           onPress={() => onEdit(workout)}
           activeOpacity={0.75}
         >
-          <Ionicons name="create-outline" size={18} color={colors.text.primary} />
+          <Ionicons
+            name="create-outline"
+            size={18}
+            color={colors.text.primary}
+          />
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.iconButton, { backgroundColor: colors.tag.background }]}
+          style={[
+            styles.iconButton,
+            { backgroundColor: colors.tag.background },
+          ]}
           onPress={() => onDelete(workout.id)}
           activeOpacity={0.75}
         >
@@ -337,4 +353,3 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 });
-
