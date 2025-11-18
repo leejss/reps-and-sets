@@ -15,7 +15,7 @@ import {
 import { RouteHelpers, Routes } from "../route-config";
 
 export default function HomeScreen() {
-  const todayWorkouts = useAppStore((state) => state.todayWorkouts);
+  const todayWorkouts = useAppStore((state) => state.todayExercises);
   const toggleWorkoutComplete = useAppStore(
     (state) => state.toggleWorkoutComplete,
   );
@@ -73,13 +73,15 @@ export default function HomeScreen() {
         ) : (
           <View style={styles.workoutList}>
             {todayWorkouts.map((workout) => {
-              const completedCount = workout.setDetails.filter(
+              const completedCount = workout.workoutSetList.filter(
                 (s) => s.completed,
               ).length;
-              const totalSets = workout.setDetails.length;
+              const totalSets = workout.workoutSetList.length;
 
-              // 세트 정보 요약
-              const repsValues = workout.setDetails.map((s) => s.reps);
+              // 세트 정보 요약 (actual 값 우선, 없으면 planned 값 사용)
+              const repsValues = workout.workoutSetList.map(
+                (s) => s.actualReps ?? s.plannedReps ?? 0,
+              );
               const minReps = Math.min(...repsValues);
               const maxReps = Math.max(...repsValues);
               const repsDisplay =
@@ -87,10 +89,10 @@ export default function HomeScreen() {
                   ? `${minReps} reps`
                   : `${minReps}-${maxReps} reps`;
 
-              // 무게 정보 요약
-              const weights = workout.setDetails
-                .map((s) => s.weight)
-                .filter((w): w is number => w !== undefined);
+              // 무게 정보 요약 (actual 값 우선, 없으면 planned 값 사용)
+              const weights = workout.workoutSetList
+                .map((s) => s.actualWeight ?? s.plannedWeight)
+                .filter((w): w is number => w !== undefined && w !== null);
               const weightDisplay =
                 weights.length > 0
                   ? weights.length === 1 ||
@@ -151,7 +153,7 @@ export default function HomeScreen() {
                               { color: colors.tag.text },
                             ]}
                           >
-                            {workout.muscleGroup}
+                            {workout.targetMuscleGroup}
                           </Text>
                         </View>
                         <View
@@ -210,8 +212,6 @@ export default function HomeScreen() {
           </View>
         )}
       </ScrollView>
-
-      {/* Floating Action Button */}
       <FloatingActionButton onPress={navigateToRegister} />
     </View>
   );

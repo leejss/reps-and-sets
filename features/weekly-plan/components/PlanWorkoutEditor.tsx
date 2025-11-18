@@ -1,5 +1,5 @@
 import { useColor } from "@/constants/colors";
-import { Exercise, SetDetail } from "@/types";
+import { Exercise } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
 import {
@@ -44,7 +44,9 @@ export const PlanWorkoutEditor = ({
     null,
   );
   const [numberOfSets, setNumberOfSets] = useState("");
-  const [setDetails, setSetDetails] = useState<SetDetail[]>([]);
+  const [setDetails, setSetDetails] = useState<
+    { setOrder: number; plannedReps?: number; plannedWeight?: number; completed: boolean }[]
+  >([]);
   const [useUniformValues, setUseUniformValues] = useState(true);
   const [uniformReps, setUniformReps] = useState("");
   const [uniformWeight, setUniformWeight] = useState("");
@@ -66,9 +68,10 @@ export const PlanWorkoutEditor = ({
     const numSets = parseInt(numberOfSets);
     if (numSets > 0 && numSets <= 20) {
       setSetDetails(
-        Array.from({ length: numSets }, () => ({
-          reps: 0,
-          weight: undefined,
+        Array.from({ length: numSets }, (_, index) => ({
+          setOrder: index,
+          plannedReps: 0,
+          plannedWeight: undefined,
           completed: false,
         })),
       );
@@ -84,8 +87,8 @@ export const PlanWorkoutEditor = ({
       setSetDetails((prevDetails) =>
         prevDetails.map((set) => ({
           ...set,
-          reps,
-          weight,
+          plannedReps: reps,
+          plannedWeight: weight,
         })),
       );
     }
@@ -101,19 +104,31 @@ export const PlanWorkoutEditor = ({
     if (initialValues) {
       setSelectedExerciseId(initialValues.exerciseId);
       setNumberOfSets(String(initialValues.setDetails.length));
-      setSetDetails(initialValues.setDetails);
+      setSetDetails(
+        initialValues.setDetails.map((set, index) => ({
+          setOrder: set.setOrder ?? index,
+          plannedReps: set.plannedReps ?? 0,
+          plannedWeight: set.plannedWeight ?? undefined,
+          completed: set.completed,
+        })),
+      );
       setNote(initialValues.note ?? "");
 
-      const allSame = initialValues.setDetails.every(
-        (set, _, arr) =>
-          set.reps === arr[0].reps && set.weight === arr[0].weight,
-      );
+      const allSame = initialValues.setDetails.every((set, _, arr) => {
+        const first = arr[0];
+        const aReps = set.plannedReps ?? 0;
+        const fReps = first.plannedReps ?? 0;
+        const aWeight = set.plannedWeight ?? undefined;
+        const fWeight = first.plannedWeight ?? undefined;
+        return aReps === fReps && aWeight === fWeight;
+      });
       setUseUniformValues(allSame);
       if (allSame && initialValues.setDetails.length > 0) {
-        setUniformReps(String(initialValues.setDetails[0].reps));
+        const first = initialValues.setDetails[0];
+        setUniformReps(String(first.plannedReps ?? 0));
         setUniformWeight(
-          initialValues.setDetails[0].weight !== undefined
-            ? String(initialValues.setDetails[0].weight)
+          first.plannedWeight !== undefined
+            ? String(first.plannedWeight)
             : "",
         );
       }
@@ -136,9 +151,11 @@ export const PlanWorkoutEditor = ({
   ) => {
     const newSetDetails = [...setDetails];
     if (field === "reps") {
-      newSetDetails[index].reps = parseInt(value) || 0;
+      newSetDetails[index].plannedReps = parseInt(value) || 0;
     } else {
-      newSetDetails[index].weight = value ? parseFloat(value) : undefined;
+      newSetDetails[index].plannedWeight = value
+        ? parseFloat(value)
+        : undefined;
     }
     setSetDetails(newSetDetails);
   };
@@ -146,7 +163,7 @@ export const PlanWorkoutEditor = ({
   const isValid =
     !!activeExercise &&
     setDetails.length > 0 &&
-    setDetails.some((set) => set.reps > 0) &&
+    setDetails.some((set) => (set.plannedReps ?? 0) > 0) &&
     !errors &&
     !isSubmitting;
 
@@ -158,7 +175,15 @@ export const PlanWorkoutEditor = ({
         exerciseId: activeExercise.id,
         exerciseName: activeExercise.name,
         muscleGroup: activeExercise.muscleGroup,
-        setDetails: setDetails,
+        setDetails: setDetails.map((set, index) => ({
+          id: undefined,
+          setOrder: set.setOrder ?? index,
+          plannedReps: set.plannedReps ?? 0,
+          plannedWeight: set.plannedWeight ?? undefined,
+          actualReps: null,
+          actualWeight: null,
+          completed: false,
+        })),
         note: note.trim() ? note.trim() : undefined,
       });
     } finally {
@@ -264,7 +289,7 @@ export const PlanWorkoutEditor = ({
                               { color: colors.text.secondary },
                             ]}
                           >
-                            {exercise.muscleGroup}
+                            {exercise.targetMuscleGroup}
                           </Text>
                         </View>
                         <View
@@ -515,7 +540,9 @@ export const PlanWorkoutEditor = ({
                                     colors.input.placeholder
                                   }
                                   value={
-                                    set.reps > 0 ? set.reps.toString() : ""
+                                    (set.plannedReps ?? 0) > 0
+                                      ? String(set.plannedReps)
+                                      : ""
                                   }
                                   onChangeText={(value) =>
                                     handleSetDetailChange(index, "reps", value)
@@ -546,8 +573,8 @@ export const PlanWorkoutEditor = ({
                                     colors.input.placeholder
                                   }
                                   value={
-                                    set.weight !== undefined
-                                      ? set.weight.toString()
+                                    set.plannedWeight !== undefined
+                                      ? String(set.plannedWeight)
                                       : ""
                                   }
                                   onChangeText={(value) =>

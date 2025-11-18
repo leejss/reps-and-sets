@@ -16,9 +16,11 @@ import {
 
 export default function WorkoutDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const todayWorkouts = useAppStore((state) => state.todayWorkouts);
+  const todayWorkouts = useAppStore((state) => state.todayExercises);
   const toggleSetComplete = useAppStore((state) => state.toggleSetComplete);
-  const toggleWorkoutComplete = useAppStore((state) => state.toggleWorkoutComplete);
+  const toggleWorkoutComplete = useAppStore(
+    (state) => state.toggleWorkoutComplete,
+  );
   const updateSetDetails = useAppStore((state) => state.updateSetDetails);
 
   const colors = useColor();
@@ -46,12 +48,14 @@ export default function WorkoutDetailScreen() {
     );
   }
 
-  const completedCount = workout.setDetails.filter((s) => s.completed).length;
-  const totalSets = workout.setDetails.length;
+  const completedCount = workout.workoutSetList.filter(
+    (s) => s.completed,
+  ).length;
+  const totalSets = workout.workoutSetList.length;
   const progressPercentage = (completedCount / totalSets) * 100;
 
   const handleEditSet = (index: number) => {
-    const set = workout.setDetails[index];
+    const set = workout.workoutSetList[index];
     setEditReps(set.reps.toString());
     setEditWeight(set.weight !== undefined ? set.weight.toString() : "");
     setEditingSetIndex(index);
@@ -117,7 +121,7 @@ export default function WorkoutDetailScreen() {
             ]}
           >
             <Text style={[styles.muscleGroupText, { color: colors.tag.text }]}>
-              {workout.muscleGroup}
+              {workout.targetMuscleGroup}
             </Text>
           </View>
           <Text style={[styles.workoutInfo, { color: colors.text.secondary }]}>
@@ -160,7 +164,7 @@ export default function WorkoutDetailScreen() {
           Sets
         </Text>
         <View style={styles.setsList}>
-          {workout.setDetails.map((set, index) => (
+          {workout.workoutSetList.map((set, index) => (
             <View
               key={index}
               style={[

@@ -1,19 +1,10 @@
 import type { Enums, Tables, TablesInsert } from "../database.types";
 import { formatLocalDateISO } from "../date";
 import { supabase } from "../supabase";
+import type { WorkoutSet } from "../types";
 import { getAuthenticatedUser } from "../utils";
 
 export type WorkoutStatus = Enums<"workout_status_enum">;
-
-export interface WorkoutSet {
-  id: string;
-  setOrder: number;
-  plannedReps?: number | null;
-  plannedWeight?: number | null;
-  actualReps?: number | null;
-  actualWeight?: number | null;
-  isCompleted: boolean;
-}
 
 export interface SessionExercise {
   id: string;
@@ -47,10 +38,10 @@ const mapSetRow = (row: Tables<"workout_sets">): WorkoutSet => ({
   plannedWeight: row.planned_weight,
   actualReps: row.actual_reps,
   actualWeight: row.actual_weight,
-  isCompleted: row.is_completed,
+  completed: row.is_completed,
 });
 
-export const getOrCreateSessionForDate = async (
+export const getOrCreateWorkoutSession = async (
   date: Date | string,
 ): Promise<WorkoutSession> => {
   const user = await getAuthenticatedUser();
@@ -116,7 +107,7 @@ export const fetchSessionsInRange = async (
   );
 };
 
-export const fetchSessionDetail = async (
+export const fetchWorkoutSessionExercise = async (
   sessionId: string,
 ): Promise<SessionExercise[]> => {
   const { data, error } = await supabase
@@ -190,7 +181,7 @@ export const createSessionExerciseWithSets = async (params: {
     }
   }
 
-  const details = await fetchSessionDetail(params.sessionId);
+  const details = await fetchWorkoutSessionExercise(params.sessionId);
   const created = details.find((d) => d.id === sessionExercise.id);
 
   if (!created) {
@@ -271,7 +262,7 @@ export const updateSessionExerciseAndSets = async (params: {
     }
   }
 
-  const details = await fetchSessionDetail(base.session_id);
+  const details = await fetchWorkoutSessionExercise(base.session_id);
   const updated = details.find((d) => d.id === params.sessionExerciseId);
 
   if (!updated) {

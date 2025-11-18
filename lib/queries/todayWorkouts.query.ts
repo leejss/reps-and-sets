@@ -1,75 +1,61 @@
-import type { SetDetail, TodayWorkout } from "@/lib/types";
+import type { TodayWorkout } from "@/lib/types";
 import type { TablesUpdate } from "../database.types";
 import { formatLocalDateISO } from "../date";
 import { supabase } from "../supabase";
 import {
   createSessionExerciseWithSets,
-  fetchSessionDetail,
-  getOrCreateSessionForDate,
+  fetchWorkoutSessionExercise,
+  getOrCreateWorkoutSession,
 } from "./workoutSessions.query";
 
-const mapSetDetailsFromSession = (
-  sets: {
-    plannedReps?: number | null;
-    plannedWeight?: number | null;
-    actualReps?: number | null;
-    actualWeight?: number | null;
-    isCompleted: boolean;
-  }[],
-): SetDetail[] => {
-  return sets.map((set) => ({
-    reps: set.actualReps ?? set.plannedReps ?? 0,
-    weight: set.actualWeight ?? set.plannedWeight ?? undefined,
-    completed: set.isCompleted,
-  }));
-};
-
-export const fetchTodayWorkouts = async (
+export const fetchTodayExercises = async (
   date: Date | string,
 ): Promise<TodayWorkout[]> => {
-  const session = await getOrCreateSessionForDate(date);
-  const exercises = await fetchSessionDetail(session.id);
-
-  const dateISO = formatLocalDateISO(date);
+  // 현재 date에 해당하는 세션을 조회, 없으면 생성
+  const workoutSession = await getOrCreateWorkoutSession(date);
+  // 세션에 속한 운동 목록을 조회
+  const exercises = await fetchWorkoutSessionExercise(workoutSession.id);
 
   return exercises.map((exercise) => ({
     id: exercise.id,
     exerciseId: exercise.exerciseId,
     exerciseName: exercise.exerciseName,
-    muscleGroup: exercise.muscleGroup,
-    setDetails: mapSetDetailsFromSession(exercise.sets),
+    targetMuscleGroup: exercise.muscleGroup,
+    workoutSetList: exercise.sets,
     completed: exercise.isCompleted,
-    date: dateISO,
+    date: formatLocalDateISO(date),
   }));
 };
 
 export const createTodayWorkout = async (
   workout: Omit<TodayWorkout, "id">,
 ): Promise<TodayWorkout> => {
-  const session = await getOrCreateSessionForDate(workout.date);
-  const existingExercises = await fetchSessionDetail(session.id);
+  const workoutSession = await getOrCreateWorkoutSession(workout.date);
+  const existingExercises = await fetchWorkoutSessionExercise(
+    workoutSession.id,
+  );
   const orderInSession = existingExercises.length;
 
   const sessionExercise = await createSessionExerciseWithSets({
-    sessionId: session.id,
+    sessionId: workoutSession.id,
     exerciseId: workout.exerciseId,
     orderInSession,
-    plannedSets: workout.setDetails.map((set) => ({
-      reps: set.reps,
-      weight: set.weight,
+    plannedSets: workout.workoutSetList.map((set, index) => ({
+      reps: set.plannedReps ?? 0,
+      weight: set.plannedWeight ?? undefined,
     })),
   });
 
-  const setDetails = mapSetDetailsFromSession(sessionExercise.sets);
+  const setDetails = sessionExercise.sets;
 
   return {
     id: sessionExercise.id,
     exerciseId: sessionExercise.exerciseId,
     exerciseName: sessionExercise.exerciseName,
-    muscleGroup: sessionExercise.muscleGroup,
-    setDetails,
+    targetMuscleGroup: sessionExercise.muscleGroup,
+    workoutSetList: setDetails,
     completed: sessionExercise.isCompleted,
-    date: formatLocalDateISO(session.date),
+    date: formatLocalDateISO(workoutSession.date),
   };
 };
 

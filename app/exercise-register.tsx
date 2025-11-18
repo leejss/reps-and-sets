@@ -44,7 +44,7 @@ export default function ExerciseRegisterScreen() {
       const exercise = exercises.find((e) => e.id === params.id);
       if (exercise) {
         setName(exercise.name);
-        setMuscleGroup(exercise.muscleGroup);
+        setMuscleGroup(exercise.targetMuscleGroup);
         setDescription(exercise.description || "");
         setLink(exercise.link || "");
       }
@@ -61,7 +61,7 @@ export default function ExerciseRegisterScreen() {
         // 편집 모드: 기존 운동 업데이트
         await updateExercise(params.id, {
           name,
-          muscleGroup,
+          targetMuscleGroup: muscleGroup,
           description: description || undefined,
           link: link || undefined,
         });
@@ -69,7 +69,7 @@ export default function ExerciseRegisterScreen() {
         // 추가 모드: 새 운동 추가
         await addExercise({
           name,
-          muscleGroup,
+          targetMuscleGroup: muscleGroup,
           description: description || undefined,
           link: link || undefined,
         });

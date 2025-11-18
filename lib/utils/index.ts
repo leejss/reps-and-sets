@@ -1,4 +1,4 @@
-import type { SetDetail } from "@/lib/types";
+import type { WorkoutSet } from "@/lib/types";
 import { Weekday } from "@/types/weekly-plan";
 import dayjs from "dayjs";
 import { supabase } from "../supabase";
@@ -18,12 +18,12 @@ export const getAuthenticatedUser = async () => {
   return user;
 };
 
-export const normalizeSetDetails = (details: unknown): SetDetail[] => {
+export const normalizeSetDetails = (details: unknown): WorkoutSet[] => {
   if (!Array.isArray(details)) {
     return [];
   }
 
-  return (details as (Partial<SetDetail> | null | undefined)[]).map((set) => ({
+  return (details as (Partial<WorkoutSet> | null | undefined)[]).map((set) => ({
     reps: typeof set?.reps === "number" ? set.reps : 0,
     weight: typeof set?.weight === "number" ? set.weight : undefined,
     completed: Boolean(set?.completed),

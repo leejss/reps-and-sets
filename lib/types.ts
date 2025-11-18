@@ -1,21 +1,37 @@
 export interface Exercise {
   id: string;
   name: string;
-  muscleGroup: string;
+  targetMuscleGroup: string;
   description?: string;
   link?: string;
   createdAt: Date;
 }
 
 export interface WorkoutSet {
-  reps: number;
-  sets: number;
-  weight?: number;
-}
-
-export interface SetDetail {
-  reps: number;
-  weight?: number;
+  id?: string;
+  /**
+   * 세션 내 세트 순서 (workout_sets.set_order)
+   */
+  setOrder: number;
+  /**
+   * 계획 반복 수 (workout_sets.planned_reps)
+   */
+  plannedReps?: number | null;
+  /**
+   * 계획 무게 (workout_sets.planned_weight)
+   */
+  plannedWeight?: number | null;
+  /**
+   * 실제 반복 수 (workout_sets.actual_reps)
+   */
+  actualReps?: number | null;
+  /**
+   * 실제 무게 (workout_sets.actual_weight)
+   */
+  actualWeight?: number | null;
+  /**
+   * 세트 완료 여부 (workout_sets.is_completed)
+   */
   completed: boolean;
 }
 
@@ -23,8 +39,8 @@ export interface TodayWorkout {
   id: string;
   exerciseId: string;
   exerciseName: string;
-  muscleGroup: string;
-  setDetails: SetDetail[];
+  targetMuscleGroup: string;
+  workoutSetList: WorkoutSet[];
   completed: boolean;
   date: string;
 }
@@ -41,7 +57,7 @@ export interface ScheduledWorkoutRecord {
   exerciseId: string;
   exerciseName: string;
   muscleGroup: string;
-  setDetails: SetDetail[];
+  setDetails: WorkoutSet[];
   note?: string;
   orderIndex: number;
 }

@@ -7,9 +7,9 @@ import {
 import {
   createSessionExerciseWithSets,
   deleteSessionExercise,
-  fetchSessionDetail,
   fetchSessionsInRange,
-  getOrCreateSessionForDate,
+  fetchWorkoutSessionExercise,
+  getOrCreateWorkoutSession,
   updateSessionExerciseAndSets,
   type SessionExercise,
 } from "@/lib/queries/workoutSessions.query";
@@ -99,9 +99,13 @@ const mapSessionExerciseToWeeklyWorkout = (
   exerciseName: exercise.exerciseName,
   muscleGroup: exercise.muscleGroup,
   orderInSession: exercise.orderInSession,
-  setDetails: exercise.sets.map((set) => ({
-    reps: set.plannedReps ?? 0,
-    weight: set.plannedWeight ?? undefined,
+  setDetails: exercise.sets.map((set, index) => ({
+    id: set.id,
+    setOrder: set.setOrder ?? index,
+    plannedReps: set.plannedReps ?? 0,
+    plannedWeight: set.plannedWeight ?? undefined,
+    actualReps: set.actualReps ?? null,
+    actualWeight: set.actualWeight ?? null,
     completed: false,
   })),
   note: undefined,
@@ -130,7 +134,7 @@ export const useWeeklyPlan = () => {
 
       const sessions = await fetchSessionsInRange(weekStart, weekEnd);
       const detailsList = await Promise.all(
-        sessions.map((session) => fetchSessionDetail(session.id)),
+        sessions.map((session) => fetchWorkoutSessionExercise(session.id)),
       );
 
       const workouts: WeeklyWorkout[] = [];
@@ -166,7 +170,7 @@ export const useWeeklyPlan = () => {
         if (!targetDay) {
           throw new Error("선택한 요일 정보를 찾을 수 없습니다.");
         }
-        const session = await getOrCreateSessionForDate(targetDay.dateISO);
+        const session = await getOrCreateWorkoutSession(targetDay.dateISO);
 
         const orderInSession = targetDay.workouts.length;
         const sessionExercise = await createSessionExerciseWithSets({
@@ -174,8 +178,8 @@ export const useWeeklyPlan = () => {
           exerciseId: workout.exerciseId,
           orderInSession,
           plannedSets: workout.setDetails.map((set) => ({
-            reps: set.reps,
-            weight: set.weight,
+            reps: set.plannedReps ?? 0,
+            weight: set.plannedWeight ?? undefined,
           })),
         });
 
@@ -217,8 +221,8 @@ export const useWeeklyPlan = () => {
           sessionExerciseId: workoutId,
           exerciseId: payload.exerciseId,
           plannedSets: payload.setDetails.map((set) => ({
-            reps: set.reps,
-            weight: set.weight,
+            reps: set.plannedReps ?? 0,
+            weight: set.plannedWeight ?? undefined,
           })),
         });
 

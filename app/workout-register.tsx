@@ -1,7 +1,6 @@
 import { useColor } from "@/constants/colors";
 import { formatLocalDateISO } from "@/lib/date";
 import { useAppStore } from "@/stores/app-store";
-import { SetDetail } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -16,15 +15,22 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function WorkoutRegisterScreen() {
+  const insets = useSafeAreaInsets();
   const exercises = useAppStore((state) => state.exercises);
   const addTodayWorkout = useAppStore((state) => state.addTodayWorkout);
-  const insets = useSafeAreaInsets();
   const colors = useColor();
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(
     null,
   );
   const [numberOfSets, setNumberOfSets] = useState("");
-  const [setDetails, setSetDetails] = useState<SetDetail[]>([]);
+  const [setDetails, setSetDetails] = useState<
+    {
+      setOrder: number;
+      plannedReps?: number;
+      plannedWeight?: number;
+      completed: boolean;
+    }[]
+  >([]);
   const [useUniformValues, setUseUniformValues] = useState(true);
   const [uniformReps, setUniformReps] = useState("");
   const [uniformWeight, setUniformWeight] = useState("");
@@ -36,9 +42,10 @@ export default function WorkoutRegisterScreen() {
     const numSets = parseInt(numberOfSets);
     if (numSets > 0 && numSets <= 20) {
       setSetDetails(
-        Array.from({ length: numSets }, () => ({
-          reps: 0,
-          weight: undefined,
+        Array.from({ length: numSets }, (_, index) => ({
+          setOrder: index,
+          plannedReps: 0,
+          plannedWeight: undefined,
           completed: false,
         })),
       );
@@ -55,8 +62,8 @@ export default function WorkoutRegisterScreen() {
       setSetDetails((prevDetails) =>
         prevDetails.map((set) => ({
           ...set,
-          reps,
-          weight,
+          plannedReps: reps,
+          plannedWeight: weight,
         })),
       );
     }
@@ -70,9 +77,11 @@ export default function WorkoutRegisterScreen() {
   ) => {
     const newSetDetails = [...setDetails];
     if (field === "reps") {
-      newSetDetails[index].reps = parseInt(value) || 0;
+      newSetDetails[index].plannedReps = parseInt(value) || 0;
     } else {
-      newSetDetails[index].weight = value ? parseFloat(value) : undefined;
+      newSetDetails[index].plannedWeight = value
+        ? parseFloat(value)
+        : undefined;
     }
     setSetDetails(newSetDetails);
   };
@@ -83,7 +92,7 @@ export default function WorkoutRegisterScreen() {
     }
 
     // 최소한 하나의 세트에 reps가 입력되어야 함
-    const hasValidSet = setDetails.some((set) => set.reps > 0);
+    const hasValidSet = setDetails.some((set) => (set.plannedReps ?? 0) > 0);
     if (!hasValidSet) {
       return;
     }
@@ -93,8 +102,16 @@ export default function WorkoutRegisterScreen() {
       await addTodayWorkout({
         exerciseId: selectedExercise.id,
         exerciseName: selectedExercise.name,
-        muscleGroup: selectedExercise.muscleGroup,
-        setDetails: setDetails,
+        targetMuscleGroup: selectedExercise.targetMuscleGroup,
+        workoutSetList: setDetails.map((set, index) => ({
+          id: undefined,
+          setOrder: set.setOrder ?? index,
+          plannedReps: set.plannedReps ?? 0,
+          plannedWeight: set.plannedWeight ?? undefined,
+          actualReps: null,
+          actualWeight: null,
+          completed: false,
+        })),
         completed: false,
         date: today,
       });
@@ -108,7 +125,7 @@ export default function WorkoutRegisterScreen() {
       setUseUniformValues(true);
       router.back();
     } catch (error) {
-      console.error('운동 추가 실패:', error);
+      console.error("운동 추가 실패:", error);
       // 에러는 Context에서 이미 처리되었으므로 여기서는 로그만 남김
     }
   };
@@ -180,7 +197,7 @@ export default function WorkoutRegisterScreen() {
                       { color: colors.text.secondary },
                     ]}
                   >
-                    {exercise.muscleGroup}
+                    {exercise.targetMuscleGroup}
                   </Text>
                 </View>
                 <View
@@ -377,7 +394,11 @@ export default function WorkoutRegisterScreen() {
                               ]}
                               placeholder="10"
                               placeholderTextColor={colors.input.placeholder}
-                              value={set.reps > 0 ? set.reps.toString() : ""}
+                              value={
+                                (set.plannedReps ?? 0) > 0
+                                  ? String(set.plannedReps)
+                                  : ""
+                              }
                               onChangeText={(value) =>
                                 handleSetDetailChange(index, "reps", value)
                               }
@@ -405,8 +426,8 @@ export default function WorkoutRegisterScreen() {
                               placeholder="60"
                               placeholderTextColor={colors.input.placeholder}
                               value={
-                                set.weight !== undefined
-                                  ? set.weight.toString()
+                                set.plannedWeight !== undefined
+                                  ? set.plannedWeight.toString()
                                   : ""
                               }
                               onChangeText={(value) =>
@@ -444,14 +465,16 @@ export default function WorkoutRegisterScreen() {
               {
                 backgroundColor: colors.button.primary.background,
                 opacity:
-                  setDetails.length === 0 || !setDetails.some((s) => s.reps > 0)
+                  setDetails.length === 0 ||
+                  !setDetails.some((s) => (s.plannedReps ?? 0) > 0)
                     ? 0.5
                     : 1,
               },
             ]}
             onPress={handleSubmit}
             disabled={
-              setDetails.length === 0 || !setDetails.some((s) => s.reps > 0)
+              setDetails.length === 0 ||
+              !setDetails.some((s) => (s.plannedReps ?? 0) > 0)
             }
             activeOpacity={0.8}
           >

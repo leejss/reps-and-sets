@@ -136,7 +136,7 @@ export default function ExercisesScreen() {
                 ]}
               >
                 <Text style={[styles.tagText, { color: colors.tag.text }]}>
-                  {exercise.muscleGroup}
+                  {exercise.targetMuscleGroup}
                 </Text>
               </View>
               {exercise.link && (
@@ -160,7 +160,6 @@ export default function ExercisesScreen() {
         ))}
       </ScrollView>
 
-      {/* Floating Action Button */}
       <FloatingActionButton onPress={onNavigateToRegister} />
     </View>
   );

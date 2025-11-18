@@ -2,9 +2,8 @@
 export type {
   Exercise,
   ScheduledWorkoutRecord,
-  SetDetail,
+  WorkoutSet as SetDetail,
   TodayWorkout,
   User,
   WeeklyPlanWorkoutsResult,
-  WorkoutSet,
 } from "@/lib/types";

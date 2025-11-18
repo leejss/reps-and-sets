@@ -20,7 +20,7 @@ export async function fetchExercises(): Promise<Exercise[]> {
   return (data || []).map((exercise) => ({
     id: exercise.id,
     name: exercise.name,
-    muscleGroup: exercise.target_muscle_group,
+    targetMuscleGroup: exercise.target_muscle_group,
     description: exercise.description || undefined,
     link: exercise.external_link || undefined,
     createdAt: dayjs(exercise.created_at).toDate(),
@@ -37,7 +37,7 @@ export async function createExercise(
     .insert({
       user_id: user.id,
       name: exercise.name,
-      target_muscle_group: exercise.muscleGroup,
+      target_muscle_group: exercise.targetMuscleGroup,
       description: exercise.description || null,
       external_link: exercise.link || null,
     })
@@ -52,7 +52,7 @@ export async function createExercise(
   return {
     id: data.id,
     name: data.name,
-    muscleGroup: data.target_muscle_group,
+    targetMuscleGroup: data.target_muscle_group,
     description: data.description || undefined,
     link: data.external_link || undefined,
     createdAt: dayjs(data.created_at).toDate(),
@@ -70,7 +70,7 @@ export async function updateExercise(
     .from("exercises")
     .update({
       name: exercise.name,
-      target_muscle_group: exercise.muscleGroup,
+      target_muscle_group: exercise.targetMuscleGroup,
       description: exercise.description || null,
       external_link: exercise.link || null,
     })
@@ -86,7 +86,7 @@ export async function updateExercise(
   return {
     id: data.id,
     name: data.name,
-    muscleGroup: data.target_muscle_group,
+    targetMuscleGroup: data.target_muscle_group,
     description: data.description || undefined,
     link: data.external_link || undefined,
     createdAt: dayjs(data.created_at).toDate(),

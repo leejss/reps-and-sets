@@ -8,7 +8,7 @@ import {
 } from "../lib/queries/exercises.query";
 import {
   createTodayWorkout,
-  fetchTodayWorkouts,
+  fetchTodayExercises,
   updateTodaySetCompletion,
   updateTodaySetDetails,
   updateTodayWorkoutCompletion,
@@ -19,9 +19,8 @@ import { getAuthStore, useAuthStore } from "./auth-store";
 export const useAppStore = create(
   combine(
     {
-      // 상태
       exercises: [] as Exercise[],
-      todayWorkouts: [] as TodayWorkout[],
+      todayExercises: [] as TodayWorkout[],
       darkMode: true,
       isLoadingExercises: false,
       isLoadingWorkouts: false,
@@ -55,8 +54,8 @@ export const useAppStore = create(
         set({ isLoadingWorkouts: true });
         try {
           const today = new Date();
-          const todayWorkouts = await fetchTodayWorkouts(today);
-          set({ todayWorkouts });
+          const todayWorkouts = await fetchTodayExercises(today);
+          set({ todayExercises: todayWorkouts });
         } catch (error) {
           console.error("운동 기록 로드 실패:", error);
         } finally {
@@ -72,14 +71,14 @@ export const useAppStore = create(
 
         try {
           const today = new Date();
-          const [exercises, todayWorkouts] = await Promise.all([
+          const [exercises, todayExercises] = await Promise.all([
             fetchExercises(),
-            fetchTodayWorkouts(today),
+            fetchTodayExercises(today),
           ]);
 
           set({
             exercises,
-            todayWorkouts,
+            todayExercises,
           });
         } catch (error) {
           console.error("초기 데이터 로드 실패:", error);
@@ -89,7 +88,7 @@ export const useAppStore = create(
       clearData: () => {
         set({
           exercises: [],
-          todayWorkouts: [],
+          todayExercises: [],
         });
       },
 
@@ -204,21 +203,20 @@ export const useAppStore = create(
         };
 
         set((state) => ({
-          todayWorkouts: [tempWorkout, ...state.todayWorkouts],
+          todayExercises: [tempWorkout, ...state.todayExercises],
         }));
 
         try {
           const newWorkout = await createTodayWorkout(workout);
 
-          // 임시 항목을 실제 데이터로 교체
           set((state) => ({
-            todayWorkouts: state.todayWorkouts.map((w) =>
+            todayExercises: state.todayExercises.map((w) =>
               w.id === tempWorkout.id ? newWorkout : w,
             ),
           }));
         } catch (error) {
           set((state) => ({
-            todayWorkouts: state.todayWorkouts.filter(
+            todayExercises: state.todayExercises.filter(
               (w) => w.id !== tempWorkout.id,
             ),
           }));
@@ -238,7 +236,7 @@ export const useAppStore = create(
         }
 
         // 이전 상태 저장
-        const previousWorkouts = get().todayWorkouts;
+        const previousWorkouts = get().todayExercises;
 
         // Optimistic Update
         const updatedWorkouts = previousWorkouts.map((w) => {
@@ -247,15 +245,20 @@ export const useAppStore = create(
             return {
               ...w,
               completed: newCompleted,
-              setDetails: w.setDetails.map((set) => ({
+              workoutSetList: w.workoutSetList.map((set, index) => ({
                 ...set,
                 completed: newCompleted,
+                actualReps:
+                  set.actualReps ??
+                  set.plannedReps ??
+                  (newCompleted ? 0 : null),
+                setOrder: set.setOrder ?? index,
               })),
             };
           }
           return w;
         });
-        set({ todayWorkouts: updatedWorkouts });
+        set({ todayExercises: updatedWorkouts });
 
         try {
           const workout = updatedWorkouts.find((w) => w.id === id);
@@ -264,7 +267,7 @@ export const useAppStore = create(
           }
         } catch (error) {
           // 실패 시 롤백
-          set({ todayWorkouts: previousWorkouts });
+          set({ todayExercises: previousWorkouts });
           console.error("운동 완료 토글 실패:", error);
           throw error;
         }
@@ -280,12 +283,12 @@ export const useAppStore = create(
         }
 
         // 이전 상태 저장
-        const previousWorkouts = get().todayWorkouts;
+        const previousWorkouts = get().todayExercises;
 
         // Optimistic Update
         const updatedWorkouts = previousWorkouts.map((w) => {
           if (w.id === workoutId) {
-            const newSetDetails = [...w.setDetails];
+            const newSetDetails = [...w.workoutSetList];
             newSetDetails[setIndex] = {
               ...newSetDetails[setIndex],
               completed: !newSetDetails[setIndex].completed,
@@ -297,32 +300,29 @@ export const useAppStore = create(
 
             return {
               ...w,
-              setDetails: newSetDetails,
+              workoutSetList: newSetDetails,
               completed: allCompleted,
             };
           }
           return w;
         });
-        set({ todayWorkouts: updatedWorkouts });
+        set({ todayExercises: updatedWorkouts });
 
         try {
           // Supabase에 업데이트
           const workout = updatedWorkouts.find((w) => w.id === workoutId);
           if (workout) {
-            const set = workout.setDetails[setIndex];
+            const set = workout.workoutSetList[setIndex];
             await updateTodaySetCompletion(workoutId, setIndex, set.completed);
           }
         } catch (error) {
           // 실패 시 롤백
-          set({ todayWorkouts: previousWorkouts });
+          set({ todayExercises: previousWorkouts });
           console.error("세트 완료 토글 실패:", error);
           throw error;
         }
       },
 
-      /**
-       * 세트 상세 정보 업데이트 (Optimistic Update + Supabase 동기화)
-       */
       updateSetDetails: async (
         workoutId: string,
         setIndex: number,
@@ -335,26 +335,26 @@ export const useAppStore = create(
         }
 
         // 이전 상태 저장
-        const previousWorkouts = get().todayWorkouts;
+        const previousWorkouts = get().todayExercises;
 
         // Optimistic Update
         const updatedWorkouts = previousWorkouts.map((w) => {
           if (w.id === workoutId) {
-            const newSetDetails = [...w.setDetails];
+            const newSetDetails = [...w.workoutSetList];
             newSetDetails[setIndex] = {
               ...newSetDetails[setIndex],
-              reps,
-              weight,
+              actualReps: reps,
+              actualWeight: weight,
             };
 
             return {
               ...w,
-              setDetails: newSetDetails,
+              workoutSetList: newSetDetails,
             };
           }
           return w;
         });
-        set({ todayWorkouts: updatedWorkouts });
+        set({ todayExercises: updatedWorkouts });
 
         try {
           // Supabase에 업데이트
@@ -364,15 +364,11 @@ export const useAppStore = create(
           }
         } catch (error) {
           // 실패 시 롤백
-          set({ todayWorkouts: previousWorkouts });
+          set({ todayExercises: previousWorkouts });
           console.error("세트 상세 업데이트 실패:", error);
           throw error;
         }
       },
-
-      // ========================================
-      // 설정 (Settings)
-      // ========================================
 
       /**
        * 다크 모드 토글
