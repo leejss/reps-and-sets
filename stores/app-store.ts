@@ -325,10 +325,7 @@ export const useAppStore = create(
         }
       },
 
-      /**
-       * 세트 완료 상태 토글 (Optimistic Update + Supabase 동기화)
-       */
-      toggleSetComplete: async (workoutId: string, setIndex: number) => {
+      toggleSetComplete: async (workoutId: string, setOrder: number) => {
         const { isAuthenticated } = useAuthStore.getState();
         if (!isAuthenticated) {
           throw new Error("로그인이 필요합니다.");
@@ -341,9 +338,9 @@ export const useAppStore = create(
         const updatedWorkouts: TodayWorkout[] = previousWorkouts.map((w) => {
           if (w.id === workoutId) {
             const newSetDetails = [...w.workoutSetList];
-            newSetDetails[setIndex] = {
-              ...newSetDetails[setIndex],
-              completed: !newSetDetails[setIndex].completed,
+            newSetDetails[setOrder] = {
+              ...newSetDetails[setOrder],
+              completed: !newSetDetails[setOrder].completed,
             };
 
             const allCompleted = newSetDetails.every(
@@ -358,14 +355,14 @@ export const useAppStore = create(
           }
           return w;
         });
+
         set({ todayExercises: updatedWorkouts });
 
         try {
-          // Supabase에 업데이트
           const workout = updatedWorkouts.find((w) => w.id === workoutId);
           if (workout) {
-            const set = workout.workoutSetList[setIndex];
-            await updateTodaySetCompletion(workoutId, setIndex, set.completed);
+            const set = workout.workoutSetList[setOrder];
+            await updateTodaySetCompletion(workoutId, setOrder, set.completed);
           }
         } catch (error) {
           // 실패 시 롤백

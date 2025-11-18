@@ -68,6 +68,45 @@ export default function ExercisesScreen() {
         style={styles.content}
         contentContainerStyle={styles.contentContainer}
       >
+        {exercises.length === 0 && (
+          <View
+            style={[
+              styles.emptyStateContainer,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+            ]}
+          >
+            <Text
+              style={[styles.emptyStateTitle, { color: colors.text.primary }]}
+            >
+              아직 등록된 운동이 없어요
+            </Text>
+            <Text
+              style={[
+                styles.emptyStateDescription,
+                { color: colors.text.secondary },
+              ]}
+            >
+              자주 하는 운동을 추가해두면 계획을 세우기가 훨씬 쉬워져요.
+            </Text>
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={onNavigateToRegister}
+              style={[
+                styles.emptyStateButton,
+                { backgroundColor: colors.primary },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.emptyStateButtonText,
+                  { color: colors.button.primary.text },
+                ]}
+              >
+                운동 추가하기
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
         {exercises.map((exercise) => (
           <View
             key={exercise.id}
@@ -139,7 +178,7 @@ export default function ExercisesScreen() {
                   {exercise.targetMuscleGroup}
                 </Text>
               </View>
-              {exercise.link && (
+              {exercise.externalLink && (
                 <View
                   style={[
                     styles.tag,
@@ -233,5 +272,30 @@ const styles = StyleSheet.create({
   },
   tagText: {
     fontSize: 12,
+  },
+  emptyStateContainer: {
+    padding: 20,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: "flex-start",
+    marginBottom: 16,
+  },
+  emptyStateTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 4,
+  },
+  emptyStateDescription: {
+    fontSize: 14,
+    marginBottom: 12,
+  },
+  emptyStateButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 999,
+  },
+  emptyStateButtonText: {
+    fontSize: 14,
+    fontWeight: "600",
   },
 });

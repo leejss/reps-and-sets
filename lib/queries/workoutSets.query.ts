@@ -91,14 +91,14 @@ export const updateTodayWorkoutCompletion = async (
 
 export const updateTodaySetCompletion = async (
   sessionExerciseId: string,
-  setIndex: number,
+  setOrder: number,
   completed: boolean,
 ): Promise<void> => {
   const { error } = await supabase
     .from("workout_sets")
-    .update({ is_completed: completed })
+    .update({ is_completed: completed, completed_at: new Date().toISOString() })
     .eq("session_exercise_id", sessionExerciseId)
-    .eq("set_order", setIndex);
+    .eq("set_order", setOrder);
 
   if (error) {
     console.error("세트 완료 상태 업데이트 실패:", error);

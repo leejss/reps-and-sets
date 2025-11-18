@@ -1,4 +1,5 @@
 import { useColor } from "@/constants/colors";
+import type { WorkoutSet } from "@/lib/queries/workoutSets.query";
 import { useAppStore } from "@/stores/app-store";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
@@ -28,6 +29,26 @@ export default function WorkoutDetailScreen() {
   const [editReps, setEditReps] = useState("");
   const [editWeight, setEditWeight] = useState("");
 
+  const getDisplayReps = (set: WorkoutSet): number | null => {
+    if (set.actualReps != null) {
+      return set.actualReps;
+    }
+    if (set.plannedReps != null) {
+      return set.plannedReps;
+    }
+    return null;
+  };
+
+  const getDisplayWeight = (set: WorkoutSet): number | null => {
+    if (set.actualWeight != null) {
+      return set.actualWeight;
+    }
+    if (set.plannedWeight != null) {
+      return set.plannedWeight;
+    }
+    return null;
+  };
+
   const workout = todayWorkouts.find((w) => w.id === id);
 
   if (!workout) {
@@ -52,12 +73,15 @@ export default function WorkoutDetailScreen() {
     (s) => s.completed,
   ).length;
   const totalSets = workout.workoutSetList.length;
-  const progressPercentage = (completedCount / totalSets) * 100;
+  const progressPercentage =
+    totalSets === 0 ? 0 : (completedCount / totalSets) * 100;
 
   const handleEditSet = (index: number) => {
     const set = workout.workoutSetList[index];
-    setEditReps(set.reps.toString());
-    setEditWeight(set.weight !== undefined ? set.weight.toString() : "");
+    const reps = getDisplayReps(set);
+    const weight = getDisplayWeight(set);
+    setEditReps(reps != null ? reps.toString() : "");
+    setEditWeight(weight != null ? weight.toString() : "");
     setEditingSetIndex(index);
   };
 
@@ -125,7 +149,7 @@ export default function WorkoutDetailScreen() {
             </Text>
           </View>
           <Text style={[styles.workoutInfo, { color: colors.text.secondary }]}>
-            {totalSets} sets total
+            총 {totalSets} 세트
           </Text>
 
           {/* Progress Bar */}
@@ -134,10 +158,10 @@ export default function WorkoutDetailScreen() {
               <Text
                 style={[styles.progressText, { color: colors.text.secondary }]}
               >
-                Progress
+                진행률
               </Text>
               <Text style={[styles.progressCount, { color: colors.primary }]}>
-                {completedCount} / {totalSets} sets
+                {completedCount} / {totalSets} 세트
               </Text>
             </View>
             <View
@@ -161,7 +185,7 @@ export default function WorkoutDetailScreen() {
 
         {/* Sets List */}
         <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>
-          Sets
+          세트
         </Text>
         <View style={styles.setsList}>
           {workout.workoutSetList.map((set, index) => (
@@ -200,7 +224,7 @@ export default function WorkoutDetailScreen() {
                         },
                       ]}
                     >
-                      Set {index + 1}
+                      {index + 1} 세트
                     </Text>
                     <Text
                       style={[
@@ -212,8 +236,9 @@ export default function WorkoutDetailScreen() {
                         },
                       ]}
                     >
-                      {set.reps} reps
-                      {set.weight && ` @ ${set.weight}kg`}
+                      {getDisplayReps(set) ?? 0} reps
+                      {getDisplayWeight(set) != null &&
+                        ` @ ${getDisplayWeight(set)}kg`}
                     </Text>
                   </View>
                   <View style={styles.setActions}>
