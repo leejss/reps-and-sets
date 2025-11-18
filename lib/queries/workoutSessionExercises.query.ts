@@ -1,6 +1,6 @@
 import type { Tables, TablesInsert } from "../database.types";
 import { supabase } from "../supabase";
-import { mapSetRow, WorkoutSet } from "./workoutSets.query";
+import { mapSetRow, WorkoutSet } from "./workoutSets.model";
 
 export interface SessionExerciseWithSets {
   id: string;

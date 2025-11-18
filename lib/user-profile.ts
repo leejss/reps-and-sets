@@ -1,5 +1,5 @@
 import type { User } from "@supabase/supabase-js";
-import { insertUserProfileRow, UserInsertPayload } from "./queries/users.query";
+import type { TablesInsert } from "./database.types";
 import { supabase } from "./supabase";
 
 let ensuredUserId: string | null = null;
@@ -12,6 +12,8 @@ const pickFirstNonEmpty = (...values: unknown[]): string | undefined => {
   }
   return undefined;
 };
+
+type UserInsertPayload = TablesInsert<"profiles">;
 
 const buildProfilePayload = (user: User): UserInsertPayload => {
   const metadata = user.user_metadata ?? {};
@@ -64,7 +66,9 @@ export const ensureUserProfile = async (
 
   if (!existing) {
     const payload = buildProfilePayload(targetUser);
-    const { error: insertError } = await insertUserProfileRow(payload);
+    const { error: insertError } = await supabase
+      .from("profiles")
+      .insert(payload);
 
     if (insertError) {
       // 중복 삽입 시도는 무시 (다른 클라이언트가 선행해도 OK)

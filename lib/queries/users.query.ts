@@ -1,4 +1,4 @@
-import type { Tables, TablesInsert } from "../database.types";
+import type { Tables } from "../database.types";
 import { supabase } from "../supabase";
 import { getAuthenticatedUser } from "../utils";
 
@@ -43,9 +43,4 @@ export async function updateUserProfile(updates: {
   }
 
   return data;
-}
-
-export type UserInsertPayload = TablesInsert<"profiles">;
-export async function insertUserProfileRow(payload: UserInsertPayload) {
-  return supabase.from("profiles").insert(payload);
 }
