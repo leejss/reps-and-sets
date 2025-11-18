@@ -1,20 +1,49 @@
+import type { SessionExerciseWithSets } from "@/lib/queries/workoutSessionExercises.query";
+import { createSessionExercise } from "@/lib/service";
 import { create } from "zustand";
 import { combine } from "zustand/middleware";
 import {
   createExercise,
   deleteExercise as deleteExerciseApi,
+  Exercise,
   fetchExercises,
   updateExercise as updateExerciseApi,
 } from "../lib/queries/exercises.query";
 import {
-  createTodayWorkout,
-  fetchTodayExercises,
+  fetchSessionExercisesByDate,
   updateTodaySetCompletion,
   updateTodaySetDetails,
   updateTodayWorkoutCompletion,
-} from "../lib/queries/todayWorkouts.query";
-import { Exercise, TodayWorkout } from "../types";
+} from "../lib/queries/workoutSets.query";
 import { getAuthStore, useAuthStore } from "./auth-store";
+
+import type { WorkoutSet } from "../lib/queries/workoutSets.query";
+
+// 오늘의 운동: UI에서 사용하는 뷰 모델 타입
+export interface TodayWorkout {
+  id: string;
+  sessionId: string;
+  exerciseId: string;
+  exerciseName: string;
+  targetMuscleGroup: string;
+  orderInSession: number;
+  workoutSetList: WorkoutSet[];
+  completed: boolean;
+}
+
+// DB에서 조회한 세션 운동 정보를 UI 뷰 모델로 변환
+const mapSessionExerciseToTodayWorkout = (
+  session: SessionExerciseWithSets,
+): TodayWorkout => ({
+  id: session.id,
+  sessionId: session.sessionId,
+  exerciseId: session.exerciseId,
+  exerciseName: session.exerciseName,
+  targetMuscleGroup: session.targetMuscleGroup,
+  orderInSession: session.orderInSession,
+  completed: session.completed,
+  workoutSetList: session.sets,
+});
 
 export const useAppStore = create(
   combine(
@@ -47,21 +76,21 @@ export const useAppStore = create(
       /**
        * Supabase에서 오늘의 운동 기록 새로고침
        */
-      refreshWorkouts: async () => {
-        const { isAuthenticated } = useAuthStore.getState();
-        if (!isAuthenticated) return;
+      // refreshWorkouts: async () => {
+      //   const { isAuthenticated } = useAuthStore.getState();
+      //   if (!isAuthenticated) return;
 
-        set({ isLoadingWorkouts: true });
-        try {
-          const today = new Date();
-          const todayWorkouts = await fetchTodayExercises(today);
-          set({ todayExercises: todayWorkouts });
-        } catch (error) {
-          console.error("운동 기록 로드 실패:", error);
-        } finally {
-          set({ isLoadingWorkouts: false });
-        }
-      },
+      //   set({ isLoadingWorkouts: true });
+      //   try {
+      //     const today = new Date();
+      //     const todayWorkouts = await fetchSessionExercisesByDate(today);
+      //     set({ todayExercises: todayWorkouts });
+      //   } catch (error) {
+      //     console.error("운동 기록 로드 실패:", error);
+      //   } finally {
+      //     set({ isLoadingWorkouts: false });
+      //   }
+      // },
 
       loadInitialData: async () => {
         const { isAuthenticated } = getAuthStore();
@@ -71,14 +100,16 @@ export const useAppStore = create(
 
         try {
           const today = new Date();
-          const [exercises, todayExercises] = await Promise.all([
+          const [exercises, todaySessionExercises] = await Promise.all([
             fetchExercises(),
-            fetchTodayExercises(today),
+            fetchSessionExercisesByDate(today),
           ]);
 
           set({
             exercises,
-            todayExercises,
+            todayExercises: todaySessionExercises.map(
+              mapSessionExerciseToTodayWorkout,
+            ),
           });
         } catch (error) {
           console.error("초기 데이터 로드 실패:", error);
@@ -189,7 +220,14 @@ export const useAppStore = create(
         }
       },
 
-      addTodayWorkout: async (workout: Omit<TodayWorkout, "id">) => {
+      addTodaySessionExercise: async (input: {
+        exerciseId: string;
+        exerciseName: string;
+        targetMuscleGroup: string;
+        workoutSetList: WorkoutSet[];
+        completed: boolean;
+        date: string;
+      }) => {
         const { isAuthenticated } = useAuthStore.getState();
 
         if (!isAuthenticated) {
@@ -197,9 +235,15 @@ export const useAppStore = create(
         }
 
         // Optimistic Update
-        const tempWorkout = {
-          ...workout,
+        const tempWorkout: TodayWorkout = {
           id: `temp-${Date.now()}`,
+          sessionId: "temp-session",
+          exerciseId: input.exerciseId,
+          exerciseName: input.exerciseName,
+          targetMuscleGroup: input.targetMuscleGroup,
+          orderInSession: 0,
+          workoutSetList: input.workoutSetList,
+          completed: input.completed,
         };
 
         set((state) => ({
@@ -207,7 +251,15 @@ export const useAppStore = create(
         }));
 
         try {
-          const newWorkout = await createTodayWorkout(workout);
+          const created = await createSessionExercise(
+            input.date,
+            input.exerciseId,
+            input.workoutSetList.map((set) => ({
+              reps: set.plannedReps ?? 0,
+              weight: set.plannedWeight ?? undefined,
+            })),
+          );
+          const newWorkout = mapSessionExerciseToTodayWorkout(created);
 
           set((state) => ({
             todayExercises: state.todayExercises.map((w) =>
@@ -239,7 +291,7 @@ export const useAppStore = create(
         const previousWorkouts = get().todayExercises;
 
         // Optimistic Update
-        const updatedWorkouts = previousWorkouts.map((w) => {
+        const updatedWorkouts: TodayWorkout[] = previousWorkouts.map((w) => {
           if (w.id === id) {
             const newCompleted = !w.completed;
             return {
@@ -286,7 +338,7 @@ export const useAppStore = create(
         const previousWorkouts = get().todayExercises;
 
         // Optimistic Update
-        const updatedWorkouts = previousWorkouts.map((w) => {
+        const updatedWorkouts: TodayWorkout[] = previousWorkouts.map((w) => {
           if (w.id === workoutId) {
             const newSetDetails = [...w.workoutSetList];
             newSetDetails[setIndex] = {
@@ -338,7 +390,7 @@ export const useAppStore = create(
         const previousWorkouts = get().todayExercises;
 
         // Optimistic Update
-        const updatedWorkouts = previousWorkouts.map((w) => {
+        const updatedWorkouts: TodayWorkout[] = previousWorkouts.map((w) => {
           if (w.id === workoutId) {
             const newSetDetails = [...w.workoutSetList];
             newSetDetails[setIndex] = {

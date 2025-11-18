@@ -17,7 +17,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 export default function WorkoutRegisterScreen() {
   const insets = useSafeAreaInsets();
   const exercises = useAppStore((state) => state.exercises);
-  const addTodayWorkout = useAppStore((state) => state.addTodayWorkout);
+  const addTodaySessionExercise = useAppStore(
+    (state) => state.addTodaySessionExercise,
+  );
   const colors = useColor();
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(
     null,
@@ -99,7 +101,7 @@ export default function WorkoutRegisterScreen() {
 
     try {
       const today = formatLocalDateISO(new Date());
-      await addTodayWorkout({
+      await addTodaySessionExercise({
         exerciseId: selectedExercise.id,
         exerciseName: selectedExercise.name,
         targetMuscleGroup: selectedExercise.targetMuscleGroup,

@@ -1,11 +1,19 @@
-import type { Exercise } from "@/lib/types";
-import dayjs from "dayjs";
+import { TablesInsert } from "../database.types";
 import { supabase } from "../supabase";
 import { getAuthenticatedUser } from "../utils";
 
+export interface Exercise {
+  id: string;
+  name: string;
+  targetMuscleGroup: string;
+  description?: string;
+  externalLink?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export async function fetchExercises(): Promise<Exercise[]> {
   const user = await getAuthenticatedUser();
-
   const { data, error } = await supabase
     .from("exercises")
     .select("*")
@@ -23,24 +31,27 @@ export async function fetchExercises(): Promise<Exercise[]> {
     targetMuscleGroup: exercise.target_muscle_group,
     description: exercise.description || undefined,
     link: exercise.external_link || undefined,
-    createdAt: dayjs(exercise.created_at).toDate(),
+    createdAt: new Date(exercise.created_at),
+    updatedAt: new Date(exercise.updated_at),
   }));
 }
 
 export async function createExercise(
-  exercise: Omit<Exercise, "id" | "createdAt">,
+  exercise: Omit<Exercise, "id" | "createdAt" | "updatedAt">,
 ): Promise<Exercise> {
   const user = await getAuthenticatedUser();
 
+  const values: TablesInsert<"exercises"> = {
+    user_id: user.id,
+    name: exercise.name,
+    target_muscle_group: exercise.targetMuscleGroup,
+    description: exercise.description || null,
+    external_link: exercise.externalLink || null,
+  };
+
   const { data, error } = await supabase
     .from("exercises")
-    .insert({
-      user_id: user.id,
-      name: exercise.name,
-      target_muscle_group: exercise.targetMuscleGroup,
-      description: exercise.description || null,
-      external_link: exercise.link || null,
-    })
+    .insert(values)
     .select()
     .single();
 
@@ -54,14 +65,12 @@ export async function createExercise(
     name: data.name,
     targetMuscleGroup: data.target_muscle_group,
     description: data.description || undefined,
-    link: data.external_link || undefined,
-    createdAt: dayjs(data.created_at).toDate(),
+    externalLink: data.external_link || undefined,
+    createdAt: new Date(data.created_at),
+    updatedAt: new Date(data.updated_at),
   };
 }
 
-/**
- * 운동 수정
- */
 export async function updateExercise(
   id: string,
   exercise: Omit<Exercise, "id" | "createdAt">,
@@ -72,7 +81,7 @@ export async function updateExercise(
       name: exercise.name,
       target_muscle_group: exercise.targetMuscleGroup,
       description: exercise.description || null,
-      external_link: exercise.link || null,
+      external_link: exercise.externalLink || null,
     })
     .eq("id", id)
     .select()
@@ -88,14 +97,12 @@ export async function updateExercise(
     name: data.name,
     targetMuscleGroup: data.target_muscle_group,
     description: data.description || undefined,
-    link: data.external_link || undefined,
-    createdAt: dayjs(data.created_at).toDate(),
+    externalLink: data.external_link || undefined,
+    createdAt: new Date(data.created_at),
+    updatedAt: new Date(data.updated_at),
   };
 }
 
-/**
- * 운동 삭제
- */
 export async function deleteExercise(id: string): Promise<void> {
   const { error } = await supabase.from("exercises").delete().eq("id", id);
 

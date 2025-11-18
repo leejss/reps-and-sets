@@ -5,14 +5,20 @@ import {
   getStartOfWeek,
 } from "@/lib/date";
 import {
-  createSessionExerciseWithSets,
-  deleteSessionExercise,
-  fetchSessionsInRange,
+  deleteSessionExercise as deleteSessionExerciseRow,
   fetchWorkoutSessionExercise,
+  insertSessionExercise,
+  updateSessionExercise,
+  type SessionExerciseWithSets,
+} from "@/lib/queries/workoutSessionExercises.query";
+import {
+  fetchSessionsInRange,
   getOrCreateWorkoutSession,
-  updateSessionExerciseAndSets,
-  type SessionExercise,
 } from "@/lib/queries/workoutSessions.query";
+import {
+  insertWorkoutSetsForSessionExercise,
+  replaceWorkoutSetsForSessionExercise,
+} from "@/lib/queries/workoutSets.query";
 import { getWeekdayFromDate } from "@/lib/utils";
 import {
   DayPlan,
@@ -90,14 +96,14 @@ const mergeWorkoutsIntoPlan = (
 
 const mapSessionExerciseToWeeklyWorkout = (
   session: { id: string; date: string },
-  exercise: SessionExercise,
+  exercise: SessionExerciseWithSets,
 ): WeeklyWorkout => ({
   id: exercise.id,
   sessionId: session.id,
   scheduledDate: session.date,
   exerciseId: exercise.exerciseId,
   exerciseName: exercise.exerciseName,
-  muscleGroup: exercise.muscleGroup,
+  muscleGroup: exercise.targetMuscleGroup,
   orderInSession: exercise.orderInSession,
   setDetails: exercise.sets.map((set, index) => ({
     id: set.id,
@@ -173,15 +179,28 @@ export const useWeeklyPlan = () => {
         const session = await getOrCreateWorkoutSession(targetDay.dateISO);
 
         const orderInSession = targetDay.workouts.length;
-        const sessionExercise = await createSessionExerciseWithSets({
+        const sessionExerciseBase = await insertSessionExercise({
           sessionId: session.id,
           exerciseId: workout.exerciseId,
           orderInSession,
+        });
+
+        await insertWorkoutSetsForSessionExercise({
+          sessionExerciseId: sessionExerciseBase.id,
           plannedSets: workout.setDetails.map((set) => ({
             reps: set.plannedReps ?? 0,
             weight: set.plannedWeight ?? undefined,
           })),
         });
+
+        const details = await fetchWorkoutSessionExercise(session.id);
+        const sessionExercise = details.find(
+          (exercise) => exercise.id === sessionExerciseBase.id,
+        );
+
+        if (!sessionExercise) {
+          throw new Error("생성된 세션 운동 정보를 찾을 수 없습니다.");
+        }
 
         const created: WeeklyWorkout = {
           ...mapSessionExerciseToWeeklyWorkout(session, sessionExercise),
@@ -217,14 +236,27 @@ export const useWeeklyPlan = () => {
           throw new Error("수정할 운동을 찾을 수 없습니다.");
         }
 
-        const updatedExercise = await updateSessionExerciseAndSets({
+        await updateSessionExercise({
           sessionExerciseId: workoutId,
           exerciseId: payload.exerciseId,
+        });
+
+        await replaceWorkoutSetsForSessionExercise({
+          sessionExerciseId: workoutId,
           plannedSets: payload.setDetails.map((set) => ({
             reps: set.plannedReps ?? 0,
             weight: set.plannedWeight ?? undefined,
           })),
         });
+
+        const details = await fetchWorkoutSessionExercise(current.sessionId);
+        const updatedExercise = details.find(
+          (exercise) => exercise.id === workoutId,
+        );
+
+        if (!updatedExercise) {
+          throw new Error("수정된 세션 운동을 찾을 수 없습니다.");
+        }
 
         const updated: WeeklyWorkout = {
           ...mapSessionExerciseToWeeklyWorkout(
@@ -257,7 +289,7 @@ export const useWeeklyPlan = () => {
     async (dayId: Weekday, workoutId: string) => {
       setIsMutating(true);
       try {
-        await deleteSessionExercise(workoutId);
+        await deleteSessionExerciseRow(workoutId);
         setPlan((prev) => {
           const nextDayPlans = prev.dayPlans.map((day) =>
             day.id === dayId

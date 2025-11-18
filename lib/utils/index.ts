@@ -1,4 +1,3 @@
-import type { WorkoutSet } from "@/lib/types";
 import { Weekday } from "@/types/weekly-plan";
 import dayjs from "dayjs";
 import { supabase } from "../supabase";
@@ -16,18 +15,6 @@ export const getAuthenticatedUser = async () => {
   await ensureUserProfile(user);
 
   return user;
-};
-
-export const normalizeSetDetails = (details: unknown): WorkoutSet[] => {
-  if (!Array.isArray(details)) {
-    return [];
-  }
-
-  return (details as (Partial<WorkoutSet> | null | undefined)[]).map((set) => ({
-    reps: typeof set?.reps === "number" ? set.reps : 0,
-    weight: typeof set?.weight === "number" ? set.weight : undefined,
-    completed: Boolean(set?.completed),
-  }));
 };
 
 const WEEKDAY_BY_JS_INDEX: Weekday[] = [
