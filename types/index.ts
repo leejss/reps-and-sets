@@ -5,7 +5,6 @@ export type {
   SetDetail,
   TodayWorkout,
   User,
-  UserProfile,
   WeeklyPlanWorkoutsResult,
   WorkoutSet,
 } from "@/lib/types";

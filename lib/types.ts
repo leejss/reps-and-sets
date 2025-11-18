@@ -35,15 +35,6 @@ export interface User {
   profilePhoto?: string;
 }
 
-export interface UserProfile {
-  id: string;
-  email: string;
-  name: string;
-  profile_photo: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
 export interface ScheduledWorkoutRecord {
   id: string;
   scheduledDate: string;

@@ -1,16 +1,15 @@
-import type { TablesInsert } from "../database.types";
+import type { Tables, TablesInsert } from "../database.types";
 import { supabase } from "../supabase";
-import type { UserProfile } from "../types";
 import { getAuthenticatedUser } from "../utils";
 
 /**
  * 사용자 프로필 조회
  */
-export async function fetchUserProfile(): Promise<UserProfile> {
+export async function fetchUserProfile(): Promise<Tables<"profiles">> {
   const user = await getAuthenticatedUser();
 
   const { data, error } = await supabase
-    .from("users")
+    .from("profiles")
     .select("*")
     .eq("id", user.id)
     .single();
@@ -27,13 +26,12 @@ export async function fetchUserProfile(): Promise<UserProfile> {
  * 사용자 프로필 업데이트
  */
 export async function updateUserProfile(updates: {
-  name?: string;
-  profile_photo?: string;
-}): Promise<UserProfile> {
+  display_name?: string | null;
+}): Promise<Tables<"profiles">> {
   const user = await getAuthenticatedUser();
 
   const { data, error } = await supabase
-    .from("users")
+    .from("profiles")
     .update(updates)
     .eq("id", user.id)
     .select()
@@ -47,7 +45,7 @@ export async function updateUserProfile(updates: {
   return data;
 }
 
-export type UserInsertPayload = TablesInsert<"users">;
+export type UserInsertPayload = TablesInsert<"profiles">;
 export async function insertUserProfileRow(payload: UserInsertPayload) {
-  return supabase.from("users").insert(payload);
+  return supabase.from("profiles").insert(payload);
 }

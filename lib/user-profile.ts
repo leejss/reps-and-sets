@@ -1,5 +1,4 @@
 import type { User } from "@supabase/supabase-js";
-
 import { insertUserProfileRow, UserInsertPayload } from "./queries/users.query";
 import { supabase } from "./supabase";
 
@@ -16,19 +15,19 @@ const pickFirstNonEmpty = (...values: unknown[]): string | undefined => {
 
 const buildProfilePayload = (user: User): UserInsertPayload => {
   const metadata = user.user_metadata ?? {};
-  const name =
-    pickFirstNonEmpty(metadata.name, metadata.full_name, metadata.user_name) ??
+  const display_name =
+    pickFirstNonEmpty(
+      metadata.name,
+      metadata.full_name,
+      metadata.user_name,
+      metadata.preferred_username,
+    ) ??
     user.email?.split("@")[0] ??
     "User";
 
-  const profile_photo =
-    typeof metadata.avatar_url === "string" ? metadata.avatar_url : null;
-
   return {
     id: user.id,
-    email: user.email ?? "",
-    name,
-    profile_photo,
+    display_name,
   };
 };
 
@@ -53,7 +52,7 @@ export const ensureUserProfile = async (
   }
 
   const { data: existing, error: selectError } = await supabase
-    .from("users")
+    .from("profiles")
     .select("id")
     .eq("id", targetUser.id)
     .maybeSingle();
