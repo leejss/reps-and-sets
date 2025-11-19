@@ -122,7 +122,9 @@ export const useWeeklyPlan = () => {
   const [plan, setPlan] = useState<WeeklyPlan>(() =>
     buildEmptyPlan(new Date()),
   );
-  const [selectedDay, setSelectedDay] = useState<Weekday>("Mon");
+  const [selectedDay, setSelectedDay] = useState<Weekday>(() =>
+    getWeekdayFromDate(new Date()),
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isMutating, setIsMutating] = useState(false);
