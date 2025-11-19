@@ -23,6 +23,15 @@ type EditorState = {
   workout?: WeeklyWorkout | null;
 };
 
+const handleError = (
+  title: string,
+  error: unknown,
+  defaultMessage: string = "오류가 발생했습니다.",
+) => {
+  const message = error instanceof Error ? error.message : defaultMessage;
+  Alert.alert(title, message);
+};
+
 export default function WeeklyPlanScreen() {
   const colors = useColor();
   const exercises = useAppStore((state) => state.exercises);
@@ -101,12 +110,11 @@ export default function WeeklyPlanScreen() {
 
       closeEditor();
     } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : "주간 계획을 저장하는 중 오류가 발생했습니다.";
-
-      Alert.alert("저장 실패", message);
+      handleError(
+        "저장 실패",
+        err,
+        "주간 계획을 저장하는 중 오류가 발생했습니다.",
+      );
     }
   };
 
@@ -114,11 +122,7 @@ export default function WeeklyPlanScreen() {
     try {
       await removeWorkout(selectedPlan.id, workoutId);
     } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : "운동을 삭제하는 중 오류가 발생했습니다.";
-      Alert.alert("삭제 실패", message);
+      handleError("삭제 실패", err, "운동을 삭제하는 중 오류가 발생했습니다.");
     }
   };
 
@@ -147,9 +151,7 @@ export default function WeeklyPlanScreen() {
           disabled={isMutating}
         />
       </ScrollView>
-
       <FloatingActionButton onPress={openCreateEditor} bottom={32} />
-
       <PlanWorkoutEditor
         visible={editorState.visible}
         mode={editorState.mode}

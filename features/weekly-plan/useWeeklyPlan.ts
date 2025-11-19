@@ -1,8 +1,8 @@
 import {
   formatChipDate,
   formatLocalDateISO,
-  getCurrentDate,
-  getStartOfWeek,
+  getWeekRange,
+  type WeekRange,
 } from "@/lib/date";
 import {
   deleteSessionExercise as deleteSessionExerciseRow,
@@ -12,7 +12,7 @@ import {
   type SessionExerciseWithSets,
 } from "@/lib/queries/workoutSessionExercises.query";
 import {
-  fetchSessionsInRange,
+  fetchWorkoutSessionsWithDetailsInRange,
   getOrCreateWorkoutSession,
 } from "@/lib/queries/workoutSessions.query";
 import {
@@ -29,14 +29,15 @@ import {
   WeeklyWorkout,
   WeeklyWorkoutInput,
 } from "@/types/weekly-plan";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
-const buildEmptyPlan = (weekStart: string): WeeklyPlan => {
-  const weekStartDay = getStartOfWeek(weekStart);
-  const weekEndDay = weekStartDay.add(6, "day");
+type WeekRangeInput = Parameters<typeof getWeekRange>[0];
+
+const buildEmptyPlanFromRange = (range: WeekRange): WeeklyPlan => {
+  const { startDay, endDay, startISO, endISO } = range;
 
   const dayPlans: DayPlan[] = WEEKDAY_ORDER.map((weekday, index) => {
-    const current = weekStartDay.add(index, "day");
+    const current = startDay.add(index, "day");
     return {
       id: weekday,
       label: WEEKDAY_LABELS[weekday],
@@ -47,23 +48,23 @@ const buildEmptyPlan = (weekStart: string): WeeklyPlan => {
   });
 
   return {
-    weekStartDate: formatLocalDateISO(weekStartDay),
-    weekEndDate: formatLocalDateISO(weekEndDay),
-    weekRange: `${formatChipDate(weekStartDay)} - ${formatChipDate(
-      weekEndDay,
-    )}`,
+    weekStartDate: startISO,
+    weekEndDate: endISO,
+    weekRange: `${formatChipDate(startDay)} - ${formatChipDate(endDay)}`,
     dayPlans,
   };
 };
 
-const mergeWorkoutsIntoPlan = (
-  basePlan: WeeklyPlan,
+const buildEmptyPlan = (pivotDate: WeekRangeInput): WeeklyPlan => {
+  const range = getWeekRange(pivotDate);
+  return buildEmptyPlanFromRange(range);
+};
+
+const createWeeklyPlanFromWorkouts = (
+  range: WeekRange,
   workouts: WeeklyWorkout[],
 ): WeeklyPlan => {
-  const orderMap = workouts.reduce<Record<string, number>>((acc, record) => {
-    acc[record.id] = record.orderInSession;
-    return acc;
-  }, {});
+  const basePlan = buildEmptyPlanFromRange(range);
 
   const dayPlanMap = basePlan.dayPlans.reduce<Record<Weekday, DayPlan>>(
     (acc, day) => {
@@ -87,7 +88,7 @@ const mergeWorkoutsIntoPlan = (
       return {
         ...day,
         workouts: [...day.workouts].sort(
-          (a, b) => orderMap[a.id] - orderMap[b.id],
+          (a, b) => a.orderInSession - b.orderInSession,
         ),
       };
     }),
@@ -118,13 +119,9 @@ const mapSessionExerciseToWeeklyWorkout = (
 });
 
 export const useWeeklyPlan = () => {
-  const anchorDate = useMemo(() => getCurrentDate(), []);
-  const initialPlan = useMemo(
-    () => buildEmptyPlan(formatLocalDateISO(anchorDate)),
-    [anchorDate],
+  const [plan, setPlan] = useState<WeeklyPlan>(() =>
+    buildEmptyPlan(new Date()),
   );
-
-  const [plan, setPlan] = useState<WeeklyPlan>(initialPlan);
   const [selectedDay, setSelectedDay] = useState<Weekday>("Mon");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -132,37 +129,37 @@ export const useWeeklyPlan = () => {
 
   const loadWeeklyPlan = useCallback(async () => {
     setIsLoading(true);
+    const today = new Date();
     try {
-      const weekStartDay = getStartOfWeek(anchorDate);
-      const weekEndDay = weekStartDay.add(6, "day");
-      const weekStart = formatLocalDateISO(weekStartDay);
-      const weekEnd = formatLocalDateISO(weekEndDay);
-
-      const sessions = await fetchSessionsInRange(weekStart, weekEnd);
-      const detailsList = await Promise.all(
-        sessions.map((session) => fetchWorkoutSessionExercise(session.id)),
-      );
-
+      const range = getWeekRange(today);
+      const { startISO, endISO } = range;
       const workouts: WeeklyWorkout[] = [];
 
-      sessions.forEach((session, index) => {
-        const exercises = detailsList[index];
+      const sessionsWithDetails = await fetchWorkoutSessionsWithDetailsInRange(
+        startISO,
+        endISO,
+      );
+
+      sessionsWithDetails.forEach(({ session, exercises }) => {
         exercises.forEach((exercise) => {
-          workouts.push(mapSessionExerciseToWeeklyWorkout(session, exercise));
+          workouts.push(
+            mapSessionExerciseToWeeklyWorkout(
+              { id: session.id, date: session.date },
+              exercise,
+            ),
+          );
         });
       });
-
-      const basePlan = buildEmptyPlan(weekStart);
-      setPlan(mergeWorkoutsIntoPlan(basePlan, workouts));
+      setPlan(createWeeklyPlanFromWorkouts(range, workouts));
       setError(null);
     } catch (err) {
       console.error("주간 계획 로드 실패:", err);
       setError("주간 계획을 불러오지 못했습니다.");
-      setPlan(buildEmptyPlan(formatLocalDateISO(anchorDate)));
+      setPlan(buildEmptyPlan(today));
     } finally {
       setIsLoading(false);
     }
-  }, [anchorDate]);
+  }, []);
 
   useEffect(() => {
     loadWeeklyPlan();

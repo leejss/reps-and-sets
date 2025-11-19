@@ -1,9 +1,7 @@
+import { useColor } from "@/constants/colors";
+import { DayPlan, Weekday } from "@/types/weekly-plan";
 import React from "react";
 import { ScrollView, StyleSheet, Text, TouchableOpacity } from "react-native";
-
-import { useColor } from "@/constants/colors";
-
-import { DayPlan, Weekday } from "../types";
 
 type DayCarouselProps = {
   dayPlans: DayPlan[];
@@ -92,4 +90,3 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
 });
-

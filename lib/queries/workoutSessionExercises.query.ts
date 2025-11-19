@@ -13,6 +13,24 @@ export interface SessionExerciseWithSets {
   sets: WorkoutSet[];
 }
 
+type SessionExerciseJoinedRow = Tables<"workout_session_exercises"> & {
+  exercises: Tables<"exercises"> | null;
+  workout_sets: Tables<"workout_sets">[] | null;
+};
+
+export const mapSessionExerciseJoinedRow = (
+  row: SessionExerciseJoinedRow,
+): SessionExerciseWithSets => ({
+  id: row.id,
+  sessionId: row.session_id,
+  exerciseId: row.exercise_id,
+  exerciseName: row.exercises?.name ?? "",
+  targetMuscleGroup: row.exercises?.target_muscle_group ?? "",
+  completed: row.is_completed,
+  orderInSession: row.order_in_session,
+  sets: (row.workout_sets ?? []).map(mapSetRow),
+});
+
 export const fetchWorkoutSessionExercise = async (
   sessionId: string,
 ): Promise<SessionExerciseWithSets[]> => {
@@ -27,16 +45,9 @@ export const fetchWorkoutSessionExercise = async (
     throw error;
   }
 
-  return (data ?? []).map((row) => ({
-    id: row.id,
-    sessionId: row.session_id,
-    exerciseId: row.exercise_id,
-    exerciseName: row.exercises?.name ?? "",
-    targetMuscleGroup: row.exercises?.target_muscle_group ?? "",
-    completed: row.is_completed,
-    orderInSession: row.order_in_session,
-    sets: (row.workout_sets ?? []).map(mapSetRow),
-  }));
+  return (data as SessionExerciseJoinedRow[] | null ?? []).map(
+    mapSessionExerciseJoinedRow,
+  );
 };
 
 export const insertSessionExercise = async (params: {
