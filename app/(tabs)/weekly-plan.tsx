@@ -5,7 +5,7 @@ import { PlanWorkoutEditor } from "@/features/weekly-plan/components/PlanWorkout
 import { SummaryCard } from "@/features/weekly-plan/components/SummaryCard";
 import { WorkoutBoard } from "@/features/weekly-plan/components/WorkoutBoard";
 import { useWeeklyPlan } from "@/features/weekly-plan/useWeeklyPlan";
-import { useAppStore } from "@/stores/app-store";
+import { useDataStore } from "@/stores/data-store";
 import {
   Weekday,
   WeeklyWorkout,
@@ -34,7 +34,7 @@ const handleError = (
 
 export default function WeeklyPlanScreen() {
   const colors = useColor();
-  const exercises = useAppStore((state) => state.exercises);
+  const exercises = useDataStore((state) => state.exercises);
   const {
     plan,
     selectedDay,

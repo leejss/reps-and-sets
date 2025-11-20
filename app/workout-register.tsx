@@ -1,6 +1,6 @@
 import { useColor } from "@/constants/colors";
 import { formatLocalDateISO } from "@/lib/date";
-import { useAppStore } from "@/stores/app-store";
+import { useDataStore } from "@/stores/data-store";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -16,8 +16,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function WorkoutRegisterScreen() {
   const insets = useSafeAreaInsets();
-  const exercises = useAppStore((state) => state.exercises);
-  const addTodaySessionExercise = useAppStore(
+  const exercises = useDataStore((state) => state.exercises);
+  const addTodaySessionExercise = useDataStore(
     (state) => state.addTodaySessionExercise,
   );
   const colors = useColor();

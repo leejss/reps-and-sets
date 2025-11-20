@@ -1,6 +1,7 @@
 import { useColor } from "@/constants/colors";
 import { useAppStore } from "@/stores/app-store";
 import { useAuthStore } from "@/stores/auth-store";
+import { useDataStore } from "@/stores/data-store";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React from "react";
@@ -20,7 +21,7 @@ export default function SettingsScreen() {
   const logout = useAuthStore((state) => state.logout);
   const darkMode = useAppStore((state) => state.darkMode);
   const toggleDarkMode = useAppStore((state) => state.toggleDarkMode);
-  const clearData = useAppStore((state) => state.clearData);
+  const clearData = useDataStore((state) => state.clearData);
   const colors = useColor();
 
   const handleLogout = async () => {

@@ -1,7 +1,7 @@
 import { FloatingActionButton } from "@/components/floating-action-button";
 import { useColor } from "@/constants/colors";
 import { formatKoreanHeaderDate } from "@/lib/date";
-import { useAppStore } from "@/stores/app-store";
+import { useDataStore } from "@/stores/data-store";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React from "react";
@@ -15,8 +15,8 @@ import {
 import { RouteHelpers, Routes } from "../route-config";
 
 export default function HomeScreen() {
-  const todayWorkouts = useAppStore((state) => state.todayExercises);
-  const toggleWorkoutComplete = useAppStore(
+  const todayWorkouts = useDataStore((state) => state.todayExercises);
+  const toggleWorkoutComplete = useDataStore(
     (state) => state.toggleWorkoutComplete,
   );
   const colors = useColor();

@@ -1,6 +1,6 @@
 import { useColor } from "@/constants/colors";
 import type { WorkoutSet } from "@/lib/queries/workoutSets.query";
-import { useAppStore } from "@/stores/app-store";
+import { useDataStore } from "@/stores/data-store";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useState } from "react";
@@ -17,12 +17,12 @@ import {
 
 export default function WorkoutDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const todayWorkouts = useAppStore((state) => state.todayExercises);
-  const toggleSetComplete = useAppStore((state) => state.toggleSetComplete);
-  const toggleWorkoutComplete = useAppStore(
+  const todayWorkouts = useDataStore((state) => state.todayExercises);
+  const toggleSetComplete = useDataStore((state) => state.toggleSetComplete);
+  const toggleWorkoutComplete = useDataStore(
     (state) => state.toggleWorkoutComplete,
   );
-  const updateSetDetails = useAppStore((state) => state.updateSetDetails);
+  const updateSetDetails = useDataStore((state) => state.updateSetDetails);
 
   const colors = useColor();
   const [editingSetIndex, setEditingSetIndex] = useState<number | null>(null);

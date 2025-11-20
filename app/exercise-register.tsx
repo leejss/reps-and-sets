@@ -1,5 +1,5 @@
 import { useColor } from "@/constants/colors";
-import { useAppStore } from "@/stores/app-store";
+import { useDataStore } from "@/stores/data-store";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -25,9 +25,9 @@ const muscleGroups = [
 ];
 
 export default function ExerciseRegisterScreen() {
-  const addExercise = useAppStore((state) => state.addExercise);
-  const updateExercise = useAppStore((state) => state.updateExercise);
-  const exercises = useAppStore((state) => state.exercises);
+  const addExercise = useDataStore((state) => state.addExercise);
+  const updateExercise = useDataStore((state) => state.updateExercise);
+  const exercises = useDataStore((state) => state.exercises);
   const colors = useColor();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ id?: string }>();
