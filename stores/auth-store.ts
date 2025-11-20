@@ -7,7 +7,7 @@ import {
 import type { Session, User } from "@supabase/supabase-js";
 import { create } from "zustand";
 import { combine } from "zustand/middleware";
-import { getOrCreateProfile } from "../lib/queries/users.query";
+import { fetchProfile } from "../lib/queries/profile.query";
 import { supabase } from "../lib/supabase";
 
 GoogleSignin.configure({
@@ -30,43 +30,46 @@ export const useAuthStore = create(
       initialize: async () => {
         try {
           const session = await getSupabaseSession();
-
-          let profile: Tables<"profiles"> | null = null;
-          if (session?.user) {
-            try {
-              profile = await getOrCreateProfile(session.user);
-            } catch (error) {
-              console.error("초기 사용자 프로필 로드 실패:", error);
-            }
+          if (!session) {
+            set({
+              session,
+              isAuthenticated: false,
+              user: null,
+              profile: null,
+            });
+            return;
           }
+          const profile = await fetchProfile(session.user.id);
 
           set({
             session,
             isAuthenticated: !!session,
-            user: session?.user ?? null,
+            user: session.user,
             profile,
           });
 
-          supabase.auth.onAuthStateChange((_event, session) => {
-            const user = session?.user ?? null;
-
-            set({
-              session,
-              isAuthenticated: !!session,
-              user,
-              // 로그아웃 시에는 프로필도 정리
-              profile: user ? useAuthStore.getState().profile : null,
-            });
-
-            if (user) {
-              // 비동기로 프로필 최신 상태 동기화
-              getOrCreateProfile(user)
-                .then((nextProfile) => {
-                  set({ profile: nextProfile });
-                })
-                .catch((error) => {
-                  console.error("사용자 프로필 동기화 실패:", error);
+          supabase.auth.onAuthStateChange(async (_event, session) => {
+            try {
+              if (!session) {
+                set({
+                  session,
+                  isAuthenticated: false,
+                  user: null,
+                  profile: null,
                 });
+                return;
+              }
+
+              const profile = await fetchProfile(session.user.id);
+
+              set({
+                session,
+                isAuthenticated: !!session,
+                user: session.user,
+                profile,
+              });
+            } catch (error) {
+              console.error("사용자 프로필 동기화 실패:", error);
             }
           });
         } finally {
