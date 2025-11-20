@@ -1,21 +1,19 @@
+import { initializeAuth, useAuthStore } from "@/stores/auth-store";
+import { loadInitialData } from "@/stores/data-store";
 import { useEffect } from "react";
-import { useAuthStore } from "../stores/auth-store";
-import { useDataStore } from "../stores/data-store";
 
 export function Initializer() {
-  const initialize = useAuthStore((state) => state.initialize);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  const loadInitialData = useDataStore((state) => state.loadInitialData);
 
   useEffect(() => {
-    initialize();
-  }, [initialize]);
+    initializeAuth();
+  }, []);
 
   useEffect(() => {
     if (isAuthenticated) {
       loadInitialData();
     }
-  }, [isAuthenticated, loadInitialData]);
+  }, [isAuthenticated]);
 
   return null;
 }

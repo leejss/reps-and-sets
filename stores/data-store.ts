@@ -51,9 +51,6 @@ export const useDataStore = create(
       isLoadingWorkouts: false,
     },
     (set, get) => ({
-      /**
-       * Supabase에서 운동 목록 새로고침
-       */
       refreshExercises: async () => {
         const { isAuthenticated } = useAuthStore.getState();
         if (!isAuthenticated) return;
@@ -132,9 +129,6 @@ export const useDataStore = create(
         }
       },
 
-      /**
-       * 운동 수정 (Optimistic Update + Supabase 동기화)
-       */
       updateExercise: async (
         id: string,
         exercise: Omit<Exercise, "id" | "createdAt">,
@@ -161,9 +155,6 @@ export const useDataStore = create(
         }
       },
 
-      /**
-       * 운동 삭제 (Optimistic Update + Supabase 동기화)
-       */
       deleteExercise: async (id: string) => {
         const { isAuthenticated } = useAuthStore.getState();
         if (!isAuthenticated) {
@@ -242,9 +233,6 @@ export const useDataStore = create(
         }
       },
 
-      /**
-       * 운동 완료 상태 토글 (Optimistic Update + Supabase 동기화)
-       */
       toggleWorkoutComplete: async (id: string) => {
         const { isAuthenticated } = useAuthStore.getState();
         if (!isAuthenticated) {
@@ -376,4 +364,4 @@ export const useDataStore = create(
   ),
 );
 
-export const getDataStore = () => useDataStore.getState();
+export const loadInitialData = () => useDataStore.getState().loadInitialData();

@@ -58,7 +58,6 @@ export default function ExerciseRegisterScreen() {
 
     try {
       if (isEditMode && params.id) {
-        // 편집 모드: 기존 운동 업데이트
         await updateExercise(params.id, {
           name,
           targetMuscleGroup: muscleGroup,

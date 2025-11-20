@@ -27,7 +27,7 @@ export const useAuthStore = create(
       profile: null as Tables<"profiles"> | null,
     },
     (set) => ({
-      initialize: async () => {
+      initializeAuth: async () => {
         try {
           const session = await getSupabaseSession();
           if (!session) {
@@ -157,3 +157,5 @@ export const useAuthStore = create(
   ),
 );
 export const getAuthStore = () => useAuthStore.getState();
+
+export const initializeAuth = () => useAuthStore.getState().initializeAuth();
