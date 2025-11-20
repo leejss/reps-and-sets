@@ -73,25 +73,6 @@ export const useAppStore = create(
         }
       },
 
-      /**
-       * Supabase에서 오늘의 운동 기록 새로고침
-       */
-      // refreshWorkouts: async () => {
-      //   const { isAuthenticated } = useAuthStore.getState();
-      //   if (!isAuthenticated) return;
-
-      //   set({ isLoadingWorkouts: true });
-      //   try {
-      //     const today = new Date();
-      //     const todayWorkouts = await fetchSessionExercisesByDate(today);
-      //     set({ todayExercises: todayWorkouts });
-      //   } catch (error) {
-      //     console.error("운동 기록 로드 실패:", error);
-      //   } finally {
-      //     set({ isLoadingWorkouts: false });
-      //   }
-      // },
-
       loadInitialData: async () => {
         const { isAuthenticated } = getAuthStore();
         if (!isAuthenticated) {

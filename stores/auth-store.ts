@@ -1,14 +1,15 @@
+import { getSupabaseSession } from "@/lib/auth";
+import type { Tables } from "@/lib/database.types";
 import {
   GoogleSignin,
   statusCodes,
 } from "@react-native-google-signin/google-signin";
-import type { Session } from "@supabase/supabase-js";
+import type { Session, User } from "@supabase/supabase-js";
 import { create } from "zustand";
 import { combine } from "zustand/middleware";
+import { getOrCreateProfile } from "../lib/queries/users.query";
 import { supabase } from "../lib/supabase";
-import { ensureUserProfile } from "../lib/user-profile";
 
-// Google Sign-In 초기화
 GoogleSignin.configure({
   webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
   iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
@@ -16,71 +17,61 @@ GoogleSignin.configure({
   offlineAccess: true,
 });
 
-const syncUserProfile = async (session: Session | null) => {
-  if (!session?.user) {
-    return;
-  }
-
-  try {
-    await ensureUserProfile(session.user);
-  } catch (error) {
-    console.error("사용자 프로필 동기화 실패:", error);
-  }
-};
-
 export const useAuthStore = create(
   combine(
     {
       isAuthenticated: false, // if session is not null
       isLoading: true,
       session: null as Session | null,
+      user: null as User | null,
+      profile: null as Tables<"profiles"> | null,
     },
-    (set, get) => ({
-      setSession: (session: Session | null) => {
-        set({
-          session,
-          isAuthenticated: !!session,
-        });
-
-        void syncUserProfile(session);
-      },
-
-      setLoading: (loading: boolean) => {
-        set({ isLoading: loading });
-      },
-
+    (set) => ({
       initialize: async () => {
-        const {
-          data: { session },
-          error,
-        } = await supabase.auth.getSession();
+        try {
+          const session = await getSupabaseSession();
 
-        if (error) {
-          console.error("Error getting session:", error);
-          // TODO:  Emit error event
-          // emit("auth-error", error);
-          set({ isLoading: false });
-          return;
-        }
+          let profile: Tables<"profiles"> | null = null;
+          if (session?.user) {
+            try {
+              profile = await getOrCreateProfile(session.user);
+            } catch (error) {
+              console.error("초기 사용자 프로필 로드 실패:", error);
+            }
+          }
 
-        set({
-          session,
-          isAuthenticated: !!session,
-        });
-
-        await syncUserProfile(session);
-
-        set({ isLoading: false });
-
-        supabase.auth.onAuthStateChange((_event, session) => {
-          console.log("onAuthStateChange", _event, session);
           set({
             session,
             isAuthenticated: !!session,
+            user: session?.user ?? null,
+            profile,
           });
 
-          void syncUserProfile(session);
-        });
+          supabase.auth.onAuthStateChange((_event, session) => {
+            const user = session?.user ?? null;
+
+            set({
+              session,
+              isAuthenticated: !!session,
+              user,
+              // 로그아웃 시에는 프로필도 정리
+              profile: user ? useAuthStore.getState().profile : null,
+            });
+
+            if (user) {
+              // 비동기로 프로필 최신 상태 동기화
+              getOrCreateProfile(user)
+                .then((nextProfile) => {
+                  set({ profile: nextProfile });
+                })
+                .catch((error) => {
+                  console.error("사용자 프로필 동기화 실패:", error);
+                });
+            }
+          });
+        } finally {
+          set({ isLoading: false });
+        }
       },
 
       // Google 소셜 로그인
@@ -148,13 +139,11 @@ export const useAuthStore = create(
 
       logout: async () => {
         try {
-          // Google SDK 로그아웃
           await GoogleSignin.signOut();
         } catch (error) {
           console.warn("Google Sign-Out 오류:", error);
         }
 
-        // Supabase 로그아웃
         const { error } = await supabase.auth.signOut();
         if (error) {
           console.error("로그아웃 실패:", error);
@@ -164,6 +153,4 @@ export const useAuthStore = create(
     }),
   ),
 );
-export const getAuthStore = () => {
-  return useAuthStore.getState();
-};
+export const getAuthStore = () => useAuthStore.getState();

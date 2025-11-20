@@ -31,10 +31,6 @@ export const getWeekRange = (date: Date | string | Dayjs): WeekRange => {
   };
 };
 
-export const getCurrentDate = (): Dayjs => {
-  return dayjs();
-};
-
 export const formatKoreanHeaderDate = (date: Date = new Date()): string => {
   return date.toLocaleDateString("ko-KR", {
     weekday: "long",
