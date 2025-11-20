@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const muscleGroups = [
+const predefinedMuscleGroups = [
   "가슴",
   "등",
   "하체",
@@ -46,7 +46,7 @@ export default function ExerciseRegisterScreen() {
         setName(exercise.name);
         setMuscleGroup(exercise.targetMuscleGroup);
         setDescription(exercise.description || "");
-        setLink(exercise.link || "");
+        setLink(exercise.externalLink || "");
       }
     }
   }, [isEditMode, params.id, exercises]);
@@ -137,7 +137,7 @@ export default function ExerciseRegisterScreen() {
               운동 부위 *
             </Text>
             <View style={styles.muscleGroupGrid}>
-              {muscleGroups.map((group) => (
+              {predefinedMuscleGroups.map((group) => (
                 <TouchableOpacity
                   key={group}
                   style={[

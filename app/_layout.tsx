@@ -7,7 +7,7 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
 
-import { AuthInitializer } from "@/components/auth-initializer";
+import { Initializer } from "@/components/initializer";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAuthStore } from "@/stores/auth-store";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -48,13 +48,12 @@ function RootNavigator() {
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   return (
-    <AuthInitializer>
-      <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-        <SafeAreaProvider>
-          <RootNavigator />
-          <StatusBar style="light" />
-        </SafeAreaProvider>
-      </ThemeProvider>
-    </AuthInitializer>
+    <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+      <SafeAreaProvider>
+        <Initializer />
+        <RootNavigator />
+        <StatusBar style="light" />
+      </SafeAreaProvider>
+    </ThemeProvider>
   );
 }
