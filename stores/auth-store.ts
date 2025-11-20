@@ -158,4 +158,4 @@ export const useAuthStore = create(
 );
 export const getAuthStore = () => useAuthStore.getState();
 
-export const initializeAuth = () => useAuthStore.getState().initializeAuth();
+export const initializeAuth = useAuthStore.getState().initializeAuth;

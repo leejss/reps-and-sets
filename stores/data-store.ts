@@ -364,4 +364,4 @@ export const useDataStore = create(
   ),
 );
 
-export const loadInitialData = () => useDataStore.getState().loadInitialData();
+export const loadInitialData = useDataStore.getState().loadInitialData;
