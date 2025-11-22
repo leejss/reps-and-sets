@@ -355,3 +355,5 @@ export const useDataStore = create(
 );
 
 export const loadInitialData = useDataStore.getState().loadInitialData;
+export const addTodaySessionExercise =
+  useDataStore.getState().addTodaySessionExercise;

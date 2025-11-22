@@ -1,6 +1,6 @@
 import { useColor } from "@/constants/colors";
 import { formatLocalDateISO } from "@/lib/date";
-import { useDataStore } from "@/stores/data-store";
+import { addTodaySessionExercise, useDataStore } from "@/stores/data-store";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -17,15 +17,12 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 export default function WorkoutRegisterScreen() {
   const insets = useSafeAreaInsets();
   const exercises = useDataStore((state) => state.exercises);
-  const addTodaySessionExercise = useDataStore(
-    (state) => state.addTodaySessionExercise,
-  );
   const colors = useColor();
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(
     null,
   );
   const [numberOfSets, setNumberOfSets] = useState("");
-  const [setDetails, setSetDetails] = useState<
+  const [workoutSetList, setWorkoutSetList] = useState<
     {
       setOrder: number;
       plannedReps?: number;
@@ -42,7 +39,7 @@ export default function WorkoutRegisterScreen() {
   useEffect(() => {
     const numSets = parseInt(numberOfSets);
     if (numSets > 0 && numSets <= 20) {
-      setSetDetails(
+      setWorkoutSetList(
         Array.from({ length: numSets }, (_, index) => ({
           setOrder: index,
           plannedReps: 0,
@@ -51,16 +48,15 @@ export default function WorkoutRegisterScreen() {
         })),
       );
     } else {
-      setSetDetails([]);
+      setWorkoutSetList([]);
     }
   }, [numberOfSets]);
 
-  // 동일한 값 적용 모드일 때 모든 세트 업데이트
   useEffect(() => {
-    if (useUniformValues && setDetails.length > 0) {
+    if (useUniformValues && workoutSetList.length > 0) {
       const reps = parseInt(uniformReps) || 0;
       const weight = uniformWeight ? parseFloat(uniformWeight) : undefined;
-      setSetDetails((prevDetails) =>
+      setWorkoutSetList((prevDetails) =>
         prevDetails.map((set) => ({
           ...set,
           plannedReps: reps,
@@ -76,7 +72,7 @@ export default function WorkoutRegisterScreen() {
     field: "reps" | "weight",
     value: string,
   ) => {
-    const newSetDetails = [...setDetails];
+    const newSetDetails = [...workoutSetList];
     if (field === "reps") {
       newSetDetails[index].plannedReps = parseInt(value) || 0;
     } else {
@@ -84,16 +80,18 @@ export default function WorkoutRegisterScreen() {
         ? parseFloat(value)
         : undefined;
     }
-    setSetDetails(newSetDetails);
+    setWorkoutSetList(newSetDetails);
   };
 
   const handleSubmit = async () => {
-    if (!selectedExercise || setDetails.length === 0) {
+    if (!selectedExercise || workoutSetList.length === 0) {
       return;
     }
 
     // 최소한 하나의 세트에 reps가 입력되어야 함
-    const hasValidSet = setDetails.some((set) => (set.plannedReps ?? 0) > 0);
+    const hasValidSet = workoutSetList.some(
+      (set) => (set.plannedReps ?? 0) > 0,
+    );
     if (!hasValidSet) {
       return;
     }
@@ -104,7 +102,7 @@ export default function WorkoutRegisterScreen() {
         exerciseId: selectedExercise.id,
         exerciseName: selectedExercise.name,
         targetMuscleGroup: selectedExercise.targetMuscleGroup,
-        workoutSetList: setDetails.map((set, index) => ({
+        workoutSetList: workoutSetList.map((set, index) => ({
           id: undefined,
           setOrder: set.setOrder ?? index,
           plannedReps: set.plannedReps ?? 0,
@@ -117,10 +115,9 @@ export default function WorkoutRegisterScreen() {
         date: today,
       });
 
-      // Reset form and go back
       setSelectedExerciseId(null);
       setNumberOfSets("");
-      setSetDetails([]);
+      setWorkoutSetList([]);
       setUniformReps("");
       setUniformWeight("");
       setUseUniformValues(true);
@@ -254,7 +251,7 @@ export default function WorkoutRegisterScreen() {
             </View>
 
             {/* 세트가 생성된 경우 */}
-            {setDetails.length > 0 && (
+            {workoutSetList.length > 0 && (
               <>
                 {/* 동일한 값 적용 토글 */}
                 <TouchableOpacity
@@ -355,7 +352,7 @@ export default function WorkoutRegisterScreen() {
                     >
                       세트별 상세 정보
                     </Text>
-                    {setDetails.map((set, index) => (
+                    {workoutSetList.map((set, index) => (
                       <View
                         key={index}
                         style={[
@@ -466,16 +463,16 @@ export default function WorkoutRegisterScreen() {
               {
                 backgroundColor: colors.button.primary.background,
                 opacity:
-                  setDetails.length === 0 ||
-                  !setDetails.some((s) => (s.plannedReps ?? 0) > 0)
+                  workoutSetList.length === 0 ||
+                  !workoutSetList.some((s) => (s.plannedReps ?? 0) > 0)
                     ? 0.5
                     : 1,
               },
             ]}
             onPress={handleSubmit}
             disabled={
-              setDetails.length === 0 ||
-              !setDetails.some((s) => (s.plannedReps ?? 0) > 0)
+              workoutSetList.length === 0 ||
+              !workoutSetList.some((s) => (s.plannedReps ?? 0) > 0)
             }
             activeOpacity={0.8}
           >

@@ -7,9 +7,6 @@ export const useAppStore = create(
       darkMode: true,
     },
     (set) => ({
-      /**
-       * 다크 모드 토글
-       */
       toggleDarkMode: () => {
         set((state) => ({ darkMode: !state.darkMode }));
       },

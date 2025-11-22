@@ -9,16 +9,6 @@ import {
   type WorkoutSetPlanInput,
 } from "./queries/workoutSets.query";
 
-/**
- * 주어진 날짜와 운동, 세트 계획으로 세션 운동을 생성합니다.
- *
- * - 해당 날짜의 세션이 없으면 생성합니다.
- * - 세션 내 기존 운동 개수를 기준으로 `orderInSession`을 결정합니다.
- * - 세트 계획을 모두 생성한 뒤, 실제 저장된 세션 운동 정보를 조회해서 반환합니다.
- *
- * UI에서 사용하는 `workoutSetList` 형태는 호출 측에서
- * `WorkoutSetPlanInput[]` 형태로 변환해서 넘기도록 합니다.
- */
 export const createSessionExercise = async (
   date: Date | string,
   exerciseId: string,
