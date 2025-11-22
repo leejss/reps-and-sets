@@ -176,7 +176,6 @@ export const useDataStore = create(
         exerciseName: string;
         targetMuscleGroup: string;
         workoutSetList: WorkoutSet[];
-        completed: boolean;
         date: string;
       }) => {
         if (!isAuthenticated()) {
@@ -191,7 +190,7 @@ export const useDataStore = create(
           targetMuscleGroup: input.targetMuscleGroup,
           orderInSession: 0,
           workoutSetList: input.workoutSetList,
-          completed: input.completed,
+          completed: false,
         };
 
         set((state) => ({

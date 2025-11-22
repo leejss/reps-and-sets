@@ -1,10 +1,9 @@
-import { useDataStore } from "@/stores/data-store";
 import React, {
   createContext,
+  ReactNode,
   useContext,
   useEffect,
   useState,
-  ReactNode,
 } from "react";
 
 interface WorkoutSet {
@@ -32,6 +31,7 @@ interface WorkoutRegisterContextType {
     field: "reps" | "weight",
     value: string,
   ) => void;
+  resetState: () => void;
 }
 
 const WorkoutRegisterContext = createContext<
@@ -44,7 +44,7 @@ export function WorkoutRegisterProvider({ children }: { children: ReactNode }) {
   );
   const [numberOfSets, setNumberOfSets] = useState("");
   const [workoutSetList, setWorkoutSetList] = useState<WorkoutSet[]>([]);
-  const [useUniformValues, setUseUniformValues] = useState(true);
+  const [useUniformValues, setUseUniformValues] = useState(false);
   const [uniformReps, setUniformReps] = useState("");
   const [uniformWeight, setUniformWeight] = useState("");
 
@@ -68,8 +68,8 @@ export function WorkoutRegisterProvider({ children }: { children: ReactNode }) {
     if (useUniformValues && workoutSetList.length > 0) {
       const reps = parseInt(uniformReps) || 0;
       const weight = uniformWeight ? parseFloat(uniformWeight) : undefined;
-      setWorkoutSetList((prevDetails) =>
-        prevDetails.map((set) => ({
+      setWorkoutSetList((prev) =>
+        prev.map((set) => ({
           ...set,
           plannedReps: reps,
           plannedWeight: weight,
@@ -95,6 +95,15 @@ export function WorkoutRegisterProvider({ children }: { children: ReactNode }) {
     setWorkoutSetList(newSetDetails);
   };
 
+  const resetState = () => {
+    setSelectedExerciseId(null);
+    setNumberOfSets("");
+    setWorkoutSetList([]);
+    setUseUniformValues(true);
+    setUniformReps("");
+    setUniformWeight("");
+  };
+
   return (
     <WorkoutRegisterContext.Provider
       value={{
@@ -111,6 +120,7 @@ export function WorkoutRegisterProvider({ children }: { children: ReactNode }) {
         uniformWeight,
         setUniformWeight,
         handleSetDetailChange,
+        resetState,
       }}
     >
       {children}

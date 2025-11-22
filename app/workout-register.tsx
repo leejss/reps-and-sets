@@ -7,11 +7,11 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React from "react";
 import {
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 function WorkoutRegisterContent() {
@@ -49,8 +49,6 @@ function WorkoutRegisterContent() {
         <ExerciseSelector />
         <SetConfiguration />
       </ScrollView>
-
-      {/* Bottom Button */}
       <WorkoutRegisterFooter />
     </View>
   );

@@ -12,16 +12,8 @@ export function WorkoutRegisterFooter() {
   const insets = useSafeAreaInsets();
   const colors = useColor();
   const exercises = useDataStore((state) => state.exercises);
-  const {
-    selectedExerciseId,
-    workoutSetList,
-    setSelectedExerciseId,
-    setNumberOfSets,
-    setWorkoutSetList,
-    setUniformReps,
-    setUniformWeight,
-    setUseUniformValues,
-  } = useWorkoutRegister();
+  const { selectedExerciseId, workoutSetList, resetState } =
+    useWorkoutRegister();
 
   const selectedExercise = exercises.find((e) => e.id === selectedExerciseId);
 
@@ -34,6 +26,7 @@ export function WorkoutRegisterFooter() {
     const hasValidSet = workoutSetList.some(
       (set) => (set.plannedReps ?? 0) > 0,
     );
+
     if (!hasValidSet) {
       return;
     }
@@ -41,32 +34,17 @@ export function WorkoutRegisterFooter() {
     try {
       const today = formatLocalDateISO(new Date());
       await addTodaySessionExercise({
+        date: today,
         exerciseId: selectedExercise.id,
         exerciseName: selectedExercise.name,
         targetMuscleGroup: selectedExercise.targetMuscleGroup,
-        workoutSetList: workoutSetList.map((set, index) => ({
-          id: undefined,
-          setOrder: set.setOrder ?? index,
-          plannedReps: set.plannedReps ?? 0,
-          plannedWeight: set.plannedWeight ?? undefined,
-          actualReps: null,
-          actualWeight: null,
-          completed: false,
-        })),
-        completed: false,
-        date: today,
+        workoutSetList: workoutSetList,
       });
 
-      setSelectedExerciseId(null);
-      setNumberOfSets("");
-      setWorkoutSetList([]);
-      setUniformReps("");
-      setUniformWeight("");
-      setUseUniformValues(true);
+      resetState();
       router.back();
     } catch (error) {
       console.error("운동 추가 실패:", error);
-      // 에러는 Context에서 이미 처리되었으므로 여기서는 로그만 남김
     }
   };
 
