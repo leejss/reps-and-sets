@@ -16,7 +16,7 @@ import {
   updateTodaySetDetails,
   updateTodayWorkoutCompletion,
 } from "../lib/queries/workoutSets.query";
-import { getAuthStore, useAuthStore } from "./auth-store";
+import { isAuthenticated } from "./auth-store";
 
 export interface TodayWorkout {
   id: string;
@@ -52,8 +52,7 @@ export const useDataStore = create(
     },
     (set, get) => ({
       refreshExercises: async () => {
-        const { isAuthenticated } = useAuthStore.getState();
-        if (!isAuthenticated) return;
+        if (!isAuthenticated()) return;
 
         set({ isLoadingExercises: true });
         try {
@@ -67,8 +66,7 @@ export const useDataStore = create(
       },
 
       loadInitialData: async () => {
-        const { isAuthenticated } = getAuthStore();
-        if (!isAuthenticated) {
+        if (!isAuthenticated()) {
           return;
         }
 
@@ -98,8 +96,7 @@ export const useDataStore = create(
       },
 
       addExercise: async (exercise: Omit<Exercise, "id" | "createdAt">) => {
-        const { isAuthenticated } = useAuthStore.getState();
-        if (!isAuthenticated) {
+        if (!isAuthenticated()) {
           throw new Error("로그인이 필요합니다.");
         }
 
@@ -133,8 +130,7 @@ export const useDataStore = create(
         id: string,
         exercise: Omit<Exercise, "id" | "createdAt">,
       ) => {
-        const { isAuthenticated } = useAuthStore.getState();
-        if (!isAuthenticated) {
+        if (!isAuthenticated()) {
           throw new Error("로그인이 필요합니다.");
         }
 
@@ -156,8 +152,7 @@ export const useDataStore = create(
       },
 
       deleteExercise: async (id: string) => {
-        const { isAuthenticated } = useAuthStore.getState();
-        if (!isAuthenticated) {
+        if (!isAuthenticated()) {
           throw new Error("로그인이 필요합니다.");
         }
 
@@ -184,9 +179,7 @@ export const useDataStore = create(
         completed: boolean;
         date: string;
       }) => {
-        const { isAuthenticated } = useAuthStore.getState();
-
-        if (!isAuthenticated) {
+        if (!isAuthenticated()) {
           throw new Error("로그인이 필요합니다.");
         }
 
@@ -234,8 +227,7 @@ export const useDataStore = create(
       },
 
       toggleWorkoutComplete: async (id: string) => {
-        const { isAuthenticated } = useAuthStore.getState();
-        if (!isAuthenticated) {
+        if (!isAuthenticated()) {
           throw new Error("로그인이 필요합니다.");
         }
 
@@ -275,8 +267,7 @@ export const useDataStore = create(
       },
 
       toggleSetComplete: async (workoutId: string, setOrder: number) => {
-        const { isAuthenticated } = useAuthStore.getState();
-        if (!isAuthenticated) {
+        if (!isAuthenticated()) {
           throw new Error("로그인이 필요합니다.");
         }
 
@@ -324,8 +315,7 @@ export const useDataStore = create(
         reps: number,
         weight?: number,
       ) => {
-        const { isAuthenticated } = useAuthStore.getState();
-        if (!isAuthenticated) {
+        if (!isAuthenticated()) {
           throw new Error("로그인이 필요합니다.");
         }
 
