@@ -165,7 +165,7 @@ type WorkoutCardProps = {
 const WorkoutCard = ({ workout, onEdit, onDelete }: WorkoutCardProps) => {
   const colors = useColor();
 
-  const repsValues = workout.setDetails
+  const repsValues = workout.workoutSetList
     .map((s) => s.plannedReps)
     .filter((r): r is number => r != null && r > 0);
   const hasReps = repsValues.length > 0;
@@ -178,7 +178,7 @@ const WorkoutCard = ({ workout, onEdit, onDelete }: WorkoutCardProps) => {
         : `${minReps}-${maxReps}회`
       : null;
 
-  const weights = workout.setDetails
+  const weights = workout.workoutSetList
     .map((s) => s.plannedWeight)
     .filter((w): w is number => w != null && w > 0);
   const weightDisplay =
@@ -203,7 +203,7 @@ const WorkoutCard = ({ workout, onEdit, onDelete }: WorkoutCardProps) => {
           {workout.exerciseName}
         </Text>
         <Text style={[styles.workoutDetail, { color: colors.text.secondary }]}>
-          {workout.muscleGroup} · {workout.setDetails.length}세트
+          {workout.muscleGroup} · {workout.workoutSetList.length}세트
           {repsDisplay && ` × ${repsDisplay}`}
           {weightDisplay && ` @ ${weightDisplay}`}
         </Text>

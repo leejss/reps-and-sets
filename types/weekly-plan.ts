@@ -1,12 +1,4 @@
-export type SetDetail = {
-  id?: string;
-  setOrder: number;
-  plannedReps?: number;
-  plannedWeight?: number;
-  actualReps?: number | null;
-  actualWeight?: number | null;
-  completed: boolean;
-};
+import type { WorkoutSet } from "@/lib/queries/workoutSets.model";
 
 export type Weekday = "Mon" | "Tue" | "Wed" | "Thu" | "Fri" | "Sat" | "Sun";
 
@@ -59,9 +51,9 @@ export type WeeklyWorkout = {
   orderInSession: number;
 
   /**
-   * UI에서 사용하는 세트 계획 정보. DB의 planned_* 컬럼과 매핑.
+   * 세션 내 세트 목록 (workout_sets)
    */
-  setDetails: SetDetail[];
+  workoutSetList: WorkoutSet[];
 
   /**
    * 선택 메모. 현재는 클라이언트 전용 필드로 사용.
@@ -73,7 +65,7 @@ export type WeeklyWorkoutInput = {
   exerciseId: string;
   exerciseName: string;
   muscleGroup: string;
-  setDetails: SetDetail[];
+  setDetails: WorkoutSet[];
   note?: string;
 };
 

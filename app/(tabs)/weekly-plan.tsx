@@ -3,7 +3,13 @@ import { DayCarousel } from "@/features/weekly-plan/components/DayCarousel";
 import { PlanWorkoutEditor } from "@/features/weekly-plan/components/PlanWorkoutEditor";
 import { SummaryCard } from "@/features/weekly-plan/components/SummaryCard";
 import { WorkoutBoard } from "@/features/weekly-plan/components/WorkoutBoard";
-import { useDataStore } from "@/stores/data-store";
+import { getWeekdayFromDate } from "@/lib/utils";
+import {
+  addWorkout,
+  editWorkout,
+  removeWorkout,
+  useDataStore,
+} from "@/stores/data-store";
 import {
   Weekday,
   WeeklyWorkout,
@@ -32,21 +38,20 @@ const handleError = (
 export default function WeeklyPlanScreen() {
   const colors = useColor();
   const exercises = useDataStore((state) => state.exercises);
-  const plan = useDataStore((state) => state.weeklyPlan);
-  const selectedDay = useDataStore((state) => state.selectedDay);
-  const selectDay = useDataStore((state) => state.selectDay);
-  const addWorkout = useDataStore((state) => state.addWeeklyWorkout);
-  const editWorkout = useDataStore((state) => state.editWeeklyWorkout);
-  const removeWorkout = useDataStore((state) => state.removeWeeklyWorkout);
+  const weeklyPlan = useDataStore((state) => state.weeklyPlan);
   const isLoading = useDataStore((state) => state.isLoadingWeeklyPlan);
   const error = useDataStore((state) => state.weeklyPlanError);
   const isMutating = useDataStore((state) => state.isMutatingWeeklyPlan);
-  const refresh = useDataStore((state) => state.loadWeeklyPlan);
+
+  const [selectedDay, setSelectedDay] = useState<Weekday>(
+    getWeekdayFromDate(new Date()),
+  );
 
   const selectedPlan = useMemo(
     () =>
-      plan.dayPlans.find((day) => day.id === selectedDay) ?? plan.dayPlans[0],
-    [plan.dayPlans, selectedDay],
+      weeklyPlan.dayPlans.find((day) => day.id === selectedDay) ??
+      weeklyPlan.dayPlans[0],
+    [weeklyPlan.dayPlans, selectedDay],
   );
 
   const [editorState, setEditorState] = useState<EditorState>({
@@ -123,11 +128,11 @@ export default function WeeklyPlanScreen() {
           { backgroundColor: colors.background },
         ]}
       >
-        <SummaryCard range={plan.weekRange} />
+        <SummaryCard range={weeklyPlan.weekRange} />
         <DayCarousel
-          dayPlans={plan.dayPlans}
+          dayPlans={weeklyPlan.dayPlans}
           selectedDay={selectedPlan.id}
-          onSelectDay={selectDay}
+          onSelectDay={setSelectedDay}
         />
         <WorkoutBoard
           dayPlan={selectedPlan}
@@ -144,7 +149,7 @@ export default function WeeklyPlanScreen() {
         visible={editorState.visible}
         mode={editorState.mode}
         dayLabel={
-          plan.dayPlans.find((day) => day.id === editorState.targetDay)
+          weeklyPlan.dayPlans.find((day) => day.id === editorState.targetDay)
             ?.label ?? selectedPlan.label
         }
         exercises={exercises}
@@ -154,7 +159,7 @@ export default function WeeklyPlanScreen() {
                 exerciseId: editorState.workout.exerciseId,
                 exerciseName: editorState.workout.exerciseName,
                 muscleGroup: editorState.workout.muscleGroup,
-                setDetails: editorState.workout.setDetails,
+                setDetails: editorState.workout.workoutSetList,
                 note: editorState.workout.note,
               }
             : undefined

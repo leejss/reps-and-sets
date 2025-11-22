@@ -92,7 +92,7 @@ export const fetchWorkoutSessionsInRange = async (
   return (data ?? []).map(mapSessionRow);
 };
 
-export const fetchWorkoutSessionsWithDetailsInRange = async (
+export const fetchWorkoutSessionsWithSetsInRange = async (
   startDate: Date | string,
   endDate: Date | string,
 ): Promise<WorkoutSessionWithDetails[]> => {
@@ -113,15 +113,7 @@ export const fetchWorkoutSessionsWithDetailsInRange = async (
     throw error;
   }
 
-  type JoinedRow = Tables<"workout_sessions"> & {
-    workout_session_exercises:
-      | Parameters<typeof mapSessionExerciseJoinedRow>[0][]
-      | null;
-  };
-
-  const rows = (data ?? []) as JoinedRow[];
-
-  return rows.map((row) => ({
+  return (data ?? []).map((row) => ({
     session: mapSessionRow(row),
     exercises: (row.workout_session_exercises ?? []).map(
       mapSessionExerciseJoinedRow,
