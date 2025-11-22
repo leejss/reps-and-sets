@@ -1,7 +1,7 @@
 import { TablesInsert } from "../database.types";
 import { supabase } from "../supabase";
 import { getAuthenticatedUser } from "../utils";
-import { Exercise, mapExerciseRow } from "./exercises.model";
+import { Exercise, ExerciseInput, mapExerciseRow } from "./exercises.model";
 
 export async function fetchExercises(): Promise<Exercise[]> {
   const user = await getAuthenticatedUser();
@@ -48,7 +48,7 @@ export async function createExercise(
 
 export async function updateExercise(
   id: string,
-  exercise: Omit<Exercise, "id" | "createdAt">,
+  exercise: ExerciseInput,
 ): Promise<Exercise> {
   const { data, error } = await supabase
     .from("exercises")

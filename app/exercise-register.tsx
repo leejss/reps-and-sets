@@ -1,5 +1,5 @@
 import { useColor } from "@/constants/colors";
-import { useDataStore } from "@/stores/data-store";
+import { addExercise, updateExercise, useDataStore } from "@/stores/data-store";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -25,8 +25,8 @@ const predefinedMuscleGroups = [
 ];
 
 export default function ExerciseRegisterScreen() {
-  const addExercise = useDataStore((state) => state.addExercise);
-  const updateExercise = useDataStore((state) => state.updateExercise);
+  // // const addExercise = useDataStore((state) => state.addExercise);
+  // const updateExercise = useDataStore((state) => state.updateExercise);
   const exercises = useDataStore((state) => state.exercises);
   const colors = useColor();
   const insets = useSafeAreaInsets();
@@ -38,7 +38,6 @@ export default function ExerciseRegisterScreen() {
   const [description, setDescription] = useState("");
   const [link, setLink] = useState("");
 
-  // 편집 모드인 경우 기존 데이터 로드
   useEffect(() => {
     if (isEditMode && params.id) {
       const exercise = exercises.find((e) => e.id === params.id);
@@ -62,15 +61,12 @@ export default function ExerciseRegisterScreen() {
           name,
           targetMuscleGroup: muscleGroup,
           description: description || undefined,
-          link: link || undefined,
         });
       } else {
-        // 추가 모드: 새 운동 추가
         await addExercise({
           name,
           targetMuscleGroup: muscleGroup,
           description: description || undefined,
-          link: link || undefined,
         });
       }
 
@@ -113,7 +109,8 @@ export default function ExerciseRegisterScreen() {
         <View style={styles.formSection}>
           <View style={styles.inputGroup}>
             <Text style={[styles.label, { color: colors.text.label }]}>
-              운동 이름 *
+              운동 이름
+              <Text style={{ color: colors.status.error }}> *</Text>
             </Text>
             <TextInput
               style={[
@@ -124,7 +121,7 @@ export default function ExerciseRegisterScreen() {
                   color: colors.text.primary,
                 },
               ]}
-              placeholder="e.g., Pull-ups"
+              placeholder="예: 벤치 프레스"
               placeholderTextColor={colors.input.placeholder}
               value={name}
               onChangeText={setName}
@@ -133,7 +130,8 @@ export default function ExerciseRegisterScreen() {
 
           <View style={styles.inputGroup}>
             <Text style={[styles.label, { color: colors.text.label }]}>
-              운동 부위 *
+              운동 부위
+              <Text style={{ color: colors.status.error }}> *</Text>
             </Text>
             <View style={styles.muscleGroupGrid}>
               {predefinedMuscleGroups.map((group) => (
@@ -171,7 +169,7 @@ export default function ExerciseRegisterScreen() {
 
           <View style={styles.inputGroup}>
             <Text style={[styles.label, { color: colors.text.label }]}>
-              운동 설명
+              운동 설명 (선택사항)
             </Text>
             <TextInput
               style={[
@@ -182,7 +180,7 @@ export default function ExerciseRegisterScreen() {
                   color: colors.text.primary,
                 },
               ]}
-              placeholder="Brief description or notes..."
+              placeholder="간단한 설명이나 메모"
               placeholderTextColor={colors.input.placeholder}
               value={description}
               onChangeText={setDescription}
@@ -194,7 +192,7 @@ export default function ExerciseRegisterScreen() {
 
           <View style={styles.inputGroup}>
             <Text style={[styles.label, { color: colors.text.label }]}>
-              링크 (선택)
+              설명 링크 (선택사항)
             </Text>
             <TextInput
               style={[

@@ -10,6 +10,13 @@ export interface Exercise {
   updatedAt: Date;
 }
 
+export interface ExerciseInput {
+  name: string;
+  targetMuscleGroup: string;
+  description?: string;
+  externalLink?: string;
+}
+
 export function mapExerciseRow(row: Tables<"exercises">): Exercise {
   return {
     id: row.id,

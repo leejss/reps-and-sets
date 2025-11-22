@@ -4,7 +4,7 @@ import {
   getWeekRange,
   type WeekRange,
 } from "@/lib/date";
-import type { Exercise } from "@/lib/queries/exercises.model";
+import type { Exercise, ExerciseInput } from "@/lib/queries/exercises.model";
 import {
   createExercise,
   deleteExercise as deleteExerciseApi,
@@ -214,7 +214,7 @@ export const useDataStore = create(
         });
       },
 
-      addExercise: async (exercise: Omit<Exercise, "id" | "createdAt">) => {
+      addExercise: async (exercise: ExerciseInput) => {
         if (!isAuthenticated()) {
           throw new Error("로그인이 필요합니다.");
         }
@@ -223,6 +223,7 @@ export const useDataStore = create(
           ...exercise,
           id: `temp-${Date.now()}`,
           createdAt: new Date(),
+          updatedAt: new Date(),
         };
         set((state) => ({
           exercises: [tempExercise, ...state.exercises],
@@ -245,10 +246,7 @@ export const useDataStore = create(
         }
       },
 
-      updateExercise: async (
-        id: string,
-        exercise: Omit<Exercise, "id" | "createdAt">,
-      ) => {
+      updateExercise: async (id: string, exercise: ExerciseInput) => {
         if (!isAuthenticated()) {
           throw new Error("로그인이 필요합니다.");
         }

@@ -1,6 +1,6 @@
 import { FloatingActionButton } from "@/components/floating-action-button";
 import { useColor } from "@/constants/colors";
-import { useDataStore } from "@/stores/data-store";
+import { deleteExercise, useDataStore } from "@/stores/data-store";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React from "react";
@@ -16,7 +16,6 @@ import { RouteHelpers } from "../route-config";
 
 export default function ExercisesScreen() {
   const exercises = useDataStore((state) => state.exercises);
-  const deleteExercise = useDataStore((state) => state.deleteExercise);
   const colors = useColor();
 
   const onNavigateToRegister = () => {

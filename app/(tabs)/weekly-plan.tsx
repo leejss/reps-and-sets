@@ -141,7 +141,7 @@ export default function WeeklyPlanScreen() {
           onDelete={handleDeleteWorkout}
           isLoading={isLoading}
           errorMessage={error}
-          onRetry={refresh}
+          onRetry={() => {}}
           disabled={isMutating}
         />
       </ScrollView>
