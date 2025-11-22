@@ -39,7 +39,6 @@ export default function WorkoutRegisterScreen() {
 
   const selectedExercise = exercises.find((e) => e.id === selectedExerciseId);
 
-  // 세트 수 변경 시 setDetails 배열 초기화
   useEffect(() => {
     const numSets = parseInt(numberOfSets);
     if (numSets > 0 && numSets <= 20) {

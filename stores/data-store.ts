@@ -1,3 +1,4 @@
+import type { Exercise } from "@/lib/queries/exercises.model";
 import type { SessionExerciseWithSets } from "@/lib/queries/workoutSessionExercises.query";
 import { createSessionExercise } from "@/lib/service";
 import { create } from "zustand";
@@ -5,7 +6,6 @@ import { combine } from "zustand/middleware";
 import {
   createExercise,
   deleteExercise as deleteExerciseApi,
-  Exercise,
   fetchExercises,
   updateExercise as updateExerciseApi,
 } from "../lib/queries/exercises.query";

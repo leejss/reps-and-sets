@@ -1,16 +1,7 @@
 import { TablesInsert } from "../database.types";
 import { supabase } from "../supabase";
 import { getAuthenticatedUser } from "../utils";
-
-export interface Exercise {
-  id: string;
-  name: string;
-  targetMuscleGroup: string;
-  description?: string;
-  externalLink?: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
+import { Exercise, mapExerciseRow } from "./exercises.model";
 
 export async function fetchExercises(): Promise<Exercise[]> {
   const user = await getAuthenticatedUser();
@@ -25,15 +16,7 @@ export async function fetchExercises(): Promise<Exercise[]> {
     throw error;
   }
 
-  return (data || []).map((exercise) => ({
-    id: exercise.id,
-    name: exercise.name,
-    targetMuscleGroup: exercise.target_muscle_group,
-    description: exercise.description || undefined,
-    link: exercise.external_link || undefined,
-    createdAt: new Date(exercise.created_at),
-    updatedAt: new Date(exercise.updated_at),
-  }));
+  return (data || []).map(mapExerciseRow);
 }
 
 export async function createExercise(
@@ -60,15 +43,7 @@ export async function createExercise(
     throw error;
   }
 
-  return {
-    id: data.id,
-    name: data.name,
-    targetMuscleGroup: data.target_muscle_group,
-    description: data.description || undefined,
-    externalLink: data.external_link || undefined,
-    createdAt: new Date(data.created_at),
-    updatedAt: new Date(data.updated_at),
-  };
+  return mapExerciseRow(data);
 }
 
 export async function updateExercise(
@@ -92,15 +67,7 @@ export async function updateExercise(
     throw error;
   }
 
-  return {
-    id: data.id,
-    name: data.name,
-    targetMuscleGroup: data.target_muscle_group,
-    description: data.description || undefined,
-    externalLink: data.external_link || undefined,
-    createdAt: new Date(data.created_at),
-    updatedAt: new Date(data.updated_at),
-  };
+  return mapExerciseRow(data);
 }
 
 export async function deleteExercise(id: string): Promise<void> {
