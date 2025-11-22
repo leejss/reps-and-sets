@@ -24,9 +24,6 @@ export const SummaryCard = ({ range }: SummaryCardProps) => {
           {range}
         </Text>
       </View>
-      <Text style={[styles.summaryHint, { color: colors.button.primary.text }]}>
-        요일을 선택하고 운동을 추가하세요
-      </Text>
     </View>
   );
 };
@@ -51,4 +48,3 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
 });
-

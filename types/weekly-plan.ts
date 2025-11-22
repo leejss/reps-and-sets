@@ -1,4 +1,12 @@
-import { SetDetail } from "./index";
+export type SetDetail = {
+  id?: string;
+  setOrder: number;
+  plannedReps?: number;
+  plannedWeight?: number;
+  actualReps?: number | null;
+  actualWeight?: number | null;
+  completed: boolean;
+};
 
 export type Weekday = "Mon" | "Tue" | "Wed" | "Thu" | "Fri" | "Sat" | "Sun";
 

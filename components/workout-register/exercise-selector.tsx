@@ -16,61 +16,60 @@ export function ExerciseSelector() {
       </Text>
 
       <View style={styles.exerciseList}>
-        {exercises.map((exercise) => (
-          <TouchableOpacity
-            key={exercise.id}
-            style={[
-              styles.exerciseCard,
-              {
-                backgroundColor: colors.surface,
-                borderColor:
-                  selectedExerciseId === exercise.id
-                    ? colors.primary
-                    : colors.border,
-                borderWidth: selectedExerciseId === exercise.id ? 2 : 1,
-              },
-            ]}
-            onPress={() => setSelectedExerciseId(exercise.id)}
-            activeOpacity={0.7}
-          >
-            <View style={styles.exerciseCardContent}>
-              <View style={styles.exerciseInfo}>
-                <Text
-                  style={[styles.exerciseName, { color: colors.text.primary }]}
-                >
-                  {exercise.name}
-                </Text>
-                <Text
+        {exercises.map((exercise) => {
+          const isSelected = selectedExerciseId === exercise.id;
+          return (
+            <TouchableOpacity
+              key={exercise.id}
+              style={[
+                styles.exerciseCard,
+                {
+                  backgroundColor: colors.surface,
+                  borderColor: isSelected ? colors.primary : colors.border,
+                  borderWidth: isSelected ? 2 : 1,
+                },
+              ]}
+              onPress={() => setSelectedExerciseId(exercise.id)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.exerciseCardContent}>
+                <View style={styles.exerciseInfo}>
+                  <Text
+                    style={[
+                      styles.exerciseName,
+                      { color: colors.text.primary },
+                    ]}
+                  >
+                    {exercise.name}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.exerciseMuscleGroup,
+                      { color: colors.text.secondary },
+                    ]}
+                  >
+                    {exercise.targetMuscleGroup}
+                  </Text>
+                </View>
+                <View
                   style={[
-                    styles.exerciseMuscleGroup,
-                    { color: colors.text.secondary },
-                  ]}
-                >
-                  {exercise.targetMuscleGroup}
-                </Text>
-              </View>
-              <View
-                style={[
-                  styles.radioButton,
-                  {
-                    borderColor:
-                      selectedExerciseId === exercise.id
+                    styles.radioButton,
+                    {
+                      borderColor: isSelected
                         ? colors.primary
                         : colors.input.border,
-                    backgroundColor:
-                      selectedExerciseId === exercise.id
+                      backgroundColor: isSelected
                         ? colors.primary
                         : "transparent",
-                  },
-                ]}
-              >
-                {selectedExerciseId === exercise.id && (
-                  <View style={styles.radioButtonInner} />
-                )}
+                    },
+                  ]}
+                >
+                  {isSelected && <View style={styles.radioButtonInner} />}
+                </View>
               </View>
-            </View>
-          </TouchableOpacity>
-        ))}
+            </TouchableOpacity>
+          );
+        })}
       </View>
     </View>
   );

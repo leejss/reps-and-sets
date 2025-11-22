@@ -1,18 +1,15 @@
-import { FloatingActionButton } from "@/components/floating-action-button";
 import { useColor } from "@/constants/colors";
 import { DayCarousel } from "@/features/weekly-plan/components/DayCarousel";
 import { PlanWorkoutEditor } from "@/features/weekly-plan/components/PlanWorkoutEditor";
 import { SummaryCard } from "@/features/weekly-plan/components/SummaryCard";
 import { WorkoutBoard } from "@/features/weekly-plan/components/WorkoutBoard";
-import { useWeeklyPlan } from "@/features/weekly-plan/useWeeklyPlan";
 import { useDataStore } from "@/stores/data-store";
 import {
   Weekday,
   WeeklyWorkout,
   WeeklyWorkoutInput,
 } from "@/types/weekly-plan";
-import { useFocusEffect } from "@react-navigation/native";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Alert, ScrollView, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -35,24 +32,16 @@ const handleError = (
 export default function WeeklyPlanScreen() {
   const colors = useColor();
   const exercises = useDataStore((state) => state.exercises);
-  const {
-    plan,
-    selectedDay,
-    selectDay,
-    addWorkout,
-    editWorkout,
-    removeWorkout,
-    isLoading,
-    error,
-    isMutating,
-    refresh,
-  } = useWeeklyPlan();
-
-  useFocusEffect(
-    useCallback(() => {
-      refresh();
-    }, [refresh]),
-  );
+  const plan = useDataStore((state) => state.weeklyPlan);
+  const selectedDay = useDataStore((state) => state.selectedDay);
+  const selectDay = useDataStore((state) => state.selectDay);
+  const addWorkout = useDataStore((state) => state.addWeeklyWorkout);
+  const editWorkout = useDataStore((state) => state.editWeeklyWorkout);
+  const removeWorkout = useDataStore((state) => state.removeWeeklyWorkout);
+  const isLoading = useDataStore((state) => state.isLoadingWeeklyPlan);
+  const error = useDataStore((state) => state.weeklyPlanError);
+  const isMutating = useDataStore((state) => state.isMutatingWeeklyPlan);
+  const refresh = useDataStore((state) => state.loadWeeklyPlan);
 
   const selectedPlan = useMemo(
     () =>
@@ -151,7 +140,6 @@ export default function WeeklyPlanScreen() {
           disabled={isMutating}
         />
       </ScrollView>
-      <FloatingActionButton onPress={openCreateEditor} bottom={32} />
       <PlanWorkoutEditor
         visible={editorState.visible}
         mode={editorState.mode}

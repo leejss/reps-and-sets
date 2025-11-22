@@ -2,11 +2,11 @@ import { useColor } from "@/constants/colors";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import {
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { useWorkoutRegister } from "./context";
 
@@ -160,7 +160,9 @@ export function SetConfiguration() {
                     },
                   ]}
                 >
-                  <Text style={[styles.setLabel, { color: colors.text.primary }]}>
+                  <Text
+                    style={[styles.setLabel, { color: colors.text.primary }]}
+                  >
                     Set {index + 1}
                   </Text>
                   <View style={styles.setInputRow}>

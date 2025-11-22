@@ -48,7 +48,7 @@ export default function TabLayout() {
           <Tabs.Screen
             name="weekly-plan"
             options={{
-              title: "주간 계획",
+              title: "계획",
               tabBarIcon: ({ color, size }) => (
                 <Ionicons name="calendar" size={size} color={color} />
               ),
