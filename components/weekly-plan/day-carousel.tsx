@@ -1,5 +1,11 @@
 import { useColor } from "@/constants/colors";
-import { DayPlan, Weekday } from "@/types/weekly-plan";
+import { formatChipDate } from "@/lib/date";
+import { getWeekdayFromDate } from "@/lib/utils";
+import {
+  Weekday,
+  WEEKDAY_LABELS,
+  WeeklySessionPlan,
+} from "@/types/weekly-plan";
 import React, { useEffect, useRef, useState } from "react";
 import {
   LayoutChangeEvent,
@@ -10,15 +16,15 @@ import {
 } from "react-native";
 
 type DayCarouselProps = {
-  dayPlans: DayPlan[];
-  selectedDay: Weekday;
-  onSelectDay: (dayId: Weekday) => void;
+  sessionPlans: WeeklySessionPlan[];
+  selectedDate: string;
+  onSelectDate: (dateISO: string) => void;
 };
 
 export const DayCarousel = ({
-  dayPlans,
-  selectedDay,
-  onSelectDay,
+  sessionPlans,
+  selectedDate,
+  onSelectDate,
 }: DayCarouselProps) => {
   const colors = useColor();
 
@@ -39,7 +45,7 @@ export const DayCarousel = ({
   };
 
   useEffect(() => {
-    const layout = chipLayouts[selectedDay];
+    const layout = chipLayouts[getWeekdayFromDate(selectedDate)];
     if (!layout || !scrollRef.current) {
       return;
     }
@@ -49,7 +55,7 @@ export const DayCarousel = ({
       y: 0,
       animated: true,
     });
-  }, [chipLayouts, selectedDay]);
+  }, [chipLayouts, selectedDate]);
 
   return (
     <ScrollView
@@ -58,13 +64,14 @@ export const DayCarousel = ({
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.carousel}
     >
-      {dayPlans.map((day) => {
-        const isSelected = day.id === selectedDay;
+      {sessionPlans.map((plan) => {
+        const weekdayId = getWeekdayFromDate(plan.sessionDate);
+        const isSelected = selectedDate === plan.sessionDate;
 
         return (
           <TouchableOpacity
-            key={day.id}
-            onLayout={handleChipLayout(day.id)}
+            key={plan.sessionDate}
+            onLayout={handleChipLayout(weekdayId)}
             style={[
               styles.dayChip,
               {
@@ -73,7 +80,7 @@ export const DayCarousel = ({
                   : colors.iconButton.background,
               },
             ]}
-            onPress={() => onSelectDay(day.id)}
+            onPress={() => onSelectDate(plan.sessionDate)}
             activeOpacity={0.85}
           >
             <Text
@@ -86,7 +93,7 @@ export const DayCarousel = ({
                 },
               ]}
             >
-              {day.label}
+              {WEEKDAY_LABELS[weekdayId]}
             </Text>
             <Text
               style={[
@@ -98,7 +105,7 @@ export const DayCarousel = ({
                 },
               ]}
             >
-              {day.dateLabel}
+              {formatChipDate(plan.sessionDate)}
             </Text>
           </TouchableOpacity>
         );

@@ -1,12 +1,12 @@
 import { useColor } from "@/constants/colors";
-import { WeeklyWorkout } from "@/types/weekly-plan";
+import { WeeklyPlanExercise } from "@/types/weekly-plan";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 type WorkoutCardProps = {
-  workout: WeeklyWorkout;
-  onEdit: (workout: WeeklyWorkout) => void;
+  workout: WeeklyPlanExercise;
+  onEdit: (workout: WeeklyPlanExercise) => void;
   onDelete: (workoutId: string) => void;
 };
 
@@ -17,7 +17,7 @@ export const WorkoutCard = ({
 }: WorkoutCardProps) => {
   const colors = useColor();
 
-  const repsValues = workout.workoutSetList
+  const repsValues = workout.sets
     .map((s) => s.plannedReps)
     .filter((r): r is number => r != null && r > 0);
   const hasReps = repsValues.length > 0;
@@ -30,7 +30,7 @@ export const WorkoutCard = ({
         : `${minReps}-${maxReps}회`
       : null;
 
-  const weights = workout.workoutSetList
+  const weights = workout.sets
     .map((s) => s.plannedWeight)
     .filter((w): w is number => w != null && w > 0);
   const weightDisplay =
@@ -55,7 +55,7 @@ export const WorkoutCard = ({
           {workout.exerciseName}
         </Text>
         <Text style={[styles.workoutDetail, { color: colors.text.secondary }]}>
-          {workout.muscleGroup} · {workout.workoutSetList.length}세트
+          {workout.targetMuscleGroup} · {workout.sets.length}세트
           {repsDisplay && ` × ${repsDisplay}`}
           {weightDisplay && ` @ ${weightDisplay}`}
         </Text>

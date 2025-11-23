@@ -84,7 +84,7 @@ export const SessionExerciseEditor = ({
     ? {
         id: workoutInput.exerciseId,
         name: workoutInput.exerciseName,
-        muscleGroup: workoutInput.muscleGroup,
+        muscleGroup: workoutInput.targetMuscleGroup,
       }
     : null;
 
@@ -316,7 +316,7 @@ export const SessionExerciseEditor = ({
                           return {
                             exerciseId: exercise.id,
                             exerciseName: exercise.name,
-                            muscleGroup: exercise.targetMuscleGroup,
+                            targetMuscleGroup: exercise.targetMuscleGroup,
                             setDetails: nextSets,
                             note: prevNote,
                           };

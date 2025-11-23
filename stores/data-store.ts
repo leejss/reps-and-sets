@@ -33,14 +33,10 @@ import {
   type WorkoutSet,
 } from "@/lib/queries/workoutSets.query";
 import { createSessionExercise } from "@/lib/service";
-import { getWeekdayFromDate } from "@/lib/utils";
 import {
-  DayPlan,
-  Weekday,
-  WEEKDAY_LABELS,
-  WEEKDAY_ORDER,
   WeeklyPlan,
-  WeeklyWorkout,
+  WeeklyPlanExercise,
+  WeeklySessionPlan,
   WeeklyWorkoutInput,
 } from "@/types/weekly-plan";
 import { create } from "zustand";
@@ -74,22 +70,21 @@ const mapSessionExerciseToTodayWorkout = (
 const buildEmptyPlanFromRange = (range: WeekRange): WeeklyPlan => {
   const { startDay, endDay, startISO, endISO } = range;
 
-  const dayPlans: DayPlan[] = WEEKDAY_ORDER.map((weekday, index) => {
-    const current = startDay.add(index, "day");
-    return {
-      id: weekday,
-      label: WEEKDAY_LABELS[weekday],
-      dateLabel: formatChipDate(current),
-      dateISO: formatLocalDateISO(current),
-      workouts: [],
-    };
-  });
+  const sessionPlans: WeeklySessionPlan[] = Array.from({ length: 7 }).map(
+    (_, index) => {
+      const current = startDay.add(index, "day");
+      return {
+        sessionDate: formatLocalDateISO(current),
+        exercises: [],
+      };
+    },
+  );
 
   return {
     weekStartDate: startISO,
     weekEndDate: endISO,
     weekRange: `${formatChipDate(startDay)} - ${formatChipDate(endDay)}`,
-    dayPlans,
+    sessionPlans,
   };
 };
 
@@ -98,59 +93,38 @@ const buildEmptyPlan = (pivotDate: Date): WeeklyPlan => {
   return buildEmptyPlanFromRange(range);
 };
 
-const mapSessionExerciseToWeeklyWorkout = (
-  session: { id: string; date: string },
-  data: SessionExerciseWithSets,
-): WeeklyWorkout => ({
-  id: data.id,
-  sessionId: session.id,
-  scheduledDate: session.date,
-  exerciseId: data.exerciseId,
-  exerciseName: data.exerciseName,
-  muscleGroup: data.targetMuscleGroup,
-  orderInSession: data.orderInSession,
-  workoutSetList: data.sets,
-});
-
 const createWeeklyPlanFromSessions = (
   range: WeekRange,
   sessionsWithDetails: WorkoutSessionWithDetails[],
 ): WeeklyPlan => {
   const basePlan = buildEmptyPlanFromRange(range);
 
-  const dayPlanMap = basePlan.dayPlans.reduce<Record<Weekday, DayPlan>>(
-    (acc, day) => {
-      acc[day.id] = { ...day, workouts: [] };
-      return acc;
-    },
-    {} as Record<Weekday, DayPlan>,
-  );
+  const sessionPlanMap = basePlan.sessionPlans.reduce<
+    Record<string, WeeklySessionPlan>
+  >((acc, sessionPlan) => {
+    acc[sessionPlan.sessionDate] = { ...sessionPlan, exercises: [] };
+    return acc;
+  }, {});
 
   sessionsWithDetails.forEach(({ session, exercises }) => {
-    exercises.forEach((exercise) => {
-      const weeklyWorkout = mapSessionExerciseToWeeklyWorkout(
-        { id: session.id, date: session.date },
-        exercise,
+    const target = sessionPlanMap[session.date];
+    if (!target) return;
+    target.exercises = [...exercises]
+      .sort((a, b) => a.orderInSession - b.orderInSession)
+      .map(
+        (exercise) =>
+          ({
+            ...exercise,
+          } as WeeklyPlanExercise),
       );
-
-      const weekday = getWeekdayFromDate(weeklyWorkout.scheduledDate);
-      const targetDay = dayPlanMap[weekday];
-      if (!targetDay) return;
-      targetDay.workouts.push(weeklyWorkout);
-    });
   });
 
   return {
     ...basePlan,
-    dayPlans: WEEKDAY_ORDER.map((weekday) => {
-      const day = dayPlanMap[weekday];
-      return {
-        ...day,
-        workouts: [...day.workouts].sort(
-          (a, b) => a.orderInSession - b.orderInSession,
-        ),
-      };
-    }),
+    sessionPlans: basePlan.sessionPlans.map((plan) => ({
+      ...plan,
+      exercises: sessionPlanMap[plan.sessionDate].exercises,
+    })),
   };
 };
 
@@ -495,19 +469,21 @@ export const useDataStore = create(
         }
       },
 
-      addWorkout: async (dayId: Weekday, workout: WeeklyWorkoutInput) => {
+      addWorkout: async (sessionDate: string, workout: WeeklyWorkoutInput) => {
         if (!isAuthenticated()) throw new Error("로그인이 필요합니다.");
 
         set({ isMutatingWeeklyPlan: true });
         try {
           const weeklyPlan = get().weeklyPlan;
-          const targetDay = weeklyPlan.dayPlans.find((day) => day.id === dayId);
+          const targetDay = weeklyPlan.sessionPlans.find(
+            (day) => day.sessionDate === sessionDate,
+          );
           if (!targetDay) {
-            throw new Error("선택한 요일 정보를 찾을 수 없습니다.");
+            throw new Error("선택한 날짜 정보를 찾을 수 없습니다.");
           }
-          const session = await getOrCreateWorkoutSession(targetDay.dateISO);
+          const session = await getOrCreateWorkoutSession(sessionDate);
 
-          const orderInSession = targetDay.workouts.length;
+          const orderInSession = targetDay.exercises.length;
           const sessionExerciseBase = await insertSessionExercise({
             sessionId: session.id,
             exerciseId: workout.exerciseId,
@@ -531,22 +507,25 @@ export const useDataStore = create(
             throw new Error("생성된 세션 운동 정보를 찾을 수 없습니다.");
           }
 
-          const created: WeeklyWorkout = {
-            ...mapSessionExerciseToWeeklyWorkout(session, sessionExercise),
+          const created: WeeklyPlanExercise = {
+            ...sessionExercise,
             note: workout.note,
           };
 
           set((prev) => {
-            const nextDayPlans = prev.weeklyPlan.dayPlans.map((day) =>
-              day.id === dayId
+            const nextSessionPlans = prev.weeklyPlan.sessionPlans.map((day) =>
+              day.sessionDate === sessionDate
                 ? {
                     ...day,
-                    workouts: [...day.workouts, created],
+                    exercises: [...day.exercises, created],
                   }
                 : day,
             );
             return {
-              weeklyPlan: { ...prev.weeklyPlan, dayPlans: nextDayPlans },
+              weeklyPlan: {
+                ...prev.weeklyPlan,
+                sessionPlans: nextSessionPlans,
+              },
             };
           });
         } finally {
@@ -555,7 +534,7 @@ export const useDataStore = create(
       },
 
       editWorkout: async (
-        dayId: Weekday,
+        sessionDate: string,
         workoutId: string,
         payload: WeeklyWorkoutInput,
       ) => {
@@ -564,8 +543,8 @@ export const useDataStore = create(
         set({ isMutatingWeeklyPlan: true });
         try {
           const weeklyPlan = get().weeklyPlan;
-          const current = weeklyPlan.dayPlans
-            .flatMap((day) => day.workouts)
+          const current = weeklyPlan.sessionPlans
+            .flatMap((day) => day.exercises)
             .find((w) => w.id === workoutId);
 
           if (!current) {
@@ -594,27 +573,27 @@ export const useDataStore = create(
             throw new Error("수정된 세션 운동을 찾을 수 없습니다.");
           }
 
-          const updated: WeeklyWorkout = {
-            ...mapSessionExerciseToWeeklyWorkout(
-              { id: current.sessionId, date: current.scheduledDate },
-              updatedExercise,
-            ),
+          const updated: WeeklyPlanExercise = {
+            ...updatedExercise,
             note: payload.note ?? current.note,
           };
 
           set((prev) => {
-            const nextDayPlans = prev.weeklyPlan.dayPlans.map((day) =>
-              day.id === dayId
+            const nextSessionPlans = prev.weeklyPlan.sessionPlans.map((day) =>
+              day.sessionDate === sessionDate
                 ? {
                     ...day,
-                    workouts: day.workouts.map((workout) =>
+                    exercises: day.exercises.map((workout) =>
                       workout.id === workoutId ? updated : workout,
                     ),
                   }
                 : day,
             );
             return {
-              weeklyPlan: { ...prev.weeklyPlan, dayPlans: nextDayPlans },
+              weeklyPlan: {
+                ...prev.weeklyPlan,
+                sessionPlans: nextSessionPlans,
+              },
             };
           });
         } finally {
@@ -622,25 +601,28 @@ export const useDataStore = create(
         }
       },
 
-      removeWorkout: async (dayId: Weekday, workoutId: string) => {
+      removeWorkout: async (sessionDate: string, workoutId: string) => {
         if (!isAuthenticated()) throw new Error("로그인이 필요합니다.");
 
         set({ isMutatingWeeklyPlan: true });
         try {
           await deleteSessionExerciseRow(workoutId);
           set((prev) => {
-            const nextDayPlans = prev.weeklyPlan.dayPlans.map((day) =>
-              day.id === dayId
+            const nextSessionPlans = prev.weeklyPlan.sessionPlans.map((day) =>
+              day.sessionDate === sessionDate
                 ? {
                     ...day,
-                    workouts: day.workouts.filter(
+                    exercises: day.exercises.filter(
                       (workout) => workout.id !== workoutId,
                     ),
                   }
                 : day,
             );
             return {
-              weeklyPlan: { ...prev.weeklyPlan, dayPlans: nextDayPlans },
+              weeklyPlan: {
+                ...prev.weeklyPlan,
+                sessionPlans: nextSessionPlans,
+              },
             };
           });
         } finally {

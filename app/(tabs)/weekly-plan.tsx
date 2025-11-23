@@ -3,6 +3,7 @@ import { SessionExerciseEditor } from "@/components/weekly-plan/session-exercise
 import { SummaryHeader } from "@/components/weekly-plan/summary-header";
 import { WorkoutBoard } from "@/components/weekly-plan/workout-board";
 import { useColor } from "@/constants/colors";
+import { formatLocalDateISO } from "@/lib/date";
 import { getWeekdayFromDate } from "@/lib/utils";
 import {
   addWorkout,
@@ -11,19 +12,19 @@ import {
   useDataStore,
 } from "@/stores/data-store";
 import {
-  Weekday,
-  WeeklyWorkout,
+  WEEKDAY_LABELS,
+  WeeklyPlanExercise,
   WeeklyWorkoutInput,
 } from "@/types/weekly-plan";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Alert, ScrollView, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 type EditorState = {
   visible: boolean;
   mode: "create" | "edit";
-  targetDay: Weekday;
-  workout?: WeeklyWorkout | null;
+  targetDate: string;
+  workout?: WeeklyPlanExercise | null;
 };
 
 const handleError = (
@@ -43,41 +44,56 @@ export default function WeeklyPlanScreen() {
   const error = useDataStore((state) => state.weeklyPlanError);
   const isMutating = useDataStore((state) => state.isMutatingWeeklyPlan);
 
-  const [selectedDay, setSelectedDay] = useState<Weekday>(
-    getWeekdayFromDate(new Date()),
+  const [selectedDate, setSelectedDate] = useState<string>(
+    formatLocalDateISO(new Date()),
   );
 
-  const selectedPlan = useMemo(
-    () =>
-      weeklyPlan.dayPlans.find((day) => day.id === selectedDay) ??
-      weeklyPlan.dayPlans[0],
-    [weeklyPlan.dayPlans, selectedDay],
-  );
+  useEffect(() => {
+    if (weeklyPlan.sessionPlans.length === 0) {
+      return;
+    }
+    const exists = weeklyPlan.sessionPlans.some(
+      (plan) => plan.sessionDate === selectedDate,
+    );
+    if (!exists) {
+      setSelectedDate(weeklyPlan.sessionPlans[0].sessionDate);
+    }
+  }, [weeklyPlan.sessionPlans, selectedDate]);
+
+  const activePlan = useMemo(() => {
+    if (weeklyPlan.sessionPlans.length === 0) {
+      return null;
+    }
+    return (
+      weeklyPlan.sessionPlans.find((day) => day.sessionDate === selectedDate) ??
+      weeklyPlan.sessionPlans[0]
+    );
+  }, [weeklyPlan.sessionPlans, selectedDate]);
 
   const [editorState, setEditorState] = useState<EditorState>({
     visible: false,
     mode: "create",
-    targetDay: selectedPlan.id,
+    targetDate: selectedDate,
     workout: null,
   });
 
   const openCreateEditor = () => {
-    if (isLoading || isMutating) return;
+    if (isLoading || isMutating || !activePlan) return;
 
     setEditorState({
       visible: true,
       mode: "create",
-      targetDay: selectedPlan.id,
+      targetDate: activePlan.sessionDate,
       workout: null,
     });
   };
 
-  const openEditEditor = (workout: WeeklyWorkout) => {
-    if (isLoading || isMutating) return;
+  const openEditEditor = (workout: WeeklyPlanExercise) => {
+    if (isLoading || isMutating || !activePlan) return;
     setEditorState({
       visible: true,
       mode: "edit",
-      targetDay: selectedPlan.id,
+      targetDate: activePlan.sessionDate,
       workout,
     });
   };
@@ -92,14 +108,12 @@ export default function WeeklyPlanScreen() {
     try {
       if (editorState.mode === "edit" && editorState.workout) {
         await editWorkout(
-          editorState.targetDay,
+          editorState.targetDate,
           editorState.workout.id,
           payload,
         );
-      }
-
-      if (editorState.mode === "create") {
-        await addWorkout(editorState.targetDay, payload);
+      } else if (editorState.mode === "create") {
+        await addWorkout(editorState.targetDate, payload);
       }
 
       closeEditor();
@@ -114,11 +128,18 @@ export default function WeeklyPlanScreen() {
 
   const handleDeleteWorkout = async (workoutId: string) => {
     try {
-      await removeWorkout(selectedPlan.id, workoutId);
+      if (!activePlan) {
+        return;
+      }
+      await removeWorkout(activePlan.sessionDate, workoutId);
     } catch (err) {
       handleError("삭제 실패", err, "운동을 삭제하는 중 오류가 발생했습니다.");
     }
   };
+
+  if (!activePlan) {
+    return null;
+  }
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
@@ -130,12 +151,12 @@ export default function WeeklyPlanScreen() {
       >
         <SummaryHeader range={weeklyPlan.weekRange} />
         <DayCarousel
-          dayPlans={weeklyPlan.dayPlans}
-          selectedDay={selectedPlan.id}
-          onSelectDay={setSelectedDay}
+          sessionPlans={weeklyPlan.sessionPlans}
+          selectedDate={activePlan.sessionDate}
+          onSelectDate={setSelectedDate}
         />
         <WorkoutBoard
-          dayPlan={selectedPlan}
+          sessionPlan={activePlan}
           onAdd={openCreateEditor}
           onEdit={openEditEditor}
           onDelete={handleDeleteWorkout}
@@ -148,18 +169,22 @@ export default function WeeklyPlanScreen() {
       <SessionExerciseEditor
         visible={editorState.visible}
         mode={editorState.mode}
-        dayLabel={
-          weeklyPlan.dayPlans.find((day) => day.id === editorState.targetDay)
-            ?.label ?? selectedPlan.label
-        }
+        dayLabel={(() => {
+          const target =
+            weeklyPlan.sessionPlans.find(
+              (day) => day.sessionDate === editorState.targetDate,
+            ) ?? activePlan;
+          const weekday = getWeekdayFromDate(target.sessionDate);
+          return WEEKDAY_LABELS[weekday];
+        })()}
         exercises={exercises}
         initialValues={
           editorState.workout
             ? {
                 exerciseId: editorState.workout.exerciseId,
                 exerciseName: editorState.workout.exerciseName,
-                muscleGroup: editorState.workout.muscleGroup,
-                setDetails: editorState.workout.workoutSetList,
+                targetMuscleGroup: editorState.workout.targetMuscleGroup,
+                setDetails: editorState.workout.sets,
                 note: editorState.workout.note,
               }
             : undefined

@@ -1,5 +1,11 @@
 import { useColor } from "@/constants/colors";
-import { DayPlan, WeeklyWorkout } from "@/types/weekly-plan";
+import { formatChipDate } from "@/lib/date";
+import { getWeekdayFromDate } from "@/lib/utils";
+import {
+  WEEKDAY_LABELS,
+  WeeklyPlanExercise,
+  WeeklySessionPlan,
+} from "@/types/weekly-plan";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import {
@@ -12,9 +18,9 @@ import {
 import { WorkoutCard } from "./workout-card";
 
 type WorkoutBoardProps = {
-  dayPlan: DayPlan;
+  sessionPlan: WeeklySessionPlan;
   onAdd: () => void;
-  onEdit: (workout: WeeklyWorkout) => void;
+  onEdit: (workout: WeeklyPlanExercise) => void;
   onDelete: (workoutId: string) => void;
   isLoading?: boolean;
   errorMessage?: string | null;
@@ -31,7 +37,7 @@ const resolveBoardState = ({
 }: {
   isLoading: boolean;
   errorMessage?: string | null;
-  workouts: WeeklyWorkout[];
+  workouts: WeeklyPlanExercise[];
 }): BoardState => {
   if (isLoading) {
     return "loading";
@@ -46,7 +52,7 @@ const resolveBoardState = ({
 };
 
 export const WorkoutBoard = ({
-  dayPlan,
+  sessionPlan,
   onAdd,
   onEdit,
   onDelete,
@@ -56,9 +62,12 @@ export const WorkoutBoard = ({
   disabled = false,
 }: WorkoutBoardProps) => {
   const colors = useColor();
-  const workouts = dayPlan.workouts;
+  const workouts = sessionPlan.exercises;
   const boardState = resolveBoardState({ isLoading, errorMessage, workouts });
   const isInteractive = !isLoading && !disabled;
+  const weekdayId = getWeekdayFromDate(sessionPlan.sessionDate);
+  const dayLabel = WEEKDAY_LABELS[weekdayId];
+  const dateLabel = formatChipDate(sessionPlan.sessionDate);
 
   const renderContentByState: Record<BoardState, () => React.ReactNode> = {
     loading: () => (
@@ -144,10 +153,10 @@ export const WorkoutBoard = ({
       <View style={styles.boardHeader}>
         <View>
           <Text style={[styles.boardTitle, { color: colors.text.primary }]}>
-            {dayPlan.label} 계획
+            {dayLabel} 계획
           </Text>
           <Text style={[styles.boardMeta, { color: colors.text.secondary }]}>
-            {dayPlan.dateLabel} · {workouts.length}개의 운동
+            {dateLabel} · {workouts.length}개의 운동
           </Text>
         </View>
         <TouchableOpacity
@@ -173,6 +182,9 @@ export const WorkoutBoard = ({
     </View>
   );
 };
+
+// sessionDate
+// list of session exercises with sets
 
 const styles = StyleSheet.create({
   workoutBoard: {
