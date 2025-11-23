@@ -43,30 +43,6 @@ import { create } from "zustand";
 import { combine } from "zustand/middleware";
 import { isAuthenticated } from "./auth-store";
 
-export interface TodayWorkout {
-  id: string;
-  sessionId: string;
-  exerciseId: string;
-  exerciseName: string;
-  targetMuscleGroup: string;
-  orderInSession: number;
-  workoutSetList: WorkoutSet[];
-  completed: boolean;
-}
-
-const mapSessionExerciseToTodayWorkout = (
-  session: SessionExerciseWithSets,
-): TodayWorkout => ({
-  id: session.id,
-  sessionId: session.sessionId,
-  exerciseId: session.exerciseId,
-  exerciseName: session.exerciseName,
-  targetMuscleGroup: session.targetMuscleGroup,
-  orderInSession: session.orderInSession,
-  completed: session.completed,
-  workoutSetList: session.sets,
-});
-
 const buildEmptyPlanFromRange = (range: WeekRange): WeeklyPlan => {
   const { startDay, endDay, startISO, endISO } = range;
 
@@ -132,7 +108,7 @@ export const useDataStore = create(
   combine(
     {
       exercises: [] as Exercise[],
-      todayExercises: [] as TodayWorkout[],
+      todayExercises: [] as SessionExerciseWithSets[],
       isLoadingExercises: false,
       isLoadingWorkouts: false,
       weeklyPlan: buildEmptyPlan(new Date()),
@@ -169,9 +145,7 @@ export const useDataStore = create(
 
           set({
             exercises,
-            todayExercises: todaySessionExercises.map(
-              mapSessionExerciseToTodayWorkout,
-            ),
+            todayExercises: todaySessionExercises,
           });
 
           await (get() as any).loadWeeklyPlan();
@@ -273,15 +247,19 @@ export const useDataStore = create(
           throw new Error("로그인이 필요합니다.");
         }
 
-        const tempWorkout: TodayWorkout = {
+        const tempWorkout: SessionExerciseWithSets = {
           id: `temp-${Date.now()}`,
           sessionId: "temp-session",
           exerciseId: input.exerciseId,
           exerciseName: input.exerciseName,
           targetMuscleGroup: input.targetMuscleGroup,
           orderInSession: 0,
-          workoutSetList: input.workoutSetList,
           completed: false,
+          sets: input.workoutSetList.map((set, index) => ({
+            ...set,
+            setOrder: set.setOrder ?? index,
+            completed: set.completed ?? false,
+          })),
         };
 
         set((state) => ({
@@ -297,7 +275,7 @@ export const useDataStore = create(
               weight: set.plannedWeight ?? undefined,
             })),
           );
-          const newWorkout = mapSessionExerciseToTodayWorkout(created);
+          const newWorkout = created;
 
           set((state) => ({
             todayExercises: state.todayExercises.map((w) =>
@@ -323,25 +301,27 @@ export const useDataStore = create(
 
         const previousWorkouts = get().todayExercises;
 
-        const updatedWorkouts: TodayWorkout[] = previousWorkouts.map((w) => {
-          if (w.id === id) {
-            const newCompleted = !w.completed;
-            return {
-              ...w,
-              completed: newCompleted,
-              workoutSetList: w.workoutSetList.map((set, index) => ({
-                ...set,
+        const updatedWorkouts: SessionExerciseWithSets[] = previousWorkouts.map(
+          (w) => {
+            if (w.id === id) {
+              const newCompleted = !w.completed;
+              return {
+                ...w,
                 completed: newCompleted,
-                actualReps:
-                  set.actualReps ??
-                  set.plannedReps ??
-                  (newCompleted ? 0 : null),
-                setOrder: set.setOrder ?? index,
-              })),
-            };
-          }
-          return w;
-        });
+                sets: w.sets.map((set, index) => ({
+                  ...set,
+                  completed: newCompleted,
+                  actualReps:
+                    set.actualReps ??
+                    set.plannedReps ??
+                    (newCompleted ? 0 : null),
+                  setOrder: set.setOrder ?? index,
+                })),
+              };
+            }
+            return w;
+          },
+        );
         set({ todayExercises: updatedWorkouts });
 
         try {
@@ -363,33 +343,35 @@ export const useDataStore = create(
 
         const previousWorkouts = get().todayExercises;
 
-        const updatedWorkouts: TodayWorkout[] = previousWorkouts.map((w) => {
-          if (w.id === workoutId) {
-            const newSetDetails = [...w.workoutSetList];
-            newSetDetails[setOrder] = {
-              ...newSetDetails[setOrder],
-              completed: !newSetDetails[setOrder].completed,
-            };
+        const updatedWorkouts: SessionExerciseWithSets[] = previousWorkouts.map(
+          (w) => {
+            if (w.id === workoutId) {
+              const newSetDetails = [...w.sets];
+              newSetDetails[setOrder] = {
+                ...newSetDetails[setOrder],
+                completed: !newSetDetails[setOrder].completed,
+              };
 
-            const allCompleted = newSetDetails.every(
-              (set) => set.completed === true,
-            );
+              const allCompleted = newSetDetails.every(
+                (set) => set.completed === true,
+              );
 
-            return {
-              ...w,
-              workoutSetList: newSetDetails,
-              completed: allCompleted,
-            };
-          }
-          return w;
-        });
+              return {
+                ...w,
+                sets: newSetDetails,
+                completed: allCompleted,
+              };
+            }
+            return w;
+          },
+        );
 
         set({ todayExercises: updatedWorkouts });
 
         try {
           const workout = updatedWorkouts.find((w) => w.id === workoutId);
           if (workout) {
-            const set = workout.workoutSetList[setOrder];
+            const set = workout.sets[setOrder];
             await updateTodaySetCompletion(workoutId, setOrder, set.completed);
           }
         } catch (error) {
@@ -411,22 +393,24 @@ export const useDataStore = create(
 
         const previousWorkouts = get().todayExercises;
 
-        const updatedWorkouts: TodayWorkout[] = previousWorkouts.map((w) => {
-          if (w.id === workoutId) {
-            const newSetDetails = [...w.workoutSetList];
-            newSetDetails[setIndex] = {
-              ...newSetDetails[setIndex],
-              actualReps: reps,
-              actualWeight: weight,
-            };
+        const updatedWorkouts: SessionExerciseWithSets[] = previousWorkouts.map(
+          (w) => {
+            if (w.id === workoutId) {
+              const newSetDetails = [...w.sets];
+              newSetDetails[setIndex] = {
+                ...newSetDetails[setIndex],
+                actualReps: reps,
+                actualWeight: weight,
+              };
 
-            return {
-              ...w,
-              workoutSetList: newSetDetails,
-            };
-          }
-          return w;
-        });
+              return {
+                ...w,
+                sets: newSetDetails,
+              };
+            }
+            return w;
+          },
+        );
         set({ todayExercises: updatedWorkouts });
 
         try {

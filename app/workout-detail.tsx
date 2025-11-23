@@ -1,6 +1,11 @@
 import { useColor } from "@/constants/colors";
 import type { WorkoutSet } from "@/lib/queries/workoutSets.query";
-import { useDataStore } from "@/stores/data-store";
+import {
+  toggleSetComplete,
+  toggleWorkoutComplete,
+  updateSetDetails,
+  useDataStore,
+} from "@/stores/data-store";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useState } from "react";
@@ -15,38 +20,32 @@ import {
   View,
 } from "react-native";
 
+type EditingState = {
+  index: number | null;
+  reps: string;
+  weight: string;
+};
+
 export default function WorkoutDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const todayWorkouts = useDataStore((state) => state.todayExercises);
-  const toggleSetComplete = useDataStore((state) => state.toggleSetComplete);
-  const toggleWorkoutComplete = useDataStore(
-    (state) => state.toggleWorkoutComplete,
-  );
-  const updateSetDetails = useDataStore((state) => state.updateSetDetails);
 
   const colors = useColor();
-  const [editingSetIndex, setEditingSetIndex] = useState<number | null>(null);
-  const [editReps, setEditReps] = useState("");
-  const [editWeight, setEditWeight] = useState("");
 
-  const getDisplayReps = (set: WorkoutSet): number | null => {
-    if (set.actualReps != null) {
-      return set.actualReps;
-    }
-    if (set.plannedReps != null) {
-      return set.plannedReps;
-    }
-    return null;
+  const [editingState, setEditingState] = useState<EditingState>({
+    index: null,
+    reps: "",
+    weight: "",
+  });
+
+  const getDisplayReps = (set: WorkoutSet): string | null => {
+    const value = set.actualReps ?? set.plannedReps;
+    return value != null ? value.toString() : null;
   };
 
-  const getDisplayWeight = (set: WorkoutSet): number | null => {
-    if (set.actualWeight != null) {
-      return set.actualWeight;
-    }
-    if (set.plannedWeight != null) {
-      return set.plannedWeight;
-    }
-    return null;
+  const getDisplayWeight = (set: WorkoutSet): string | null => {
+    const value = set.actualWeight ?? set.plannedWeight;
+    return value != null ? value.toString() : null;
   };
 
   const workout = todayWorkouts.find((w) => w.id === id);
@@ -69,31 +68,39 @@ export default function WorkoutDetailScreen() {
     );
   }
 
-  const completedCount = workout.workoutSetList.filter(
-    (s) => s.completed,
-  ).length;
-  const totalSets = workout.workoutSetList.length;
+  const completedCount = workout.sets.filter((s) => s.completed).length;
+
+  const totalSets = workout.sets.length;
   const progressPercentage =
     totalSets === 0 ? 0 : (completedCount / totalSets) * 100;
 
+  const resetEditingState = () =>
+    setEditingState({
+      index: null,
+      reps: "",
+      weight: "",
+    });
+
   const handleEditSet = (index: number) => {
-    const set = workout.workoutSetList[index];
+    const set = workout.sets[index];
     const reps = getDisplayReps(set);
     const weight = getDisplayWeight(set);
-    setEditReps(reps != null ? reps.toString() : "");
-    setEditWeight(weight != null ? weight.toString() : "");
-    setEditingSetIndex(index);
+    setEditingState({
+      index,
+      reps: reps ?? "",
+      weight: weight ?? "",
+    });
   };
 
   const handleSaveEdit = async () => {
-    if (editingSetIndex !== null && editReps) {
-      const reps = parseInt(editReps);
-      const weight = editWeight ? parseFloat(editWeight) : undefined;
+    if (editingState.index !== null && editingState.reps) {
+      const reps = parseInt(editingState.reps, 10);
+      const weight = editingState.weight
+        ? parseFloat(editingState.weight)
+        : undefined;
       try {
-        await updateSetDetails(workout.id, editingSetIndex, reps, weight);
-        setEditingSetIndex(null);
-        setEditReps("");
-        setEditWeight("");
+        await updateSetDetails(workout.id, editingState.index, reps, weight);
+        resetEditingState();
       } catch (error) {
         console.error("세트 수정 실패:", error);
       }
@@ -101,9 +108,7 @@ export default function WorkoutDetailScreen() {
   };
 
   const handleCancelEdit = () => {
-    setEditingSetIndex(null);
-    setEditReps("");
-    setEditWeight("");
+    resetEditingState();
   };
 
   return (
@@ -188,108 +193,111 @@ export default function WorkoutDetailScreen() {
           세트
         </Text>
         <View style={styles.setsList}>
-          {workout.workoutSetList.map((set, index) => (
-            <View
-              key={index}
-              style={[
-                styles.setCard,
-                {
-                  backgroundColor: set.completed
-                    ? colors.primary
-                    : colors.surface,
-                  borderColor: set.completed ? colors.primary : colors.border,
-                },
-              ]}
-            >
-              <TouchableOpacity
-                onPress={async () => {
-                  try {
-                    await toggleSetComplete(workout.id, index);
-                  } catch (error) {
-                    console.error("세트 완료 토글 실패:", error);
-                  }
-                }}
-                style={styles.setCardTouchable}
-                activeOpacity={0.7}
+          {workout.sets.map((set, index) => {
+            const displayReps = getDisplayReps(set) ?? "0";
+            const displayWeight = getDisplayWeight(set);
+            return (
+              <View
+                key={index}
+                style={[
+                  styles.setCard,
+                  {
+                    backgroundColor: set.completed
+                      ? colors.primary
+                      : colors.surface,
+                    borderColor: set.completed ? colors.primary : colors.border,
+                  },
+                ]}
               >
-                <View style={styles.setCardContent}>
-                  <View style={styles.setInfo}>
-                    <Text
-                      style={[
-                        styles.setNumber,
-                        {
-                          color: set.completed
-                            ? colors.text.primary
-                            : colors.text.primary,
-                        },
-                      ]}
-                    >
-                      {index + 1} 세트
-                    </Text>
-                    <Text
-                      style={[
-                        styles.setDetails,
-                        {
-                          color: set.completed
-                            ? colors.text.primary
-                            : colors.text.secondary,
-                        },
-                      ]}
-                    >
-                      {getDisplayReps(set) ?? 0} reps
-                      {getDisplayWeight(set) != null &&
-                        ` @ ${getDisplayWeight(set)}kg`}
-                    </Text>
-                  </View>
-                  <View style={styles.setActions}>
-                    <TouchableOpacity
-                      onPress={() => handleEditSet(index)}
-                      style={[
-                        styles.editButton,
-                        {
-                          backgroundColor: set.completed
-                            ? "rgba(255, 255, 255, 0.2)"
-                            : colors.tag.background,
-                        },
-                      ]}
-                      activeOpacity={0.7}
-                    >
-                      <Ionicons
-                        name="create-outline"
-                        size={18}
-                        color={
-                          set.completed
-                            ? colors.text.primary
-                            : colors.text.secondary
-                        }
-                      />
-                    </TouchableOpacity>
-                    <View
-                      style={[
-                        styles.checkIcon,
-                        {
-                          backgroundColor: set.completed
-                            ? "rgba(255, 255, 255, 0.2)"
-                            : colors.tag.background,
-                          borderColor: set.completed
-                            ? "rgba(255, 255, 255, 0.3)"
-                            : colors.input.border,
-                        },
-                      ]}
-                    >
-                      {set.completed && (
+                <TouchableOpacity
+                  onPress={async () => {
+                    try {
+                      await toggleSetComplete(workout.id, index);
+                    } catch (error) {
+                      console.error("세트 완료 토글 실패:", error);
+                    }
+                  }}
+                  style={styles.setCardTouchable}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.setCardContent}>
+                    <View style={styles.setInfo}>
+                      <Text
+                        style={[
+                          styles.setNumber,
+                          {
+                            color: set.completed
+                              ? colors.text.primary
+                              : colors.text.primary,
+                          },
+                        ]}
+                      >
+                        {index + 1} 세트
+                      </Text>
+                      <Text
+                        style={[
+                          styles.setDetails,
+                          {
+                            color: set.completed
+                              ? colors.text.primary
+                              : colors.text.secondary,
+                          },
+                        ]}
+                      >
+                        {displayReps} reps
+                        {displayWeight != null && ` @ ${displayWeight}kg`}
+                      </Text>
+                    </View>
+                    <View style={styles.setActions}>
+                      <TouchableOpacity
+                        onPress={() => handleEditSet(index)}
+                        style={[
+                          styles.editButton,
+                          {
+                            backgroundColor: set.completed
+                              ? "rgba(255, 255, 255, 0.2)"
+                              : colors.tag.background,
+                          },
+                        ]}
+                        activeOpacity={0.7}
+                      >
                         <Ionicons
-                          name="checkmark"
-                          size={24}
-                          color={colors.text.primary}
+                          name="create-outline"
+                          size={18}
+                          color={
+                            set.completed
+                              ? colors.text.primary
+                              : colors.text.secondary
+                          }
                         />
-                      )}
+                      </TouchableOpacity>
+                      <View
+                        style={[
+                          styles.checkIcon,
+                          {
+                            backgroundColor: set.completed
+                              ? "rgba(255, 255, 255, 0.2)"
+                              : colors.tag.background,
+                            borderColor: set.completed
+                              ? "rgba(255, 255, 255, 0.3)"
+                              : colors.input.border,
+                          },
+                        ]}
+                      >
+                        {set.completed && (
+                          <Ionicons
+                            name="checkmark"
+                            size={24}
+                            color={colors.text.primary}
+                          />
+                        )}
+                      </View>
                     </View>
                   </View>
-                </View>
-              </TouchableOpacity>
-            </View>
-          ))}
+                </TouchableOpacity>
+              </View>
+            );
+          })}
         </View>
 
         {/* Complete All Button */}
@@ -324,7 +332,7 @@ export default function WorkoutDetailScreen() {
 
       {/* 편집 모달 */}
       <Modal
-        visible={editingSetIndex !== null}
+        visible={editingState.index !== null}
         transparent={true}
         animationType="fade"
         onRequestClose={handleCancelEdit}
@@ -345,7 +353,8 @@ export default function WorkoutDetailScreen() {
               ]}
             >
               <Text style={[styles.modalTitle, { color: colors.text.primary }]}>
-                Set {editingSetIndex !== null ? editingSetIndex + 1 : 0} 편집
+                Set {editingState.index !== null ? editingState.index + 1 : 0}{" "}
+                편집
               </Text>
 
               <View style={styles.modalInputGroup}>
@@ -363,8 +372,13 @@ export default function WorkoutDetailScreen() {
                   ]}
                   placeholder="10"
                   placeholderTextColor={colors.input.placeholder}
-                  value={editReps}
-                  onChangeText={setEditReps}
+                  value={editingState.reps}
+                  onChangeText={(text) =>
+                    setEditingState((prev) => ({
+                      ...prev,
+                      reps: text,
+                    }))
+                  }
                   keyboardType="numeric"
                   autoFocus
                 />
@@ -385,8 +399,13 @@ export default function WorkoutDetailScreen() {
                   ]}
                   placeholder="60"
                   placeholderTextColor={colors.input.placeholder}
-                  value={editWeight}
-                  onChangeText={setEditWeight}
+                  value={editingState.weight}
+                  onChangeText={(text) =>
+                    setEditingState((prev) => ({
+                      ...prev,
+                      weight: text,
+                    }))
+                  }
                   keyboardType="decimal-pad"
                 />
               </View>

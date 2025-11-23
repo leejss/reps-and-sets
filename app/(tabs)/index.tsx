@@ -73,13 +73,13 @@ export default function HomeScreen() {
         ) : (
           <View style={styles.workoutList}>
             {todayWorkouts.map((workout) => {
-              const completedCount = workout.workoutSetList.filter(
+              const completedCount = workout.sets.filter(
                 (s) => s.completed,
               ).length;
-              const totalSets = workout.workoutSetList.length;
+              const totalSets = workout.sets.length;
 
               // 세트 정보 요약 (actual 값 우선, 없으면 planned 값 사용)
-              const repsValues = workout.workoutSetList.map(
+              const repsValues = workout.sets.map(
                 (s) => s.actualReps ?? s.plannedReps ?? 0,
               );
               const minReps = Math.min(...repsValues);
@@ -90,7 +90,7 @@ export default function HomeScreen() {
                   : `${minReps}-${maxReps} reps`;
 
               // 무게 정보 요약 (actual 값 우선, 없으면 planned 값 사용)
-              const weights = workout.workoutSetList
+              const weights = workout.sets
                 .map((s) => s.actualWeight ?? s.plannedWeight)
                 .filter((w): w is number => w !== undefined && w !== null);
               const weightDisplay =
