@@ -60,7 +60,6 @@ export const WorkoutBoard = ({
   const boardState = resolveBoardState({ isLoading, errorMessage, workouts });
   const isInteractive = !isLoading && !disabled;
 
-  // 상태별 UI를 전략 테이블로 정의해 중첩 조건을 제거합니다.
   const renderContentByState: Record<BoardState, () => React.ReactNode> = {
     loading: () => (
       <View style={styles.feedbackState}>
