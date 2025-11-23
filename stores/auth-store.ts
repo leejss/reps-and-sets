@@ -2,6 +2,7 @@ import { getSupabaseSession } from "@/lib/auth";
 import type { Tables } from "@/lib/database.types";
 import {
   GoogleSignin,
+  isSuccessResponse,
   statusCodes,
 } from "@react-native-google-signin/google-signin";
 import type { Session, User } from "@supabase/supabase-js";
@@ -10,9 +11,24 @@ import { combine } from "zustand/middleware";
 import { fetchProfile } from "../lib/queries/profile.query";
 import { supabase } from "../lib/supabase";
 
+const webClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
+const iosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
+
+if (!webClientId) {
+  throw new Error(
+    "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID가 설정되지 않았습니다. app.config.ts 혹은 환경변수를 확인해주세요.",
+  );
+}
+
+if (!iosClientId) {
+  throw new Error(
+    "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID가 설정되지 않았습니다. app.config.ts 혹은 환경변수를 확인해주세요.",
+  );
+}
+
 GoogleSignin.configure({
-  webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-  iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+  webClientId,
+  iosClientId,
   scopes: ["profile", "email"],
   offlineAccess: true,
 });
@@ -78,7 +94,7 @@ export const useAuthStore = create(
       },
 
       // Google 소셜 로그인
-      signInWithGoogle: async () => {
+      signInWithGoogle: async (): Promise<boolean> => {
         try {
           // 1. Google Play Services 체크 (Android)
           await GoogleSignin.hasPlayServices({
@@ -86,19 +102,26 @@ export const useAuthStore = create(
           });
 
           // 2. Google 로그인 프롬프트
-          const userInfo = await GoogleSignin.signIn();
+          const response = await GoogleSignin.signIn();
+
+          if (!isSuccessResponse(response)) {
+            console.log("사용자가 로그인을 취소했습니다");
+            return false;
+          }
 
           // 3. ID Token 확인
-          if (!userInfo.data?.idToken) {
+          const idToken = response.data.idToken;
+
+          if (!idToken) {
             throw new Error("ID Token을 받지 못했습니다");
           }
 
-          console.log("Google Sign-In 성공:", userInfo.data.user);
+          console.log("Google Sign-In 성공:", response.data.user);
 
           // 4. Supabase에 ID Token으로 로그인
           const { data, error } = await supabase.auth.signInWithIdToken({
             provider: "google",
-            token: userInfo.data.idToken,
+            token: idToken,
           });
 
           if (error) throw error;
@@ -106,14 +129,15 @@ export const useAuthStore = create(
           console.log("Supabase 로그인 성공:", data.user?.email);
 
           // 세션은 onAuthStateChange에서 자동 처리됨
+          return true;
         } catch (error: any) {
           // Google Sign-In 에러 핸들링
           if (error.code === statusCodes.SIGN_IN_CANCELLED) {
             console.log("사용자가 로그인을 취소했습니다");
-            return; // throw 하지 않음
+            return false;
           } else if (error.code === statusCodes.IN_PROGRESS) {
             console.log("로그인이 이미 진행 중입니다");
-            return;
+            return false;
           } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
             throw new Error("Google Play Services를 사용할 수 없습니다");
           }

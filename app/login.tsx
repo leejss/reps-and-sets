@@ -31,8 +31,10 @@ export default function LoginScreen() {
   const handleGoogleLogin = async () => {
     setIsLoading(true);
     try {
-      await signInWithGoogle();
-      router.replace(Routes.TABS);
+      const loggedIn = await signInWithGoogle();
+      if (loggedIn) {
+        router.replace(Routes.TABS);
+      }
     } catch (error) {
       Alert.alert(
         "Google 로그인 실패",
