@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { WorkoutCard } from "./workout-card";
 
 type WorkoutBoardProps = {
   dayPlan: DayPlan;
@@ -19,6 +20,29 @@ type WorkoutBoardProps = {
   errorMessage?: string | null;
   onRetry?: () => void;
   disabled?: boolean;
+};
+
+type BoardState = "loading" | "error" | "empty" | "ready";
+
+const resolveBoardState = ({
+  isLoading,
+  errorMessage,
+  workouts,
+}: {
+  isLoading: boolean;
+  errorMessage?: string | null;
+  workouts: WeeklyWorkout[];
+}): BoardState => {
+  if (isLoading) {
+    return "loading";
+  }
+  if (errorMessage) {
+    return "error";
+  }
+  if (workouts.length === 0) {
+    return "empty";
+  }
+  return "ready";
 };
 
 export const WorkoutBoard = ({
@@ -32,93 +56,88 @@ export const WorkoutBoard = ({
   disabled = false,
 }: WorkoutBoardProps) => {
   const colors = useColor();
+  const workouts = dayPlan.workouts;
+  const boardState = resolveBoardState({ isLoading, errorMessage, workouts });
   const isInteractive = !isLoading && !disabled;
 
-  const renderBody = () => {
-    if (isLoading) {
-      return (
-        <View style={styles.feedbackState}>
-          <ActivityIndicator color={colors.primary} size="small" />
-          <Text style={[styles.feedbackText, { color: colors.text.secondary }]}>
-            주간 계획을 불러오는 중입니다...
-          </Text>
-        </View>
-      );
-    }
-
-    if (errorMessage) {
-      return (
-        <View
-          style={[
-            styles.feedbackState,
-            styles.errorState,
-            { borderColor: colors.status.error },
-          ]}
-        >
-          <Ionicons
-            name="warning-outline"
-            size={18}
-            color={colors.status.error}
-          />
-          <Text style={[styles.feedbackText, { color: colors.status.error }]}>
-            {errorMessage}
-          </Text>
-          {onRetry ? (
-            <TouchableOpacity
-              style={[
-                styles.retryButton,
-                { backgroundColor: colors.status.error },
-              ]}
-              onPress={onRetry}
-              activeOpacity={0.8}
+  // 상태별 UI를 전략 테이블로 정의해 중첩 조건을 제거합니다.
+  const renderContentByState: Record<BoardState, () => React.ReactNode> = {
+    loading: () => (
+      <View style={styles.feedbackState}>
+        <ActivityIndicator color={colors.primary} size="small" />
+        <Text style={[styles.feedbackText, { color: colors.text.secondary }]}>
+          주간 계획을 불러오는 중입니다...
+        </Text>
+      </View>
+    ),
+    error: () => (
+      <View
+        style={[
+          styles.feedbackState,
+          styles.errorState,
+          { borderColor: colors.status.error },
+        ]}
+      >
+        <Ionicons
+          name="warning-outline"
+          size={18}
+          color={colors.status.error}
+        />
+        <Text style={[styles.feedbackText, { color: colors.status.error }]}>
+          {errorMessage}
+        </Text>
+        {onRetry ? (
+          <TouchableOpacity
+            style={[
+              styles.retryButton,
+              { backgroundColor: colors.status.error },
+            ]}
+            onPress={onRetry}
+            activeOpacity={0.8}
+          >
+            <Text
+              style={[styles.retryText, { color: colors.button.primary.text }]}
             >
-              <Text
-                style={[
-                  styles.retryText,
-                  { color: colors.button.primary.text },
-                ]}
-              >
-                다시 시도
-              </Text>
-            </TouchableOpacity>
-          ) : null}
-        </View>
-      );
-    }
-
-    if (dayPlan.workouts.length === 0) {
-      return (
-        <View
-          style={[
-            styles.emptyState,
-            {
-              borderColor: colors.border,
-            },
-          ]}
-        >
-          <Ionicons
-            name="calendar-outline"
-            size={20}
-            color={colors.text.secondary}
+              다시 시도
+            </Text>
+          </TouchableOpacity>
+        ) : null}
+      </View>
+    ),
+    empty: () => (
+      <View
+        style={[
+          styles.emptyState,
+          {
+            borderColor: colors.border,
+          },
+        ]}
+      >
+        <Ionicons
+          name="calendar-outline"
+          size={20}
+          color={colors.text.secondary}
+        />
+        <Text style={[styles.emptyTitle, { color: colors.text.secondary }]}>
+          등록된 운동이 없습니다
+        </Text>
+        <Text style={[styles.emptyCaption, { color: colors.text.tertiary }]}>
+          운동을 추가해 루틴을 완성하세요.
+        </Text>
+      </View>
+    ),
+    ready: () => (
+      <>
+        {workouts.map((workout) => (
+          <WorkoutCard
+            key={workout.id}
+            workout={workout}
+            onEdit={onEdit}
+            onDelete={onDelete}
           />
-          <Text style={[styles.emptyTitle, { color: colors.text.secondary }]}>
-            등록된 운동이 없습니다
-          </Text>
-          <Text style={[styles.emptyCaption, { color: colors.text.tertiary }]}>
-            운동을 추가해 루틴을 완성하세요.
-          </Text>
-        </View>
-      );
-    }
-
-    return dayPlan.workouts.map((workout) => (
-      <WorkoutCard
-        key={workout.id}
-        workout={workout}
-        onEdit={onEdit}
-        onDelete={onDelete}
-      />
-    ));
+        ))}
+      </>
+    ),
   };
 
   return (
@@ -129,7 +148,7 @@ export const WorkoutBoard = ({
             {dayPlan.label} 계획
           </Text>
           <Text style={[styles.boardMeta, { color: colors.text.secondary }]}>
-            {dayPlan.dateLabel} · {dayPlan.workouts.length}개의 운동
+            {dayPlan.dateLabel} · {workouts.length}개의 운동
           </Text>
         </View>
         <TouchableOpacity
@@ -151,98 +170,7 @@ export const WorkoutBoard = ({
         </TouchableOpacity>
       </View>
 
-      {renderBody()}
-    </View>
-  );
-};
-
-type WorkoutCardProps = {
-  workout: WeeklyWorkout;
-  onEdit: (workout: WeeklyWorkout) => void;
-  onDelete: (workoutId: string) => void;
-};
-
-const WorkoutCard = ({ workout, onEdit, onDelete }: WorkoutCardProps) => {
-  const colors = useColor();
-
-  const repsValues = workout.workoutSetList
-    .map((s) => s.plannedReps)
-    .filter((r): r is number => r != null && r > 0);
-  const hasReps = repsValues.length > 0;
-  const minReps = hasReps ? Math.min(...repsValues) : null;
-  const maxReps = hasReps ? Math.max(...repsValues) : null;
-  const repsDisplay =
-    minReps != null && maxReps != null
-      ? minReps === maxReps
-        ? `${minReps}회`
-        : `${minReps}-${maxReps}회`
-      : null;
-
-  const weights = workout.workoutSetList
-    .map((s) => s.plannedWeight)
-    .filter((w): w is number => w != null && w > 0);
-  const weightDisplay =
-    weights.length > 0
-      ? weights.length === 1 || Math.min(...weights) === Math.max(...weights)
-        ? `${weights[0]}kg`
-        : `${Math.min(...weights)}-${Math.max(...weights)}kg`
-      : null;
-
-  return (
-    <View
-      style={[
-        styles.workoutCard,
-        {
-          borderColor: colors.border,
-          backgroundColor: colors.surface,
-        },
-      ]}
-    >
-      <View style={styles.workoutInfo}>
-        <Text style={[styles.workoutName, { color: colors.text.primary }]}>
-          {workout.exerciseName}
-        </Text>
-        <Text style={[styles.workoutDetail, { color: colors.text.secondary }]}>
-          {workout.muscleGroup} · {workout.workoutSetList.length}세트
-          {repsDisplay && ` × ${repsDisplay}`}
-          {weightDisplay && ` @ ${weightDisplay}`}
-        </Text>
-        {workout.note ? (
-          <Text style={[styles.workoutNote, { color: colors.text.tertiary }]}>
-            {workout.note}
-          </Text>
-        ) : null}
-      </View>
-      <View style={styles.workoutActions}>
-        <TouchableOpacity
-          style={[
-            styles.iconButton,
-            { backgroundColor: colors.iconButton.background },
-          ]}
-          onPress={() => onEdit(workout)}
-          activeOpacity={0.75}
-        >
-          <Ionicons
-            name="create-outline"
-            size={18}
-            color={colors.text.primary}
-          />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.iconButton,
-            { backgroundColor: colors.tag.background },
-          ]}
-          onPress={() => onDelete(workout.id)}
-          activeOpacity={0.75}
-        >
-          <Ionicons
-            name="trash-outline"
-            size={18}
-            color={colors.status.error}
-          />
-        </TouchableOpacity>
-      </View>
+      {renderContentByState[boardState]()}
     </View>
   );
 };
@@ -317,39 +245,5 @@ const styles = StyleSheet.create({
   retryText: {
     fontSize: 13,
     fontWeight: "600",
-  },
-  workoutCard: {
-    borderWidth: 1,
-    borderRadius: 16,
-    padding: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
-  },
-  workoutInfo: {
-    flex: 1,
-    gap: 4,
-  },
-  workoutName: {
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  workoutDetail: {
-    fontSize: 14,
-  },
-  workoutNote: {
-    fontSize: 13,
-  },
-  workoutActions: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  iconButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
   },
 });
