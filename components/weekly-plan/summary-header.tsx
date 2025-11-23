@@ -7,7 +7,7 @@ type SummaryCardProps = {
   range: string;
 };
 
-export const SummaryCard = ({ range }: SummaryCardProps) => {
+export const SummaryHeader = ({ range }: SummaryCardProps) => {
   const colors = useColor();
 
   return (

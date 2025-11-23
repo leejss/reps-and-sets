@@ -1,8 +1,8 @@
+import { DayCarousel } from "@/components/weekly-plan/day-carousel";
+import { SessionExerciseEditor } from "@/components/weekly-plan/session-exercise-editor";
+import { SummaryHeader } from "@/components/weekly-plan/summary-header";
+import { WorkoutBoard } from "@/components/weekly-plan/workout-board";
 import { useColor } from "@/constants/colors";
-import { DayCarousel } from "@/features/weekly-plan/components/DayCarousel";
-import { PlanWorkoutEditor } from "@/features/weekly-plan/components/PlanWorkoutEditor";
-import { SummaryCard } from "@/features/weekly-plan/components/SummaryCard";
-import { WorkoutBoard } from "@/features/weekly-plan/components/WorkoutBoard";
 import { getWeekdayFromDate } from "@/lib/utils";
 import {
   addWorkout,
@@ -128,7 +128,7 @@ export default function WeeklyPlanScreen() {
           { backgroundColor: colors.background },
         ]}
       >
-        <SummaryCard range={weeklyPlan.weekRange} />
+        <SummaryHeader range={weeklyPlan.weekRange} />
         <DayCarousel
           dayPlans={weeklyPlan.dayPlans}
           selectedDay={selectedPlan.id}
@@ -145,7 +145,7 @@ export default function WeeklyPlanScreen() {
           disabled={isMutating}
         />
       </ScrollView>
-      <PlanWorkoutEditor
+      <SessionExerciseEditor
         visible={editorState.visible}
         mode={editorState.mode}
         dayLabel={

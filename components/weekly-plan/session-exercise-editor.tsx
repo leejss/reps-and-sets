@@ -1,5 +1,7 @@
 import { useColor } from "@/constants/colors";
-import { Exercise } from "@/types";
+import { Exercise } from "@/lib/queries/exercises.model";
+import { WorkoutSet } from "@/lib/queries/workoutSets.model";
+import { WeeklyWorkoutInput } from "@/types/weekly-plan";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
 import {
@@ -15,12 +17,33 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { WeeklyWorkoutInput } from "../types";
 
 const MIN_SETS = 1;
 const MAX_SETS = 20;
 
-type PlanWorkoutEditorProps = {
+type ActiveExercise = {
+  id: string;
+  name: string;
+  muscleGroup: string;
+};
+
+type WeeklyWorkoutUiState = {
+  numberOfSets: string;
+  isUniformValues: boolean;
+  uniformReps: string;
+  uniformWeight: string;
+  note: string;
+};
+
+const createEmptyUiState = (): WeeklyWorkoutUiState => ({
+  numberOfSets: "",
+  isUniformValues: true,
+  uniformReps: "",
+  uniformWeight: "",
+  note: "",
+});
+
+type SessionExerciseEditorProps = {
   visible: boolean;
   mode: "create" | "edit";
   dayLabel: string;
@@ -30,7 +53,7 @@ type PlanWorkoutEditorProps = {
   onSubmit: (payload: WeeklyWorkoutInput) => Promise<void> | void;
 };
 
-export const PlanWorkoutEditor = ({
+export const SessionExerciseEditor = ({
   visible,
   mode,
   dayLabel,
@@ -38,62 +61,62 @@ export const PlanWorkoutEditor = ({
   initialValues,
   onClose,
   onSubmit,
-}: PlanWorkoutEditorProps) => {
+}: SessionExerciseEditorProps) => {
   const colors = useColor();
-  const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(
+  const [workoutInput, setWorkoutInput] = useState<WeeklyWorkoutInput | null>(
     null,
   );
-  const [numberOfSets, setNumberOfSets] = useState("");
-  const [setDetails, setSetDetails] = useState<
-    { setOrder: number; plannedReps?: number; plannedWeight?: number; completed: boolean }[]
-  >([]);
-  const [useUniformValues, setUseUniformValues] = useState(true);
-  const [uniformReps, setUniformReps] = useState("");
-  const [uniformWeight, setUniformWeight] = useState("");
-  const [note, setNote] = useState("");
+  const [uiState, setUiState] =
+    useState<WeeklyWorkoutUiState>(createEmptyUiState);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<string | null>(null);
 
-  const selectedExercise = exercises.find((e) => e.id === selectedExerciseId);
-  const fallbackExercise = initialValues
+  const { numberOfSets, isUniformValues, uniformReps, uniformWeight, note } =
+    uiState;
+
+  const workoutSetList: WorkoutSet[] = workoutInput?.setDetails ?? [];
+
+  const selectedExercise = workoutInput
+    ? exercises.find((e) => e.id === workoutInput.exerciseId)
+    : undefined;
+
+  const fallbackExercise: ActiveExercise | null = workoutInput
     ? {
-        id: initialValues.exerciseId,
-        name: initialValues.exerciseName,
-        muscleGroup: initialValues.muscleGroup,
+        id: workoutInput.exerciseId,
+        name: workoutInput.exerciseName,
+        muscleGroup: workoutInput.muscleGroup,
       }
     : null;
-  const activeExercise = selectedExercise ?? fallbackExercise;
+
+  const activeExercise: ActiveExercise | null = selectedExercise
+    ? {
+        id: selectedExercise.id,
+        name: selectedExercise.name,
+        muscleGroup: selectedExercise.targetMuscleGroup,
+      }
+    : fallbackExercise;
 
   useEffect(() => {
-    const numSets = parseInt(numberOfSets);
-    if (numSets > 0 && numSets <= 20) {
-      setSetDetails(
-        Array.from({ length: numSets }, (_, index) => ({
-          setOrder: index,
-          plannedReps: 0,
-          plannedWeight: undefined,
-          completed: false,
-        })),
-      );
-    } else {
-      setSetDetails([]);
-    }
-  }, [numberOfSets]);
+    // Uniform 모드일 때는 WeeklyWorkoutInput.setDetails에 일괄 반영
+    if (!isUniformValues) return;
 
-  useEffect(() => {
-    if (useUniformValues && setDetails.length > 0) {
-      const reps = parseInt(uniformReps) || 0;
+    setWorkoutInput((prev) => {
+      if (!prev || prev.setDetails.length === 0) return prev;
+
+      const reps = parseInt(uniformReps, 10) || 0;
       const weight = uniformWeight ? parseFloat(uniformWeight) : undefined;
-      setSetDetails((prevDetails) =>
-        prevDetails.map((set) => ({
+
+      return {
+        ...prev,
+        setDetails: prev.setDetails.map((set, index) => ({
           ...set,
+          setOrder: set.setOrder ?? index,
           plannedReps: reps,
           plannedWeight: weight,
         })),
-      );
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [uniformReps, uniformWeight, useUniformValues]);
+      };
+    });
+  }, [uniformReps, uniformWeight, isUniformValues]);
 
   useEffect(() => {
     if (!visible) {
@@ -102,18 +125,6 @@ export const PlanWorkoutEditor = ({
     }
 
     if (initialValues) {
-      setSelectedExerciseId(initialValues.exerciseId);
-      setNumberOfSets(String(initialValues.setDetails.length));
-      setSetDetails(
-        initialValues.setDetails.map((set, index) => ({
-          setOrder: set.setOrder ?? index,
-          plannedReps: set.plannedReps ?? 0,
-          plannedWeight: set.plannedWeight ?? undefined,
-          completed: set.completed,
-        })),
-      );
-      setNote(initialValues.note ?? "");
-
       const allSame = initialValues.setDetails.every((set, _, arr) => {
         const first = arr[0];
         const aReps = set.plannedReps ?? 0;
@@ -122,26 +133,28 @@ export const PlanWorkoutEditor = ({
         const fWeight = first.plannedWeight ?? undefined;
         return aReps === fReps && aWeight === fWeight;
       });
-      setUseUniformValues(allSame);
-      if (allSame && initialValues.setDetails.length > 0) {
-        const first = initialValues.setDetails[0];
-        setUniformReps(String(first.plannedReps ?? 0));
-        setUniformWeight(
-          first.plannedWeight !== undefined
+
+      const hasSets = initialValues.setDetails.length > 0;
+      const first = hasSets ? initialValues.setDetails[0] : undefined;
+
+      setWorkoutInput(initialValues);
+      setUiState({
+        numberOfSets: String(initialValues.setDetails.length),
+        isUniformValues: allSame,
+        uniformReps: allSame && hasSets ? String(first?.plannedReps ?? 0) : "",
+        uniformWeight:
+          allSame && hasSets && first?.plannedWeight !== undefined
             ? String(first.plannedWeight)
             : "",
-        );
-      }
+        note: initialValues.note ?? "",
+      });
+      setErrors(null);
       return;
     }
 
-    setSelectedExerciseId(null);
-    setNumberOfSets("");
-    setSetDetails([]);
-    setUseUniformValues(true);
-    setUniformReps("");
-    setUniformWeight("");
-    setNote("");
+    setWorkoutInput(null);
+    setUiState(createEmptyUiState());
+    setErrors(null);
   }, [visible, initialValues]);
 
   const handleSetDetailChange = (
@@ -149,43 +162,44 @@ export const PlanWorkoutEditor = ({
     field: "reps" | "weight",
     value: string,
   ) => {
-    const newSetDetails = [...setDetails];
-    if (field === "reps") {
-      newSetDetails[index].plannedReps = parseInt(value) || 0;
-    } else {
-      newSetDetails[index].plannedWeight = value
-        ? parseFloat(value)
-        : undefined;
-    }
-    setSetDetails(newSetDetails);
+    setWorkoutInput((prev) => {
+      if (!prev) return prev;
+      if (!prev.setDetails[index]) return prev;
+
+      const newSetDetails = [...prev.setDetails];
+      if (field === "reps") {
+        newSetDetails[index] = {
+          ...newSetDetails[index],
+          plannedReps: parseInt(value, 10) || 0,
+        };
+      } else {
+        newSetDetails[index] = {
+          ...newSetDetails[index],
+          plannedWeight: value ? parseFloat(value) : undefined,
+        };
+      }
+
+      return {
+        ...prev,
+        setDetails: newSetDetails,
+      };
+    });
   };
 
   const isValid =
+    !!workoutInput &&
     !!activeExercise &&
-    setDetails.length > 0 &&
-    setDetails.some((set) => (set.plannedReps ?? 0) > 0) &&
+    workoutSetList.length > 0 &&
+    workoutSetList.some((set) => (set.plannedReps ?? 0) > 0) &&
     !errors &&
     !isSubmitting;
 
   const handleSubmit = async () => {
-    if (!isValid || !activeExercise || isSubmitting || errors) return;
+    if (!isValid || !workoutInput || isSubmitting || errors) return;
+
     try {
       setIsSubmitting(true);
-      await onSubmit({
-        exerciseId: activeExercise.id,
-        exerciseName: activeExercise.name,
-        muscleGroup: activeExercise.muscleGroup,
-        setDetails: setDetails.map((set, index) => ({
-          id: undefined,
-          setOrder: set.setOrder ?? index,
-          plannedReps: set.plannedReps ?? 0,
-          plannedWeight: set.plannedWeight ?? undefined,
-          actualReps: null,
-          actualWeight: null,
-          completed: false,
-        })),
-        note: note.trim() ? note.trim() : undefined,
-      });
+      await onSubmit(workoutInput);
     } finally {
       setIsSubmitting(false);
     }
@@ -254,7 +268,7 @@ export const PlanWorkoutEditor = ({
                 </View>
               ) : (
                 exercises.map((exercise) => {
-                  const isSelected = selectedExerciseId === exercise.id;
+                  const isSelected = workoutInput?.exerciseId === exercise.id;
                   return (
                     <TouchableOpacity
                       key={exercise.id}
@@ -269,7 +283,44 @@ export const PlanWorkoutEditor = ({
                         },
                       ]}
                       onPress={() => {
-                        setSelectedExerciseId(exercise.id);
+                        setWorkoutInput((prev) => {
+                          const prevSets = prev?.setDetails ?? [];
+                          const prevNote = prev?.note;
+
+                          let nextSets: WorkoutSet[] = prevSets;
+
+                          const num = parseInt(numberOfSets, 10);
+                          if (
+                            !Number.isNaN(num) &&
+                            num >= MIN_SETS &&
+                            num <= MAX_SETS
+                          ) {
+                            nextSets = Array.from(
+                              { length: num },
+                              (_, index) => {
+                                const base = prevSets[index];
+                                return {
+                                  id: base?.id,
+                                  setOrder: index,
+                                  plannedReps: base?.plannedReps ?? 0,
+                                  plannedWeight:
+                                    base?.plannedWeight ?? undefined,
+                                  actualReps: base?.actualReps ?? null,
+                                  actualWeight: base?.actualWeight ?? null,
+                                  completed: base?.completed ?? false,
+                                };
+                              },
+                            );
+                          }
+
+                          return {
+                            exerciseId: exercise.id,
+                            exerciseName: exercise.name,
+                            muscleGroup: exercise.targetMuscleGroup,
+                            setDetails: nextSets,
+                            note: prevNote,
+                          };
+                        });
                       }}
                       activeOpacity={0.75}
                     >
@@ -379,15 +430,70 @@ export const PlanWorkoutEditor = ({
                     value={numberOfSets}
                     keyboardType="numeric"
                     onChangeText={(val) => {
-                      const num = parseInt(val);
-                      if (num < MIN_SETS || num > MAX_SETS) {
-                        setErrors(
-                          `세트 수는 ${MIN_SETS}에서 ${MAX_SETS} 사이여야 합니다.`,
+                      setUiState((prev) => ({
+                        ...prev,
+                        numberOfSets: val,
+                      }));
+
+                      if (val === "") {
+                        setErrors(null);
+                        setWorkoutInput((prev) =>
+                          prev
+                            ? {
+                                ...prev,
+                                setDetails: [],
+                              }
+                            : prev,
                         );
                         return;
                       }
 
-                      setNumberOfSets(val);
+                      const num = parseInt(val, 10);
+                      if (
+                        Number.isNaN(num) ||
+                        num < MIN_SETS ||
+                        num > MAX_SETS
+                      ) {
+                        setErrors(
+                          `세트 수는 ${MIN_SETS}에서 ${MAX_SETS} 사이여야 합니다.`,
+                        );
+                        setWorkoutInput((prev) =>
+                          prev
+                            ? {
+                                ...prev,
+                                setDetails: [],
+                              }
+                            : prev,
+                        );
+                        return;
+                      }
+
+                      setErrors(null);
+                      setWorkoutInput((prev) => {
+                        if (!prev) return prev;
+
+                        const prevSets = prev.setDetails ?? [];
+                        const nextSets: WorkoutSet[] = Array.from(
+                          { length: num },
+                          (_, index) => {
+                            const base = prevSets[index];
+                            return {
+                              id: base?.id,
+                              setOrder: index,
+                              plannedReps: base?.plannedReps ?? 0,
+                              plannedWeight: base?.plannedWeight ?? undefined,
+                              actualReps: base?.actualReps ?? null,
+                              actualWeight: base?.actualWeight ?? null,
+                              completed: base?.completed ?? false,
+                            };
+                          },
+                        );
+
+                        return {
+                          ...prev,
+                          setDetails: nextSets,
+                        };
+                      });
                     }}
                   />
                   {errors && (
@@ -399,28 +505,33 @@ export const PlanWorkoutEditor = ({
                   )}
                 </View>
 
-                {setDetails.length > 0 && (
+                {workoutSetList.length > 0 && (
                   <>
                     <TouchableOpacity
                       style={[
                         styles.toggleButton,
                         {
-                          backgroundColor: useUniformValues
+                          backgroundColor: isUniformValues
                             ? colors.primary
                             : colors.surface,
-                          borderColor: useUniformValues
+                          borderColor: isUniformValues
                             ? colors.primary
                             : colors.border,
                         },
                       ]}
-                      onPress={() => setUseUniformValues(!useUniformValues)}
+                      onPress={() =>
+                        setUiState((prev) => ({
+                          ...prev,
+                          isUniformValues: !prev.isUniformValues,
+                        }))
+                      }
                       activeOpacity={0.7}
                     >
                       <Ionicons
-                        name={useUniformValues ? "checkbox" : "square-outline"}
+                        name={isUniformValues ? "checkbox" : "square-outline"}
                         size={20}
                         color={
-                          useUniformValues
+                          isUniformValues
                             ? colors.button.primary.text
                             : colors.text.secondary
                         }
@@ -429,7 +540,7 @@ export const PlanWorkoutEditor = ({
                         style={[
                           styles.toggleText,
                           {
-                            color: useUniformValues
+                            color: isUniformValues
                               ? colors.button.primary.text
                               : colors.text.secondary,
                           },
@@ -439,7 +550,7 @@ export const PlanWorkoutEditor = ({
                       </Text>
                     </TouchableOpacity>
 
-                    {useUniformValues ? (
+                    {isUniformValues ? (
                       <View style={styles.uniformInputs}>
                         <View style={styles.inputGroup}>
                           <Text
@@ -459,7 +570,12 @@ export const PlanWorkoutEditor = ({
                             placeholder="예: 10"
                             placeholderTextColor={colors.input.placeholder}
                             value={uniformReps}
-                            onChangeText={setUniformReps}
+                            onChangeText={(text) =>
+                              setUiState((prev) => ({
+                                ...prev,
+                                uniformReps: text,
+                              }))
+                            }
                             keyboardType="numeric"
                           />
                         </View>
@@ -482,7 +598,12 @@ export const PlanWorkoutEditor = ({
                             placeholder="예: 60"
                             placeholderTextColor={colors.input.placeholder}
                             value={uniformWeight}
-                            onChangeText={setUniformWeight}
+                            onChangeText={(text) =>
+                              setUiState((prev) => ({
+                                ...prev,
+                                uniformWeight: text,
+                              }))
+                            }
                             keyboardType="decimal-pad"
                           />
                         </View>
@@ -497,7 +618,7 @@ export const PlanWorkoutEditor = ({
                         >
                           세트별 상세 정보
                         </Text>
-                        {setDetails.map((set, index) => (
+                        {workoutSetList.map((set, index) => (
                           <View
                             key={index}
                             style={[
@@ -612,7 +733,20 @@ export const PlanWorkoutEditor = ({
                         placeholder="주의사항이나 변형 동작을 기록하세요."
                         placeholderTextColor={colors.input.placeholder}
                         value={note}
-                        onChangeText={setNote}
+                        onChangeText={(text) => {
+                          setUiState((prev) => ({
+                            ...prev,
+                            note: text,
+                          }));
+                          setWorkoutInput((prev) =>
+                            prev
+                              ? {
+                                  ...prev,
+                                  note: text.trim() ? text : undefined,
+                                }
+                              : prev,
+                          );
+                        }}
                         multiline
                         numberOfLines={3}
                         textAlignVertical="top"
