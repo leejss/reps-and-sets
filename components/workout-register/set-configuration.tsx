@@ -163,7 +163,7 @@ export function SetConfiguration() {
                   <Text
                     style={[styles.setLabel, { color: colors.text.primary }]}
                   >
-                    Set {index + 1}
+                    {index + 1} 세트
                   </Text>
                   <View style={styles.setInputRow}>
                     <View style={styles.halfInput}>
@@ -173,7 +173,7 @@ export function SetConfiguration() {
                           { color: colors.text.label },
                         ]}
                       >
-                        Reps
+                        반복 횟수 (Reps)
                       </Text>
                       <TextInput
                         style={[
@@ -184,7 +184,7 @@ export function SetConfiguration() {
                             color: colors.text.primary,
                           },
                         ]}
-                        placeholder="10"
+                        placeholder="예: 10"
                         placeholderTextColor={colors.input.placeholder}
                         value={
                           (set.plannedReps ?? 0) > 0
@@ -204,7 +204,7 @@ export function SetConfiguration() {
                           { color: colors.text.label },
                         ]}
                       >
-                        Weight (kg)
+                        무게 (kg)
                       </Text>
                       <TextInput
                         style={[
@@ -215,7 +215,7 @@ export function SetConfiguration() {
                             color: colors.text.primary,
                           },
                         ]}
-                        placeholder="60"
+                        placeholder="예: 60"
                         placeholderTextColor={colors.input.placeholder}
                         value={
                           set.plannedWeight !== undefined
