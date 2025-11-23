@@ -1,13 +1,11 @@
 import { useColor } from "@/constants/colors";
+import { formatKoreanHeaderDate } from "@/lib/date";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-type HomeHeaderProps = {
-  dateLabel: string;
-};
-
-export const HomeHeader = ({ dateLabel }: HomeHeaderProps) => {
+export const HomeHeader = () => {
   const colors = useColor();
+  const dateLabel = formatKoreanHeaderDate();
 
   return (
     <View style={[styles.container, { backgroundColor: colors.headerSurface }]}>
@@ -34,4 +32,3 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
 });
-

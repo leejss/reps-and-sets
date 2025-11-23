@@ -1,68 +1,72 @@
 import { useColor } from "@/constants/colors";
 import type { SessionExerciseWithSets } from "@/lib/queries/workoutSessionExercises.query";
-import { Ionicons } from "@expo/vector-icons";
 import React from "react";
-import {
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-  type GestureResponderEvent,
-} from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 type WorkoutCardProps = {
   workout: SessionExerciseWithSets;
   onPress: (workoutId: string) => void;
-  onToggle: (workoutId: string) => Promise<void> | void;
 };
 
-export const WorkoutCard = ({
-  workout,
-  onPress,
-  onToggle,
-}: WorkoutCardProps) => {
+export const WorkoutCard = ({ workout, onPress }: WorkoutCardProps) => {
   const colors = useColor();
 
   const repsSummary = buildRepsDisplay(workout.sets);
   const weightSummary = buildWeightDisplay(workout.sets);
   const completedSets = workout.sets.filter((set) => set.completed).length;
   const totalSets = workout.sets.length;
+  const isCompleted = workout.completed;
 
   const handleCardPress = () => onPress(workout.id);
-
-  const handleTogglePress = async (event: GestureResponderEvent) => {
-    event.stopPropagation();
-    await onToggle(workout.id);
-  };
 
   return (
     <TouchableOpacity
       style={[
         styles.card,
         {
-          backgroundColor: colors.surface,
-          borderColor: colors.border,
-          opacity: workout.completed ? 0.6 : 1,
+          backgroundColor: isCompleted ? colors.tag.tutorial : colors.surface,
+          borderColor: isCompleted ? colors.primary : colors.border,
+          opacity: isCompleted ? 0.95 : 1,
         },
       ]}
       onPress={handleCardPress}
       activeOpacity={0.7}
     >
+      {isCompleted && (
+        <View
+          pointerEvents="none"
+          style={[
+            styles.completedGlow,
+            {
+              backgroundColor: colors.primary,
+            },
+          ]}
+        />
+      )}
       <View style={styles.content}>
         <View style={styles.info}>
           <Text
             style={[
               styles.title,
               {
-                color: colors.text.primary,
-                textDecorationLine: workout.completed ? "line-through" : "none",
+                color: isCompleted
+                  ? colors.text.secondary
+                  : colors.text.primary,
+                textDecorationLine: isCompleted ? "line-through" : "none",
               },
             ]}
           >
             {workout.exerciseName}
           </Text>
           <Text
-            style={[styles.details, { color: colors.text.secondary }]}
+            style={[
+              styles.details,
+              {
+                color: isCompleted
+                  ? colors.text.tertiary
+                  : colors.text.secondary,
+              },
+            ]}
             numberOfLines={1}
           >
             {totalSets} sets × {repsSummary}
@@ -73,11 +77,18 @@ export const WorkoutCard = ({
               style={[
                 styles.tag,
                 {
-                  backgroundColor: colors.tag.background,
+                  backgroundColor: isCompleted
+                    ? colors.primary
+                    : colors.tag.background,
                 },
               ]}
             >
-              <Text style={[styles.tagText, { color: colors.tag.text }]}>
+              <Text
+                style={[
+                  styles.tagText,
+                  { color: isCompleted ? colors.surface : colors.tag.text },
+                ]}
+              >
                 {workout.targetMuscleGroup}
               </Text>
             </View>
@@ -86,44 +97,29 @@ export const WorkoutCard = ({
               style={[
                 styles.progress,
                 {
-                  backgroundColor: colors.tag.background,
+                  backgroundColor: isCompleted
+                    ? colors.primary
+                    : colors.tag.background,
                 },
               ]}
             >
-              <Text style={[styles.progressText, { color: colors.primary }]}>
+              <Text
+                style={[
+                  styles.progressText,
+                  { color: isCompleted ? colors.surface : colors.primary },
+                ]}
+              >
                 {completedSets}/{totalSets}
               </Text>
             </View>
           </View>
         </View>
-
-        <TouchableOpacity
-          onPress={handleTogglePress}
-          style={[
-            styles.checkButton,
-            {
-              backgroundColor: workout.completed
-                ? colors.primary
-                : colors.tag.background,
-              borderColor: workout.completed
-                ? colors.primary
-                : colors.input.border,
-            },
-          ]}
-          activeOpacity={0.7}
-        >
-          {workout.completed && (
-            <Ionicons name="checkmark" size={20} color={colors.text.primary} />
-          )}
-        </TouchableOpacity>
       </View>
     </TouchableOpacity>
   );
 };
 
-const buildRepsDisplay = (
-  sets: SessionExerciseWithSets["sets"],
-): string => {
+const buildRepsDisplay = (sets: SessionExerciseWithSets["sets"]): string => {
   if (sets.length === 0) {
     return "0 reps";
   }
@@ -167,11 +163,14 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     marginBottom: 12,
+    position: "relative",
+    overflow: "hidden",
   },
   content: {
     flexDirection: "row",
     alignItems: "flex-start",
     gap: 12,
+    zIndex: 1,
   },
   info: {
     flex: 1,
@@ -208,13 +207,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "700",
   },
-  checkButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    borderWidth: 2,
-    alignItems: "center",
-    justifyContent: "center",
+  completedGlow: {
+    ...StyleSheet.absoluteFillObject,
+    opacity: 0.08,
+    zIndex: 0,
   },
 });
-

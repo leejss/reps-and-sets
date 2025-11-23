@@ -3,7 +3,6 @@ import { EmptyWorkoutState } from "@/components/home/empty-workout-state";
 import { HomeHeader } from "@/components/home/home-header";
 import { WorkoutList } from "@/components/home/workout-list";
 import { useColor } from "@/constants/colors";
-import { formatKoreanHeaderDate } from "@/lib/date";
 import { useDataStore } from "@/stores/data-store";
 import { router } from "expo-router";
 import React from "react";
@@ -14,12 +13,7 @@ export default function HomeScreen() {
   const todaySessionExercises = useDataStore(
     (state) => state.todaySessionExercises,
   );
-  const toggleWorkoutComplete = useDataStore(
-    (state) => state.toggleWorkoutComplete,
-  );
   const colors = useColor();
-  const today = formatKoreanHeaderDate();
-
   const navigateToRegister = () => {
     router.push(Routes.WORKOUT_REGISTER);
   };
@@ -28,19 +22,10 @@ export default function HomeScreen() {
     router.push(RouteHelpers.workoutDetail(workoutId));
   };
 
-  const handleToggleWorkout = async (workoutId: string) => {
-    try {
-      await toggleWorkoutComplete(workoutId);
-    } catch (error) {
-      console.error("운동 완료 토글 실패:", error);
-    }
-  };
-
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <HomeHeader dateLabel={today} />
+      <HomeHeader />
 
-      {/* Content */}
       <ScrollView
         style={styles.content}
         contentContainerStyle={styles.contentContainer}
@@ -55,7 +40,6 @@ export default function HomeScreen() {
           <WorkoutList
             workouts={todaySessionExercises}
             onPressWorkout={navigateToDetail}
-            onToggleWorkout={handleToggleWorkout}
           />
         )}
       </ScrollView>

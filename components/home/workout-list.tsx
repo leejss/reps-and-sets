@@ -6,14 +6,9 @@ import { WorkoutCard } from "./workout-card";
 type WorkoutListProps = {
   workouts: SessionExerciseWithSets[];
   onPressWorkout: (workoutId: string) => void;
-  onToggleWorkout: (workoutId: string) => Promise<void> | void;
 };
 
-export const WorkoutList = ({
-  workouts,
-  onPressWorkout,
-  onToggleWorkout,
-}: WorkoutListProps) => {
+export const WorkoutList = ({ workouts, onPressWorkout }: WorkoutListProps) => {
   return (
     <View style={styles.list}>
       {workouts.map((workout) => (
@@ -21,7 +16,6 @@ export const WorkoutList = ({
           key={workout.id}
           workout={workout}
           onPress={onPressWorkout}
-          onToggle={onToggleWorkout}
         />
       ))}
     </View>
@@ -33,4 +27,3 @@ const styles = StyleSheet.create({
     gap: 12,
   },
 });
-
