@@ -108,7 +108,7 @@ export const useDataStore = create(
   combine(
     {
       exercises: [] as Exercise[],
-      todayExercises: [] as SessionExerciseWithSets[],
+      todaySessionExercises: [] as SessionExerciseWithSets[],
       isLoadingExercises: false,
       isLoadingWorkouts: false,
       weeklyPlan: buildEmptyPlan(new Date()),
@@ -145,7 +145,7 @@ export const useDataStore = create(
 
           set({
             exercises,
-            todayExercises: todaySessionExercises,
+            todaySessionExercises: todaySessionExercises,
           });
 
           await (get() as any).loadWeeklyPlan();
@@ -157,7 +157,7 @@ export const useDataStore = create(
       clearData: () => {
         set({
           exercises: [],
-          todayExercises: [],
+          todaySessionExercises: [],
           weeklyPlan: buildEmptyPlan(new Date()),
         });
       },
@@ -263,7 +263,7 @@ export const useDataStore = create(
         };
 
         set((state) => ({
-          todayExercises: [tempWorkout, ...state.todayExercises],
+          todaySessionExercises: [tempWorkout, ...state.todaySessionExercises],
         }));
 
         try {
@@ -278,13 +278,13 @@ export const useDataStore = create(
           const newWorkout = created;
 
           set((state) => ({
-            todayExercises: state.todayExercises.map((w) =>
+            todaySessionExercises: state.todaySessionExercises.map((w) =>
               w.id === tempWorkout.id ? newWorkout : w,
             ),
           }));
         } catch (error) {
           set((state) => ({
-            todayExercises: state.todayExercises.filter(
+            todaySessionExercises: state.todaySessionExercises.filter(
               (w) => w.id !== tempWorkout.id,
             ),
           }));
@@ -299,7 +299,7 @@ export const useDataStore = create(
           throw new Error("로그인이 필요합니다.");
         }
 
-        const previousWorkouts = get().todayExercises;
+        const previousWorkouts = get().todaySessionExercises;
 
         const updatedWorkouts: SessionExerciseWithSets[] = previousWorkouts.map(
           (w) => {
@@ -322,7 +322,7 @@ export const useDataStore = create(
             return w;
           },
         );
-        set({ todayExercises: updatedWorkouts });
+        set({ todaySessionExercises: updatedWorkouts });
 
         try {
           const workout = updatedWorkouts.find((w) => w.id === id);
@@ -330,7 +330,7 @@ export const useDataStore = create(
             await updateTodayWorkoutCompletion(id, workout.completed);
           }
         } catch (error) {
-          set({ todayExercises: previousWorkouts });
+          set({ todaySessionExercises: previousWorkouts });
           console.error("운동 완료 토글 실패:", error);
           throw error;
         }
@@ -341,7 +341,7 @@ export const useDataStore = create(
           throw new Error("로그인이 필요합니다.");
         }
 
-        const previousWorkouts = get().todayExercises;
+        const previousWorkouts = get().todaySessionExercises;
 
         const updatedWorkouts: SessionExerciseWithSets[] = previousWorkouts.map(
           (w) => {
@@ -366,7 +366,7 @@ export const useDataStore = create(
           },
         );
 
-        set({ todayExercises: updatedWorkouts });
+        set({ todaySessionExercises: updatedWorkouts });
 
         try {
           const workout = updatedWorkouts.find((w) => w.id === workoutId);
@@ -375,7 +375,7 @@ export const useDataStore = create(
             await updateTodaySetCompletion(workoutId, setOrder, set.completed);
           }
         } catch (error) {
-          set({ todayExercises: previousWorkouts });
+          set({ todaySessionExercises: previousWorkouts });
           console.error("세트 완료 토글 실패:", error);
           throw error;
         }
@@ -391,7 +391,7 @@ export const useDataStore = create(
           throw new Error("로그인이 필요합니다.");
         }
 
-        const previousWorkouts = get().todayExercises;
+        const previousWorkouts = get().todaySessionExercises;
 
         const updatedWorkouts: SessionExerciseWithSets[] = previousWorkouts.map(
           (w) => {
@@ -411,7 +411,7 @@ export const useDataStore = create(
             return w;
           },
         );
-        set({ todayExercises: updatedWorkouts });
+        set({ todaySessionExercises: updatedWorkouts });
 
         try {
           const workout = updatedWorkouts.find((w) => w.id === workoutId);
@@ -419,7 +419,7 @@ export const useDataStore = create(
             await updateTodaySetDetails(workoutId, setIndex, reps, weight);
           }
         } catch (error) {
-          set({ todayExercises: previousWorkouts });
+          set({ todaySessionExercises: previousWorkouts });
           console.error("세트 상세 업데이트 실패:", error);
           throw error;
         }

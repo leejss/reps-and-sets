@@ -1,5 +1,15 @@
+import { EditSetModal } from "@/components/workout-detail/edit-set-modal";
+import type {
+  EditableField,
+  EditingState,
+} from "@/components/workout-detail/types";
+import {
+  getDisplayReps,
+  getDisplayWeight,
+} from "@/components/workout-detail/utils";
+import { WorkoutInfoCard } from "@/components/workout-detail/workout-info-card";
+import { WorkoutSetItem } from "@/components/workout-detail/workout-set-item";
 import { useColor } from "@/constants/colors";
-import type { WorkoutSet } from "@/lib/queries/workoutSets.query";
 import {
   toggleSetComplete,
   toggleWorkoutComplete,
@@ -10,47 +20,30 @@ import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useState } from "react";
 import {
-  Modal,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
-  TouchableWithoutFeedback,
   View,
 } from "react-native";
 
-type EditingState = {
-  index: number | null;
-  reps: string;
-  weight: string;
-};
-
 export default function WorkoutDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const todayWorkouts = useDataStore((state) => state.todayExercises);
-
+  const todaySessionExercises = useDataStore(
+    (state) => state.todaySessionExercises,
+  );
   const colors = useColor();
-
   const [editingState, setEditingState] = useState<EditingState>({
     index: null,
     reps: "",
     weight: "",
   });
 
-  const getDisplayReps = (set: WorkoutSet): string | null => {
-    const value = set.actualReps ?? set.plannedReps;
-    return value != null ? value.toString() : null;
-  };
+  const currentSessionExercises = todaySessionExercises.find(
+    (w) => w.id === id,
+  );
 
-  const getDisplayWeight = (set: WorkoutSet): string | null => {
-    const value = set.actualWeight ?? set.plannedWeight;
-    return value != null ? value.toString() : null;
-  };
-
-  const workout = todayWorkouts.find((w) => w.id === id);
-
-  if (!workout) {
+  if (!currentSessionExercises) {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.header}>
@@ -68,11 +61,13 @@ export default function WorkoutDetailScreen() {
     );
   }
 
-  const completedCount = workout.sets.filter((s) => s.completed).length;
+  const completedCount = currentSessionExercises.sets.filter(
+    (s) => s.completed,
+  ).length;
 
-  const totalSets = workout.sets.length;
+  const currentSetsCount = currentSessionExercises.sets.length;
   const progressPercentage =
-    totalSets === 0 ? 0 : (completedCount / totalSets) * 100;
+    currentSetsCount === 0 ? 0 : (completedCount / currentSetsCount) * 100;
 
   const resetEditingState = () =>
     setEditingState({
@@ -81,8 +76,15 @@ export default function WorkoutDetailScreen() {
       weight: "",
     });
 
+  const updateEditingField = (field: EditableField, value: string) => {
+    setEditingState((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
   const handleEditSet = (index: number) => {
-    const set = workout.sets[index];
+    const set = currentSessionExercises.sets[index];
     const reps = getDisplayReps(set);
     const weight = getDisplayWeight(set);
     setEditingState({
@@ -99,7 +101,12 @@ export default function WorkoutDetailScreen() {
         ? parseFloat(editingState.weight)
         : undefined;
       try {
-        await updateSetDetails(workout.id, editingState.index, reps, weight);
+        await updateSetDetails(
+          currentSessionExercises.id,
+          editingState.index,
+          reps,
+          weight,
+        );
         resetEditingState();
       } catch (error) {
         console.error("세트 수정 실패:", error);
@@ -130,181 +137,40 @@ export default function WorkoutDetailScreen() {
         style={styles.content}
         contentContainerStyle={styles.contentContainer}
       >
-        {/* Workout Info Card */}
-        <View
-          style={[
-            styles.infoCard,
-            {
-              backgroundColor: colors.surface,
-              borderColor: colors.border,
-            },
-          ]}
-        >
-          <Text style={[styles.exerciseName, { color: colors.text.primary }]}>
-            {workout.exerciseName}
-          </Text>
-          <View
-            style={[
-              styles.muscleGroupTag,
-              { backgroundColor: colors.tag.background },
-            ]}
-          >
-            <Text style={[styles.muscleGroupText, { color: colors.tag.text }]}>
-              {workout.targetMuscleGroup}
-            </Text>
-          </View>
-          <Text style={[styles.workoutInfo, { color: colors.text.secondary }]}>
-            총 {totalSets} 세트
-          </Text>
-
-          {/* Progress Bar */}
-          <View style={styles.progressContainer}>
-            <View style={styles.progressTextRow}>
-              <Text
-                style={[styles.progressText, { color: colors.text.secondary }]}
-              >
-                진행률
-              </Text>
-              <Text style={[styles.progressCount, { color: colors.primary }]}>
-                {completedCount} / {totalSets} 세트
-              </Text>
-            </View>
-            <View
-              style={[
-                styles.progressBarBg,
-                { backgroundColor: colors.input.background },
-              ]}
-            >
-              <View
-                style={[
-                  styles.progressBarFill,
-                  {
-                    backgroundColor: colors.primary,
-                    width: `${progressPercentage}%`,
-                  },
-                ]}
-              />
-            </View>
-          </View>
-        </View>
+        <WorkoutInfoCard
+          exerciseName={currentSessionExercises.exerciseName}
+          targetMuscleGroup={currentSessionExercises.targetMuscleGroup}
+          totalSets={currentSetsCount}
+          completedSets={completedCount}
+          progressPercentage={progressPercentage}
+        />
 
         {/* Sets List */}
         <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>
           세트
         </Text>
         <View style={styles.setsList}>
-          {workout.sets.map((set, index) => {
-            const displayReps = getDisplayReps(set) ?? "0";
-            const displayWeight = getDisplayWeight(set);
-            return (
-              <View
-                key={index}
-                style={[
-                  styles.setCard,
-                  {
-                    backgroundColor: set.completed
-                      ? colors.primary
-                      : colors.surface,
-                    borderColor: set.completed ? colors.primary : colors.border,
-                  },
-                ]}
-              >
-                <TouchableOpacity
-                  onPress={async () => {
-                    try {
-                      await toggleSetComplete(workout.id, index);
-                    } catch (error) {
-                      console.error("세트 완료 토글 실패:", error);
-                    }
-                  }}
-                  style={styles.setCardTouchable}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.setCardContent}>
-                    <View style={styles.setInfo}>
-                      <Text
-                        style={[
-                          styles.setNumber,
-                          {
-                            color: set.completed
-                              ? colors.text.primary
-                              : colors.text.primary,
-                          },
-                        ]}
-                      >
-                        {index + 1} 세트
-                      </Text>
-                      <Text
-                        style={[
-                          styles.setDetails,
-                          {
-                            color: set.completed
-                              ? colors.text.primary
-                              : colors.text.secondary,
-                          },
-                        ]}
-                      >
-                        {displayReps} reps
-                        {displayWeight != null && ` @ ${displayWeight}kg`}
-                      </Text>
-                    </View>
-                    <View style={styles.setActions}>
-                      <TouchableOpacity
-                        onPress={() => handleEditSet(index)}
-                        style={[
-                          styles.editButton,
-                          {
-                            backgroundColor: set.completed
-                              ? "rgba(255, 255, 255, 0.2)"
-                              : colors.tag.background,
-                          },
-                        ]}
-                        activeOpacity={0.7}
-                      >
-                        <Ionicons
-                          name="create-outline"
-                          size={18}
-                          color={
-                            set.completed
-                              ? colors.text.primary
-                              : colors.text.secondary
-                          }
-                        />
-                      </TouchableOpacity>
-                      <View
-                        style={[
-                          styles.checkIcon,
-                          {
-                            backgroundColor: set.completed
-                              ? "rgba(255, 255, 255, 0.2)"
-                              : colors.tag.background,
-                            borderColor: set.completed
-                              ? "rgba(255, 255, 255, 0.3)"
-                              : colors.input.border,
-                          },
-                        ]}
-                      >
-                        {set.completed && (
-                          <Ionicons
-                            name="checkmark"
-                            size={24}
-                            color={colors.text.primary}
-                          />
-                        )}
-                      </View>
-                    </View>
-                  </View>
-                </TouchableOpacity>
-              </View>
-            );
-          })}
+          {currentSessionExercises.sets.map((set, index) => (
+            <WorkoutSetItem
+              key={`${currentSessionExercises.id}-${index}`}
+              index={index}
+              set={set}
+              onEdit={() => handleEditSet(index)}
+              onToggle={async () => {
+                try {
+                  await toggleSetComplete(currentSessionExercises.id, index);
+                } catch (error) {
+                  console.error("세트 완료 토글 실패:", error);
+                }
+              }}
+            />
+          ))}
         </View>
 
-        {/* Complete All Button */}
         <TouchableOpacity
           onPress={async () => {
             try {
-              await toggleWorkoutComplete(workout.id);
+              await toggleWorkoutComplete(currentSessionExercises.id);
             } catch (error) {
               console.error("운동 완료 토글 실패:", error);
             }
@@ -312,10 +178,10 @@ export default function WorkoutDetailScreen() {
           style={[
             styles.completeButton,
             {
-              backgroundColor: workout.completed
+              backgroundColor: currentSessionExercises.completed
                 ? colors.tag.background
                 : colors.primary,
-              borderColor: workout.completed
+              borderColor: currentSessionExercises.completed
                 ? colors.input.border
                 : colors.primary,
             },
@@ -325,138 +191,18 @@ export default function WorkoutDetailScreen() {
           <Text
             style={[styles.completeButtonText, { color: colors.text.primary }]}
           >
-            {workout.completed ? "초기화" : "모든 세트 완료"}
+            {currentSessionExercises.completed ? "초기화" : "모든 세트 완료"}
           </Text>
         </TouchableOpacity>
       </ScrollView>
 
-      {/* 편집 모달 */}
-      <Modal
+      <EditSetModal
         visible={editingState.index !== null}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={handleCancelEdit}
-      >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={handleCancelEdit}
-        >
-          <TouchableWithoutFeedback>
-            <View
-              style={[
-                styles.modalContent,
-                {
-                  backgroundColor: colors.surface,
-                  borderColor: colors.border,
-                },
-              ]}
-            >
-              <Text style={[styles.modalTitle, { color: colors.text.primary }]}>
-                Set {editingState.index !== null ? editingState.index + 1 : 0}{" "}
-                편집
-              </Text>
-
-              <View style={styles.modalInputGroup}>
-                <Text style={[styles.modalLabel, { color: colors.text.label }]}>
-                  반복 횟수 (Reps)
-                </Text>
-                <TextInput
-                  style={[
-                    styles.modalInput,
-                    {
-                      backgroundColor: colors.input.background,
-                      borderColor: colors.input.border,
-                      color: colors.text.primary,
-                    },
-                  ]}
-                  placeholder="10"
-                  placeholderTextColor={colors.input.placeholder}
-                  value={editingState.reps}
-                  onChangeText={(text) =>
-                    setEditingState((prev) => ({
-                      ...prev,
-                      reps: text,
-                    }))
-                  }
-                  keyboardType="numeric"
-                  autoFocus
-                />
-              </View>
-
-              <View style={styles.modalInputGroup}>
-                <Text style={[styles.modalLabel, { color: colors.text.label }]}>
-                  무게 (kg) - 선택사항
-                </Text>
-                <TextInput
-                  style={[
-                    styles.modalInput,
-                    {
-                      backgroundColor: colors.input.background,
-                      borderColor: colors.input.border,
-                      color: colors.text.primary,
-                    },
-                  ]}
-                  placeholder="60"
-                  placeholderTextColor={colors.input.placeholder}
-                  value={editingState.weight}
-                  onChangeText={(text) =>
-                    setEditingState((prev) => ({
-                      ...prev,
-                      weight: text,
-                    }))
-                  }
-                  keyboardType="decimal-pad"
-                />
-              </View>
-
-              <View style={styles.modalButtons}>
-                <TouchableOpacity
-                  style={[
-                    styles.modalButton,
-                    styles.cancelButton,
-                    {
-                      backgroundColor: colors.tag.background,
-                      borderColor: colors.border,
-                    },
-                  ]}
-                  onPress={handleCancelEdit}
-                  activeOpacity={0.7}
-                >
-                  <Text
-                    style={[
-                      styles.modalButtonText,
-                      { color: colors.text.secondary },
-                    ]}
-                  >
-                    취소
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.modalButton,
-                    styles.saveButton,
-                    {
-                      backgroundColor: colors.primary,
-                    },
-                  ]}
-                  onPress={handleSaveEdit}
-                  activeOpacity={0.7}
-                >
-                  <Text
-                    style={[
-                      styles.modalButtonText,
-                      { color: colors.text.primary },
-                    ]}
-                  >
-                    저장
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </TouchableWithoutFeedback>
-        </TouchableOpacity>
-      </Modal>
+        editingState={editingState}
+        onUpdateField={updateEditingField}
+        onSave={handleSaveEdit}
+        onCancel={handleCancelEdit}
+      />
     </View>
   );
 }
@@ -488,57 +234,6 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingBottom: 40,
   },
-  infoCard: {
-    padding: 20,
-    borderRadius: 16,
-    borderWidth: 1,
-    marginBottom: 24,
-  },
-  exerciseName: {
-    fontSize: 24,
-    fontWeight: "700",
-    marginBottom: 12,
-  },
-  muscleGroupTag: {
-    alignSelf: "flex-start",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    marginBottom: 12,
-  },
-  muscleGroupText: {
-    fontSize: 13,
-    fontWeight: "600",
-  },
-  workoutInfo: {
-    fontSize: 15,
-    marginBottom: 20,
-  },
-  progressContainer: {
-    gap: 8,
-  },
-  progressTextRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  progressText: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  progressCount: {
-    fontSize: 14,
-    fontWeight: "700",
-  },
-  progressBarBg: {
-    height: 8,
-    borderRadius: 4,
-    overflow: "hidden",
-  },
-  progressBarFill: {
-    height: "100%",
-    borderRadius: 4,
-  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: "600",
@@ -547,49 +242,6 @@ const styles = StyleSheet.create({
   setsList: {
     gap: 12,
     marginBottom: 24,
-  },
-  setCard: {
-    borderRadius: 12,
-    borderWidth: 2,
-  },
-  setCardTouchable: {
-    padding: 16,
-  },
-  setCardContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  setActions: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  editButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  setInfo: {
-    flex: 1,
-  },
-  setNumber: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 4,
-  },
-  setDetails: {
-    fontSize: 14,
-  },
-  checkIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    borderWidth: 2,
-    alignItems: "center",
-    justifyContent: "center",
   },
   completeButton: {
     flexDirection: "row",
@@ -601,60 +253,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   completeButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 24,
-  },
-  modalContent: {
-    width: "80%",
-    maxWidth: 400,
-    alignSelf: "center",
-    padding: 24,
-    borderRadius: 16,
-    borderWidth: 1,
-    gap: 20,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    textAlign: "center",
-  },
-  modalInputGroup: {
-    gap: 8,
-  },
-  modalLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  modalInput: {
-    height: 48,
-    borderRadius: 12,
-    borderWidth: 1,
-    paddingHorizontal: 16,
-    fontSize: 16,
-  },
-  modalButtons: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  modalButton: {
-    flex: 1,
-    height: 48,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  cancelButton: {
-    borderWidth: 1,
-  },
-  saveButton: {},
-  modalButtonText: {
     fontSize: 16,
     fontWeight: "600",
   },
