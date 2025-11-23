@@ -23,7 +23,6 @@ export const WorkoutSetItem = ({
 
   const displayReps = getDisplayReps(set) ?? "0";
   const displayWeight = getDisplayWeight(set);
-
   return (
     <View
       style={[
@@ -41,7 +40,16 @@ export const WorkoutSetItem = ({
       >
         <View style={styles.setCardContent}>
           <View style={styles.setInfo}>
-            <Text style={[styles.setNumber, { color: colors.text.primary }]}>
+            <Text
+              style={[
+                styles.setNumber,
+                {
+                  color: set.completed
+                    ? colors.primarySurface
+                    : colors.text.primary,
+                },
+              ]}
+            >
               {index + 1} 세트
             </Text>
             <Text
@@ -49,7 +57,7 @@ export const WorkoutSetItem = ({
                 styles.setDetails,
                 {
                   color: set.completed
-                    ? colors.text.primary
+                    ? colors.primarySurface
                     : colors.text.secondary,
                 },
               ]}
@@ -76,7 +84,7 @@ export const WorkoutSetItem = ({
                 name="create-outline"
                 size={18}
                 color={
-                  set.completed ? colors.text.primary : colors.text.secondary
+                  set.completed ? colors.primarySurface : colors.text.secondary
                 }
               />
             </TouchableOpacity>
@@ -97,7 +105,7 @@ export const WorkoutSetItem = ({
                 <Ionicons
                   name="checkmark"
                   size={24}
-                  color={colors.text.primary}
+                  color={colors.primarySurface}
                 />
               )}
             </View>

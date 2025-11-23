@@ -51,6 +51,7 @@ export const Colors = {
   // Primary brand color
   primary: BaseColors.violet[500],
   primaryHover: BaseColors.violet[600],
+  primarySurface: BaseColors.white,
 
   // Background colors
   background: {
@@ -205,6 +206,7 @@ export const useColor = () => {
     // Primary brand color
     primary: Colors.primary,
     primaryHover: Colors.primaryHover,
+    primarySurface: Colors.primarySurface,
 
     // Background colors
     background: darkMode ? Colors.background.dark : Colors.background.light,

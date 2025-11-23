@@ -199,7 +199,6 @@ export default function WeeklyPlanScreen() {
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 24,
-    paddingTop: 24,
     paddingBottom: 140,
     gap: 20,
   },
