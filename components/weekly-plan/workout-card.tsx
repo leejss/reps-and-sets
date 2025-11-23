@@ -1,7 +1,7 @@
 import { useColor } from "@/constants/colors";
 import { WeeklyPlanExercise } from "@/types/weekly-plan";
 import { Ionicons } from "@expo/vector-icons";
-import React from "react";
+import React, { useMemo } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 type WorkoutCardProps = {
@@ -10,35 +10,45 @@ type WorkoutCardProps = {
   onDelete: (workoutId: string) => void;
 };
 
+const createMetricDisplay = (values: number[], unit: string): string | null => {
+  if (values.length === 0) {
+    return null;
+  }
+
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  if (min === max) {
+    return `${min}${unit}`;
+  }
+
+  return `${min}-${max}${unit}`;
+};
+
+const summarizeSets = (sets: WeeklyPlanExercise["sets"]) => {
+  const reps = sets
+    .map((set) => set.plannedReps)
+    .filter((value): value is number => value != null && value > 0);
+
+  const weights = sets
+    .map((set) => set.plannedWeight)
+    .filter((value): value is number => value != null && value > 0);
+
+  return {
+    repsDisplay: createMetricDisplay(reps, "회"),
+    weightDisplay: createMetricDisplay(weights, "kg"),
+  };
+};
+
 export const WorkoutCard = ({
   workout,
   onEdit,
   onDelete,
 }: WorkoutCardProps) => {
   const colors = useColor();
-
-  const repsValues = workout.sets
-    .map((s) => s.plannedReps)
-    .filter((r): r is number => r != null && r > 0);
-  const hasReps = repsValues.length > 0;
-  const minReps = hasReps ? Math.min(...repsValues) : null;
-  const maxReps = hasReps ? Math.max(...repsValues) : null;
-  const repsDisplay =
-    minReps != null && maxReps != null
-      ? minReps === maxReps
-        ? `${minReps}회`
-        : `${minReps}-${maxReps}회`
-      : null;
-
-  const weights = workout.sets
-    .map((s) => s.plannedWeight)
-    .filter((w): w is number => w != null && w > 0);
-  const weightDisplay =
-    weights.length > 0
-      ? weights.length === 1 || Math.min(...weights) === Math.max(...weights)
-        ? `${weights[0]}kg`
-        : `${Math.min(...weights)}-${Math.max(...weights)}kg`
-      : null;
+  const { repsDisplay, weightDisplay } = useMemo(
+    () => summarizeSets(workout.sets),
+    [workout.sets],
+  );
 
   return (
     <View
