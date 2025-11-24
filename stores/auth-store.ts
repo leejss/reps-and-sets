@@ -185,3 +185,7 @@ export const getAuthStore = () => useAuthStore.getState();
 export const initializeAuth = useAuthStore.getState().initializeAuth;
 
 export const isAuthenticated = () => useAuthStore.getState().isAuthenticated;
+
+export const signInWithGoogle = useAuthStore.getState().signInWithGoogle;
+
+export const signInWithEmail = useAuthStore.getState().signInWithEmail;
