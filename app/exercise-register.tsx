@@ -153,7 +153,7 @@ export default function ExerciseRegisterScreen() {
                       {
                         color:
                           muscleGroup === group
-                            ? colors.text.primary
+                            ? colors.primarySurface
                             : colors.text.primary,
                       },
                     ]}
