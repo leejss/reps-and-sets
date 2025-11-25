@@ -1,5 +1,7 @@
 import { useColor } from "@/constants/colors";
 import { useDataStore } from "@/stores/data-store";
+import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useWorkoutRegister } from "./context";
@@ -71,6 +73,29 @@ export function ExerciseSelector() {
           );
         })}
       </View>
+
+      {/* 새 운동 추가 안내 섹션 */}
+      <View style={styles.addExerciseSection}>
+        <Text style={[styles.addExerciseTitle, { color: colors.text.secondary }]}>
+          원하는 운동이 없으신가요?
+        </Text>
+        <Text style={[styles.addExerciseSubtitle, { color: colors.text.tertiary }]}>
+          아래 버튼을 눌러 추가해보세요
+        </Text>
+        <TouchableOpacity
+          style={[
+            styles.addExerciseButton,
+            { backgroundColor: colors.surface, borderColor: colors.border },
+          ]}
+          onPress={() => router.push("/exercise-register")}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="add-circle-outline" size={20} color={colors.primary} />
+          <Text style={[styles.addExerciseButtonText, { color: colors.primary }]}>
+            새로운 운동 추가하기
+          </Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -120,5 +145,32 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     backgroundColor: "#0B0C10",
+  },
+  addExerciseSection: {
+    marginTop: 24,
+    alignItems: "center",
+    paddingVertical: 16,
+  },
+  addExerciseTitle: {
+    fontSize: 14,
+    fontWeight: "500",
+    marginBottom: 4,
+  },
+  addExerciseSubtitle: {
+    fontSize: 13,
+    marginBottom: 16,
+  },
+  addExerciseButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 24,
+    borderWidth: 1,
+  },
+  addExerciseButtonText: {
+    fontSize: 14,
+    fontWeight: "600",
   },
 });
