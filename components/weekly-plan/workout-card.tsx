@@ -50,20 +50,41 @@ export const WorkoutCard = ({
     [workout.sets],
   );
 
+  const isDeleted = workout.isDeleted;
+
   return (
     <View
       style={[
         styles.workoutCard,
         {
-          borderColor: colors.border,
+          borderColor: isDeleted ? colors.status.warning : colors.border,
           backgroundColor: colors.surface,
+          opacity: isDeleted ? 0.85 : 1,
         },
       ]}
     >
       <View style={styles.workoutInfo}>
-        <Text style={[styles.workoutName, { color: colors.text.primary }]}>
-          {workout.exerciseName}
-        </Text>
+        <View style={styles.workoutNameRow}>
+          <Text
+            style={[
+              styles.workoutName,
+              {
+                color: isDeleted ? colors.text.tertiary : colors.text.primary,
+                fontStyle: isDeleted ? "italic" : "normal",
+              },
+            ]}
+          >
+            {workout.exerciseName}
+          </Text>
+          {isDeleted && (
+            <Ionicons
+              name="alert-circle"
+              size={16}
+              color={colors.status.warning}
+              style={styles.deletedIcon}
+            />
+          )}
+        </View>
         <Text style={[styles.workoutDetail, { color: colors.text.secondary }]}>
           {workout.targetMuscleGroup} · {workout.sets.length}세트
           {repsDisplay && ` × ${repsDisplay}`}
@@ -76,20 +97,22 @@ export const WorkoutCard = ({
         ) : null}
       </View>
       <View style={styles.workoutActions}>
-        <TouchableOpacity
-          style={[
-            styles.iconButton,
-            { backgroundColor: colors.iconButton.background },
-          ]}
-          onPress={() => onEdit(workout)}
-          activeOpacity={0.75}
-        >
-          <Ionicons
-            name="create-outline"
-            size={18}
-            color={colors.text.primary}
-          />
-        </TouchableOpacity>
+        {!isDeleted && (
+          <TouchableOpacity
+            style={[
+              styles.iconButton,
+              { backgroundColor: colors.iconButton.background },
+            ]}
+            onPress={() => onEdit(workout)}
+            activeOpacity={0.75}
+          >
+            <Ionicons
+              name="create-outline"
+              size={18}
+              color={colors.text.primary}
+            />
+          </TouchableOpacity>
+        )}
         <TouchableOpacity
           style={[
             styles.iconButton,
@@ -123,9 +146,17 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 4,
   },
+  workoutNameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
   workoutName: {
     fontSize: 16,
     fontWeight: "600",
+    flexShrink: 1,
+  },
+  deletedIcon: {
+    marginLeft: 6,
   },
   workoutDetail: {
     fontSize: 14,

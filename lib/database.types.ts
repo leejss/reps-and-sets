@@ -79,7 +79,7 @@ export type Database = {
       workout_session_exercises: {
         Row: {
           created_at: string;
-          exercise_id: string;
+          exercise_id: string | null;
           id: string;
           is_completed: boolean;
           order_in_session: number;
@@ -88,7 +88,7 @@ export type Database = {
         };
         Insert: {
           created_at?: string;
-          exercise_id: string;
+          exercise_id?: string | null;
           id?: string;
           is_completed?: boolean;
           order_in_session?: number;
@@ -97,7 +97,7 @@ export type Database = {
         };
         Update: {
           created_at?: string;
-          exercise_id?: string;
+          exercise_id?: string | null;
           id?: string;
           is_completed?: boolean;
           order_in_session?: number;

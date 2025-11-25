@@ -38,6 +38,12 @@ const BaseColors = {
     500: "#EF4444",
   },
 
+  // Amber (warning)
+  amber: {
+    500: "#F59E0B",
+    400: "#FBBF24",
+  },
+
   // Base colors
   white: "#FFFFFF",
   black: "#000000",
@@ -131,6 +137,10 @@ export const Colors = {
     error: {
       light: BaseColors.red[600],
       dark: BaseColors.red[500],
+    },
+    warning: {
+      light: BaseColors.amber[500],
+      dark: BaseColors.amber[400],
     },
     success: BaseColors.violet[500],
   },
@@ -259,6 +269,9 @@ export const useColor = () => {
     // Status colors
     status: {
       error: darkMode ? Colors.status.error.dark : Colors.status.error.light,
+      warning: darkMode
+        ? Colors.status.warning.dark
+        : Colors.status.warning.light,
       success: Colors.status.success,
     },
 

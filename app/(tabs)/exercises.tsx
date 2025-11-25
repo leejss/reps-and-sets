@@ -1,11 +1,12 @@
 import { FloatingActionButton } from "@/components/floating-action-button";
 import { useColor } from "@/constants/colors";
 import { deleteExercise, useDataStore } from "@/stores/data-store";
-import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React from "react";
 import {
   Alert,
+  Linking,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -13,6 +14,84 @@ import {
   View,
 } from "react-native";
 import { RouteHelpers } from "../route-config";
+
+type ThemeColors = ReturnType<typeof useColor>;
+
+type ActionButtonProps = {
+  label: string;
+  onPress: () => void;
+  textColor: string;
+  backgroundColor: string;
+  borderColor: string;
+};
+
+type TagChipProps = {
+  label: string;
+  backgroundColor: string;
+  textColor: string;
+  borderColor: string;
+  onPress?: () => void;
+};
+
+const ActionButton = ({
+  label,
+  onPress,
+  textColor,
+  backgroundColor,
+  borderColor,
+}: ActionButtonProps) => (
+  <Pressable
+    hitSlop={6}
+    onPress={onPress}
+    style={({ pressed }) => [
+      styles.actionButton,
+      {
+        backgroundColor,
+        borderColor,
+        opacity: pressed ? 0.85 : 1,
+      },
+    ]}
+  >
+    <Text style={[styles.actionButtonText, { color: textColor }]}>{label}</Text>
+  </Pressable>
+);
+
+const TagChip = ({
+  label,
+  backgroundColor,
+  textColor,
+  borderColor,
+  onPress,
+}: TagChipProps) => (
+  <Pressable
+    disabled={!onPress}
+    hitSlop={onPress ? 6 : undefined}
+    onPress={onPress}
+    style={({ pressed }) => [
+      styles.tag,
+      {
+        backgroundColor,
+        borderColor,
+        opacity: onPress && pressed ? 0.85 : 1,
+      },
+    ]}
+  >
+    <Text style={[styles.tagText, { color: textColor }]}>{label}</Text>
+  </Pressable>
+);
+
+const buildMuscleGroupChipConfig = (
+  targetMuscleGroup: string | undefined,
+  colors: ThemeColors,
+) => {
+  const label = targetMuscleGroup?.trim() || "타깃 근육 미지정";
+  return {
+    label,
+    backgroundColor: colors.tag.background,
+    borderColor: colors.border,
+    textColor: colors.tag.text,
+  };
+};
 
 export default function ExercisesScreen() {
   const exercises = useDataStore((state) => state.exercises);
@@ -48,6 +127,20 @@ export default function ExercisesScreen() {
         },
       },
     ]);
+  };
+
+  const handleOpenExternalLink = async (url: string) => {
+    try {
+      const canOpen = await Linking.canOpenURL(url);
+      if (!canOpen) {
+        Alert.alert("링크 오류", "지원되지 않는 URL 형식입니다.");
+        return;
+      }
+      await Linking.openURL(url);
+    } catch (error) {
+      console.error("외부 링크 열기 실패:", error);
+      Alert.alert("링크 오류", "링크 이동 중 문제가 발생했습니다.");
+    }
   };
 
   return (
@@ -125,34 +218,20 @@ export default function ExercisesScreen() {
                 {exercise.name}
               </Text>
               <View style={styles.actionButtons}>
-                <TouchableOpacity
+                <ActionButton
+                  label="수정"
                   onPress={() => handleEdit(exercise.id)}
-                  style={[
-                    styles.actionButton,
-                    { backgroundColor: colors.iconButton.background },
-                  ]}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons
-                    name="pencil"
-                    size={16}
-                    color={colors.text.secondary}
-                  />
-                </TouchableOpacity>
-                <TouchableOpacity
+                  backgroundColor={colors.iconButton.background}
+                  borderColor={colors.border}
+                  textColor={colors.text.secondary}
+                />
+                <ActionButton
+                  label="삭제"
                   onPress={() => handleDelete(exercise.id, exercise.name)}
-                  style={[
-                    styles.actionButton,
-                    { backgroundColor: colors.iconButton.background },
-                  ]}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons
-                    name="trash-outline"
-                    size={16}
-                    color={colors.status.error}
-                  />
-                </TouchableOpacity>
+                  backgroundColor={colors.iconButton.background}
+                  borderColor={colors.status.error}
+                  textColor={colors.status.error}
+                />
               </View>
             </View>
 
@@ -165,33 +244,20 @@ export default function ExercisesScreen() {
               {exercise.description || "설명이 없습니다"}
             </Text>
             <View style={styles.tagContainer}>
-              <View
-                style={[
-                  styles.tag,
-                  {
-                    backgroundColor: colors.tag.background,
-                  },
-                ]}
-              >
-                <Text style={[styles.tagText, { color: colors.tag.text }]}>
-                  {exercise.targetMuscleGroup}
-                </Text>
-              </View>
+              <TagChip
+                {...buildMuscleGroupChipConfig(
+                  exercise.targetMuscleGroup,
+                  colors,
+                )}
+              />
               {exercise.externalLink && (
-                <View
-                  style={[
-                    styles.tag,
-                    {
-                      backgroundColor: colors.tag.tutorial,
-                    },
-                  ]}
-                >
-                  <Text
-                    style={[styles.tagText, { color: colors.tag.tutorialText }]}
-                  >
-                    링크 있음
-                  </Text>
-                </View>
+                <TagChip
+                  label="영상/가이드"
+                  backgroundColor={colors.tag.tutorial}
+                  textColor={colors.tag.tutorialText}
+                  borderColor={colors.tag.tutorial}
+                  onPress={() => handleOpenExternalLink(exercise.externalLink!)}
+                />
               )}
             </View>
           </View>
@@ -247,14 +313,22 @@ const styles = StyleSheet.create({
   },
   actionButtons: {
     flexDirection: "row",
+    alignItems: "center",
     gap: 8,
   },
   actionButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    gap: 6,
+  },
+  actionButtonText: {
+    fontSize: 13,
+    fontWeight: "600",
   },
   exerciseDescription: {
     fontSize: 14,
@@ -262,15 +336,22 @@ const styles = StyleSheet.create({
   },
   tagContainer: {
     flexDirection: "row",
-    gap: 8,
+    flexWrap: "wrap",
+    columnGap: 8,
+    rowGap: 8,
   },
   tag: {
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 16,
+    borderWidth: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
   },
   tagText: {
     fontSize: 12,
+    fontWeight: "500",
   },
   emptyStateContainer: {
     padding: 20,

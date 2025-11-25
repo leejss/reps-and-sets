@@ -1,5 +1,6 @@
 import { useColor } from "@/constants/colors";
 import type { SessionExerciseWithSets } from "@/lib/queries/workoutSessionExercises.query";
+import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
@@ -16,6 +17,7 @@ export const WorkoutCard = ({ workout, onPress }: WorkoutCardProps) => {
   const completedSets = workout.sets.filter((set) => set.completed).length;
   const totalSets = workout.sets.length;
   const isCompleted = workout.completed;
+  const isDeleted = workout.isDeleted;
 
   const handleCardPress = () => onPress(workout.id);
 
@@ -45,19 +47,32 @@ export const WorkoutCard = ({ workout, onPress }: WorkoutCardProps) => {
       )}
       <View style={styles.content}>
         <View style={styles.info}>
-          <Text
-            style={[
-              styles.title,
-              {
-                color: isCompleted
-                  ? colors.text.secondary
-                  : colors.text.primary,
-                textDecorationLine: isCompleted ? "line-through" : "none",
-              },
-            ]}
-          >
-            {workout.exerciseName}
-          </Text>
+          <View style={styles.titleRow}>
+            <Text
+              style={[
+                styles.title,
+                {
+                  color: isDeleted
+                    ? colors.text.tertiary
+                    : isCompleted
+                    ? colors.text.secondary
+                    : colors.text.primary,
+                  textDecorationLine: isCompleted ? "line-through" : "none",
+                  fontStyle: isDeleted ? "italic" : "normal",
+                },
+              ]}
+            >
+              {workout.exerciseName}
+            </Text>
+            {isDeleted && (
+              <Ionicons
+                name="alert-circle"
+                size={16}
+                color={colors.status.warning}
+                style={styles.deletedIcon}
+              />
+            )}
+          </View>
           <Text
             style={[
               styles.details,
@@ -175,10 +190,18 @@ const styles = StyleSheet.create({
   info: {
     flex: 1,
   },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 4,
+  },
   title: {
     fontSize: 16,
     fontWeight: "600",
-    marginBottom: 4,
+    flexShrink: 1,
+  },
+  deletedIcon: {
+    marginLeft: 6,
   },
   details: {
     fontSize: 14,

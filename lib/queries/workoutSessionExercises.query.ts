@@ -5,12 +5,14 @@ import { mapSetRow, WorkoutSet } from "./workoutSets.model";
 export interface SessionExerciseWithSets {
   id: string;
   sessionId: string;
-  exerciseId: string;
+  exerciseId: string | null;
   exerciseName: string;
   targetMuscleGroup: string;
   completed: boolean;
   orderInSession: number;
   sets: WorkoutSet[];
+  /** 운동이 삭제되었는지 여부 */
+  isDeleted: boolean;
 }
 
 type SessionExerciseJoinedRow = Tables<"workout_session_exercises"> & {
@@ -18,18 +20,28 @@ type SessionExerciseJoinedRow = Tables<"workout_session_exercises"> & {
   workout_sets: Tables<"workout_sets">[] | null;
 };
 
+/** 삭제된 운동의 기본 표시 텍스트 */
+export const DELETED_EXERCISE_NAME = "삭제된 운동";
+export const DELETED_EXERCISE_MUSCLE_GROUP = "미분류";
+
 export const mapSessionExerciseJoinedRow = (
   row: SessionExerciseJoinedRow,
-): SessionExerciseWithSets => ({
-  id: row.id,
-  sessionId: row.session_id,
-  exerciseId: row.exercise_id,
-  exerciseName: row.exercises?.name ?? "",
-  targetMuscleGroup: row.exercises?.target_muscle_group ?? "",
-  completed: row.is_completed,
-  orderInSession: row.order_in_session,
-  sets: (row.workout_sets ?? []).map(mapSetRow),
-});
+): SessionExerciseWithSets => {
+  const isDeleted = row.exercise_id === null || row.exercises === null;
+
+  return {
+    id: row.id,
+    sessionId: row.session_id,
+    exerciseId: row.exercise_id,
+    exerciseName: row.exercises?.name ?? DELETED_EXERCISE_NAME,
+    targetMuscleGroup:
+      row.exercises?.target_muscle_group ?? DELETED_EXERCISE_MUSCLE_GROUP,
+    completed: row.is_completed,
+    orderInSession: row.order_in_session,
+    sets: (row.workout_sets ?? []).map(mapSetRow),
+    isDeleted,
+  };
+};
 
 export const fetchWorkoutSessionExercise = async (
   sessionId: string,
@@ -45,7 +57,7 @@ export const fetchWorkoutSessionExercise = async (
     throw error;
   }
 
-  return (data as SessionExerciseJoinedRow[] | null ?? []).map(
+  return ((data as SessionExerciseJoinedRow[] | null) ?? []).map(
     mapSessionExerciseJoinedRow,
   );
 };
