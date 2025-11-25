@@ -25,8 +25,6 @@ const predefinedMuscleGroups = [
 ];
 
 export default function ExerciseRegisterScreen() {
-  // // const addExercise = useDataStore((state) => state.addExercise);
-  // const updateExercise = useDataStore((state) => state.updateExercise);
   const exercises = useDataStore((state) => state.exercises);
   const colors = useColor();
   const insets = useSafeAreaInsets();

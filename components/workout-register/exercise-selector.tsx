@@ -11,6 +11,14 @@ export function ExerciseSelector() {
   const colors = useColor();
   const { selectedExerciseId, setSelectedExerciseId } = useWorkoutRegister();
 
+  const toggleExercise = (exerciseId: string) => {
+    if (selectedExerciseId === exerciseId) {
+      setSelectedExerciseId(null);
+    } else {
+      setSelectedExerciseId(exerciseId);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>
@@ -31,7 +39,7 @@ export function ExerciseSelector() {
                   borderWidth: isSelected ? 2 : 1,
                 },
               ]}
-              onPress={() => setSelectedExerciseId(exercise.id)}
+              onPress={() => toggleExercise(exercise.id)}
               activeOpacity={0.7}
             >
               <View style={styles.exerciseCardContent}>
@@ -53,49 +61,48 @@ export function ExerciseSelector() {
                     {exercise.targetMuscleGroup}
                   </Text>
                 </View>
-                <View
-                  style={[
-                    styles.radioButton,
-                    {
-                      borderColor: isSelected
-                        ? colors.primary
-                        : colors.input.border,
-                      backgroundColor: isSelected
-                        ? colors.primary
-                        : "transparent",
-                    },
-                  ]}
-                >
-                  {isSelected && <View style={styles.radioButtonInner} />}
-                </View>
               </View>
             </TouchableOpacity>
           );
         })}
       </View>
 
-      {/* 새 운동 추가 안내 섹션 */}
-      <View style={styles.addExerciseSection}>
-        <Text style={[styles.addExerciseTitle, { color: colors.text.secondary }]}>
-          원하는 운동이 없으신가요?
-        </Text>
-        <Text style={[styles.addExerciseSubtitle, { color: colors.text.tertiary }]}>
-          아래 버튼을 눌러 추가해보세요
-        </Text>
-        <TouchableOpacity
-          style={[
-            styles.addExerciseButton,
-            { backgroundColor: colors.surface, borderColor: colors.border },
-          ]}
-          onPress={() => router.push("/exercise-register")}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="add-circle-outline" size={20} color={colors.primary} />
-          <Text style={[styles.addExerciseButtonText, { color: colors.primary }]}>
-            새로운 운동 추가하기
+      {!selectedExerciseId && (
+        <View style={styles.addExerciseSection}>
+          <Text
+            style={[styles.addExerciseTitle, { color: colors.text.secondary }]}
+          >
+            원하는 운동이 없으신가요?
           </Text>
-        </TouchableOpacity>
-      </View>
+          <Text
+            style={[
+              styles.addExerciseSubtitle,
+              { color: colors.text.tertiary },
+            ]}
+          >
+            아래 버튼을 눌러 추가해보세요
+          </Text>
+          <TouchableOpacity
+            style={[
+              styles.addExerciseButton,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+            ]}
+            onPress={() => router.push("/exercise-register")}
+            activeOpacity={0.7}
+          >
+            <Ionicons
+              name="add-circle-outline"
+              size={20}
+              color={colors.primary}
+            />
+            <Text
+              style={[styles.addExerciseButtonText, { color: colors.primary }]}
+            >
+              새로운 운동 추가하기
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 }
@@ -144,7 +151,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: "#0B0C10",
+    backgroundColor: "#fff",
   },
   addExerciseSection: {
     marginTop: 24,

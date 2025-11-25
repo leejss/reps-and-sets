@@ -37,7 +37,7 @@ export function FloatingActionButton({
       onPress={onPress}
       activeOpacity={0.8}
     >
-      <Ionicons name={icon} size={iconSize} color={colors.text.primary} />
+      <Ionicons name={icon} size={iconSize} color={colors.primarySurface} />
     </TouchableOpacity>
   );
 }
