@@ -1,25 +1,28 @@
 import { useColor } from "@/constants/colors";
-import type { SessionExerciseWithSets } from "@/lib/queries/workoutSessionExercises.query";
+import { DayExerciseWithDetails } from "@/lib/models/day-exercise";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-type WorkoutCardProps = {
-  workout: SessionExerciseWithSets;
-  onPress: (workoutId: string) => void;
+type TodayExerciseCardProps = {
+  exercise: DayExerciseWithDetails;
+  onPress: (id: string) => void;
 };
 
-export const WorkoutCard = ({ workout, onPress }: WorkoutCardProps) => {
+export const TodayExerciseCard = ({
+  exercise,
+  onPress,
+}: TodayExerciseCardProps) => {
   const colors = useColor();
 
-  const repsSummary = buildRepsDisplay(workout.sets);
-  const weightSummary = buildWeightDisplay(workout.sets);
-  const completedSets = workout.sets.filter((set) => set.completed).length;
-  const totalSets = workout.sets.length;
-  const isCompleted = workout.completed;
-  const isDeleted = workout.isDeleted;
+  const repsSummary = buildRepsDisplay(exercise.sets);
+  const weightSummary = buildWeightDisplay(exercise.sets);
+  const completedSets = exercise.sets.filter((set) => set.isCompleted).length;
+  const totalSets = exercise.sets.length;
+  const isCompleted = exercise.isCompleted;
+  const isDeleted = exercise.isDeleted;
 
-  const handleCardPress = () => onPress(workout.id);
+  const handleCardPress = () => onPress(exercise.id);
 
   return (
     <TouchableOpacity
@@ -62,7 +65,7 @@ export const WorkoutCard = ({ workout, onPress }: WorkoutCardProps) => {
                 },
               ]}
             >
-              {workout.exerciseName}
+              {exercise.exerciseName}
             </Text>
             {isDeleted && (
               <Ionicons
@@ -104,7 +107,7 @@ export const WorkoutCard = ({ workout, onPress }: WorkoutCardProps) => {
                   { color: isCompleted ? colors.surface : colors.tag.text },
                 ]}
               >
-                {workout.targetMuscleGroup}
+                {exercise.targetMuscleGroup}
               </Text>
             </View>
 
@@ -134,7 +137,7 @@ export const WorkoutCard = ({ workout, onPress }: WorkoutCardProps) => {
   );
 };
 
-const buildRepsDisplay = (sets: SessionExerciseWithSets["sets"]): string => {
+const buildRepsDisplay = (sets: DayExerciseWithDetails["sets"]): string => {
   if (sets.length === 0) {
     return "0 reps";
   }
@@ -154,7 +157,7 @@ const buildRepsDisplay = (sets: SessionExerciseWithSets["sets"]): string => {
 };
 
 const buildWeightDisplay = (
-  sets: SessionExerciseWithSets["sets"],
+  sets: DayExerciseWithDetails["sets"],
 ): string | null => {
   const weights = sets
     .map((set) => set.actualWeight ?? set.plannedWeight)

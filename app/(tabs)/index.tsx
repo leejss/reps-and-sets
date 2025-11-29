@@ -1,7 +1,7 @@
 import { FloatingActionButton } from "@/components/floating-action-button";
-import { EmptyWorkoutState } from "@/components/home/empty-workout-state";
+import { EmptyState } from "@/components/home/empty-state";
 import { HomeHeader } from "@/components/home/home-header";
-import { WorkoutList } from "@/components/home/workout-list";
+import { TodayExerciseList } from "@/components/home/today-exercise-list";
 import { useColor } from "@/constants/colors";
 import { useDataStore } from "@/stores/data-store";
 import { router } from "expo-router";
@@ -10,16 +10,14 @@ import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { RouteHelpers, Routes } from "../route-config";
 
 export default function HomeScreen() {
-  const todaySessionExercises = useDataStore(
-    (state) => state.todaySessionExercises,
-  );
+  const todayExercises = useDataStore((state) => state.todayExercises);
   const colors = useColor();
   const navigateToRegister = () => {
     router.push(Routes.WORKOUT_REGISTER);
   };
 
-  const navigateToDetail = (workoutId: string) => {
-    router.push(RouteHelpers.workoutDetail(workoutId));
+  const navigateToDetail = (id: string) => {
+    router.push(RouteHelpers.exerciseDetail(id));
   };
 
   return (
@@ -34,12 +32,12 @@ export default function HomeScreen() {
           오늘의 운동
         </Text>
 
-        {todaySessionExercises.length === 0 ? (
-          <EmptyWorkoutState />
+        {todayExercises.length === 0 ? (
+          <EmptyState />
         ) : (
-          <WorkoutList
-            workouts={todaySessionExercises}
-            onPressWorkout={navigateToDetail}
+          <TodayExerciseList
+            exercises={todayExercises}
+            onPress={navigateToDetail}
           />
         )}
       </ScrollView>

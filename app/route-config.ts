@@ -17,7 +17,7 @@ export const Routes = {
 
   // 운동 관련
   WORKOUT_REGISTER: "/workout-register",
-  WORKOUT_DETAIL: "/workout-detail",
+  EXERCISE_DETAIL: "/exercise-detail",
 
   // 운동 종목 관련
   EXERCISE_REGISTER: "/exercise-register",
@@ -29,11 +29,11 @@ export const Routes = {
 export const RouteHelpers = {
   /**
    * 운동 상세 화면으로 이동하는 경로 생성
-   * @param workoutId 운동 ID
-   * @returns `/workout-detail?id={workoutId}`
+   * @param id 운동 ID
+   * @returns `/exercise-detail?id={id}`
    */
-  workoutDetail: (workoutId: string): Href => {
-    return `${Routes.WORKOUT_DETAIL}?id=${workoutId}` as Href;
+  exerciseDetail: (id: string): Href => {
+    return `${Routes.EXERCISE_DETAIL}?id=${id}` as Href;
   },
 
   /**

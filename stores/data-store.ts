@@ -4,36 +4,13 @@ import {
   getWeekRange,
   type WeekRange,
 } from "@/lib/date";
-import type { Exercise, ExerciseInput } from "@/lib/queries/exercises.model";
-import {
-  createExercise,
-  deleteExercise as deleteExerciseApi,
-  fetchExercises,
-  updateExercise as updateExerciseApi,
-} from "@/lib/queries/exercises.query";
-import {
-  deleteSessionExercise as deleteSessionExerciseRow,
-  fetchWorkoutSessionExercise,
-  insertSessionExercise,
-  updateSessionExercise,
-  type SessionExerciseWithSets,
-} from "@/lib/queries/workoutSessionExercises.query";
-import {
-  fetchWorkoutSessionsWithSetsInRange,
-  getOrCreateWorkoutSession,
-  type WorkoutSessionWithDetails,
-} from "@/lib/queries/workoutSessions.query";
-import {
-  fetchSessionExercisesByDate,
-  insertWorkoutSetsForSessionExercise,
-  replaceWorkoutSetsForSessionExercise,
-  updateTodaySetCompletion,
-  updateTodaySetDetails,
-  updateTodayWorkoutCompletion,
-  type WorkoutSet,
-} from "@/lib/queries/workoutSets.query";
-import { createSessionExercise } from "@/lib/service";
-import {
+import type { DayExerciseWithDetails } from "@/lib/models/day-exercise";
+import type { Exercise, ExerciseInput } from "@/lib/models/exercise";
+import type { ExerciseSet } from "@/lib/models/exercise-set";
+import type { TrainingDay } from "@/lib/models/training-day";
+import { getRepository } from "@/lib/repositories/factory";
+import type { IRepository } from "@/lib/repositories/types";
+import type {
   WeeklyPlan,
   WeeklyPlanExercise,
   WeeklySessionPlan,
@@ -41,7 +18,47 @@ import {
 } from "@/types/weekly-plan";
 import { create } from "zustand";
 import { combine } from "zustand/middleware";
-import { isAuthenticated } from "./auth-store";
+import { useAuthStore } from "./auth-store";
+
+function getRepo(): IRepository {
+  const isAuthenticated = useAuthStore.getState().isAuthenticated;
+  return getRepository(isAuthenticated);
+}
+
+/**
+ * 리포지토리 실행을 위한 고차 함수 (Helper)
+ * 반복되는 try-catch, 에러 로깅, 롤백 처리를 중앙화합니다.
+ */
+async function executeWithRepo<T>(
+  action: (repo: IRepository) => Promise<T>,
+  options: {
+    errorMessage?: string;
+    onError?: (error: unknown) => void;
+    onFinally?: () => void;
+    shouldThrow?: boolean; // 기본값 true
+  } = {},
+): Promise<T | undefined> {
+  const { errorMessage, onError, onFinally, shouldThrow = true } = options;
+  try {
+    const repo = getRepo();
+    return await action(repo);
+  } catch (error) {
+    if (errorMessage) {
+      console.error(errorMessage, error);
+    }
+    if (onError) {
+      onError(error);
+    }
+    if (shouldThrow) {
+      throw error;
+    }
+    return undefined;
+  } finally {
+    if (onFinally) {
+      onFinally();
+    }
+  }
+}
 
 const buildEmptyPlanFromRange = (range: WeekRange): WeeklyPlan => {
   const { startDay, endDay, startISO, endISO } = range;
@@ -50,7 +67,7 @@ const buildEmptyPlanFromRange = (range: WeekRange): WeeklyPlan => {
     (_, index) => {
       const current = startDay.add(index, "day");
       return {
-        sessionDate: formatLocalDateISO(current),
+        trainingDate: formatLocalDateISO(current),
         exercises: [],
       };
     },
@@ -69,24 +86,27 @@ const buildEmptyPlan = (pivotDate: Date): WeeklyPlan => {
   return buildEmptyPlanFromRange(range);
 };
 
-const createWeeklyPlanFromSessions = (
+const createWeeklyPlanFromData = (
   range: WeekRange,
-  sessionsWithDetails: WorkoutSessionWithDetails[],
+  trainingDaysWithExercises: {
+    trainingDay: TrainingDay;
+    exercises: DayExerciseWithDetails[];
+  }[],
 ): WeeklyPlan => {
   const basePlan = buildEmptyPlanFromRange(range);
 
   const sessionPlanMap = basePlan.sessionPlans.reduce<
     Record<string, WeeklySessionPlan>
   >((acc, sessionPlan) => {
-    acc[sessionPlan.sessionDate] = { ...sessionPlan, exercises: [] };
+    acc[sessionPlan.trainingDate] = { ...sessionPlan, exercises: [] };
     return acc;
   }, {});
 
-  sessionsWithDetails.forEach(({ session, exercises }) => {
-    const target = sessionPlanMap[session.date];
+  trainingDaysWithExercises.forEach(({ trainingDay, exercises }) => {
+    const target = sessionPlanMap[trainingDay.trainingDate];
     if (!target) return;
     target.exercises = [...exercises]
-      .sort((a, b) => a.orderInSession - b.orderInSession)
+      .sort((a, b) => a.displayOrder - b.displayOrder)
       .map(
         (exercise) =>
           ({
@@ -99,7 +119,7 @@ const createWeeklyPlanFromSessions = (
     ...basePlan,
     sessionPlans: basePlan.sessionPlans.map((plan) => ({
       ...plan,
-      exercises: sessionPlanMap[plan.sessionDate].exercises,
+      exercises: sessionPlanMap[plan.trainingDate].exercises,
     })),
   };
 };
@@ -108,7 +128,7 @@ export const useDataStore = create(
   combine(
     {
       exercises: [] as Exercise[],
-      todaySessionExercises: [] as SessionExerciseWithSets[],
+      todayExercises: [] as DayExerciseWithDetails[],
       isLoadingExercises: false,
       isLoadingWorkouts: false,
       weeklyPlan: buildEmptyPlan(new Date()),
@@ -118,87 +138,97 @@ export const useDataStore = create(
     },
     (set, get) => ({
       refreshExercises: async () => {
-        if (!isAuthenticated()) return;
-
         set({ isLoadingExercises: true });
-        try {
-          const data = await fetchExercises();
-          set({ exercises: data });
-        } catch (error) {
-          console.error("운동 목록 로드 실패:", error);
-        } finally {
-          set({ isLoadingExercises: false });
-        }
+        await executeWithRepo(
+          async (repo) => {
+            const data = await repo.exercise.findAll();
+            set({ exercises: data });
+          },
+          {
+            errorMessage: "운동 목록 로드 실패:",
+            onFinally: () => set({ isLoadingExercises: false }),
+            shouldThrow: false, // 로드 실패가 앱을 멈추게 하지 않음
+          },
+        );
       },
 
       loadInitialData: async () => {
-        if (!isAuthenticated()) {
-          return;
-        }
+        await executeWithRepo(
+          async (repo) => {
+            const today = new Date();
+            const todayISO = formatLocalDateISO(today);
 
-        try {
-          const today = new Date();
-          const [exercises, todaySessionExercises] = await Promise.all([
-            fetchExercises(),
-            fetchSessionExercisesByDate(today),
-          ]);
+            // 오늘의 훈련일 조회 또는 생성
+            const trainingDay = await repo.trainingDay.getOrCreate(todayISO);
 
-          set({
-            exercises,
-            todaySessionExercises: todaySessionExercises,
-          });
+            const [exercises, todayExercises] = await Promise.all([
+              repo.exercise.findAll(),
+              repo.dayExercise.findByTrainingDayId(trainingDay.id),
+            ]);
 
-          await (get() as any).loadWeeklyPlan();
-        } catch (error) {
-          console.error("초기 데이터 로드 실패:", error);
-        }
+            set({
+              exercises,
+              todayExercises,
+            });
+
+            await (
+              get() as ReturnType<typeof get> & {
+                loadWeeklyPlan: () => Promise<void>;
+              }
+            ).loadWeeklyPlan();
+          },
+          {
+            errorMessage: "초기 데이터 로드 실패:",
+            shouldThrow: false,
+          },
+        );
       },
 
       clearData: () => {
         set({
           exercises: [],
-          todaySessionExercises: [],
+          todayExercises: [],
           weeklyPlan: buildEmptyPlan(new Date()),
         });
       },
 
       addExercise: async (exercise: ExerciseInput) => {
-        if (!isAuthenticated()) {
-          throw new Error("로그인이 필요합니다.");
-        }
-
         const tempExercise: Exercise = {
           ...exercise,
           id: `temp-${Date.now()}`,
           createdAt: new Date(),
           updatedAt: new Date(),
         };
+
+        // 1. 낙관적 업데이트
         set((state) => ({
           exercises: [tempExercise, ...state.exercises],
         }));
 
-        try {
-          const newExercise = await createExercise(exercise);
-
-          set((state) => ({
-            exercises: state.exercises.map((e) =>
-              e.id === tempExercise.id ? newExercise : e,
-            ),
-          }));
-        } catch (error) {
-          set((state) => ({
-            exercises: state.exercises.filter((e) => e.id !== tempExercise.id),
-          }));
-          console.error("운동 추가 실패:", error);
-          throw error;
-        }
+        // 2. 리포지토리 실행
+        await executeWithRepo(
+          async (repo) => {
+            const newExercise = await repo.exercise.create(exercise);
+            set((state) => ({
+              exercises: state.exercises.map((e) =>
+                e.id === tempExercise.id ? newExercise : e,
+              ),
+            }));
+          },
+          {
+            errorMessage: "운동 추가 실패:",
+            onError: () => {
+              set((state) => ({
+                exercises: state.exercises.filter(
+                  (e) => e.id !== tempExercise.id,
+                ),
+              }));
+            },
+          },
+        );
       },
 
       updateExercise: async (id: string, exercise: ExerciseInput) => {
-        if (!isAuthenticated()) {
-          throw new Error("로그인이 필요합니다.");
-        }
-
         const previousExercises = get().exercises;
 
         set((state) => ({
@@ -207,426 +237,462 @@ export const useDataStore = create(
           ),
         }));
 
-        try {
-          await updateExerciseApi(id, exercise);
-        } catch (error) {
-          set({ exercises: previousExercises });
-          console.error("운동 수정 실패:", error);
-          throw error;
-        }
+        await executeWithRepo(
+          async (repo) => {
+            await repo.exercise.update(id, exercise);
+          },
+          {
+            errorMessage: "운동 수정 실패:",
+            onError: () => set({ exercises: previousExercises }),
+          },
+        );
       },
 
       deleteExercise: async (id: string) => {
-        if (!isAuthenticated()) {
-          throw new Error("로그인이 필요합니다.");
-        }
-
         const previousExercises = get().exercises;
 
         set((state) => ({
           exercises: state.exercises.filter((e) => e.id !== id),
         }));
 
-        try {
-          await deleteExerciseApi(id);
-        } catch (error) {
-          set({ exercises: previousExercises });
-          console.error("운동 삭제 실패:", error);
-          throw error;
-        }
+        await executeWithRepo(
+          async (repo) => {
+            await repo.exercise.delete(id);
+          },
+          {
+            errorMessage: "운동 삭제 실패:",
+            onError: () => set({ exercises: previousExercises }),
+          },
+        );
       },
 
-      addTodaySessionExercise: async (input: {
+      addTodayExercise: async (input: {
         exerciseId: string;
         exerciseName: string;
         targetMuscleGroup: string;
-        workoutSetList: WorkoutSet[];
+        sets: ExerciseSet[];
         date: string;
       }) => {
-        if (!isAuthenticated()) {
-          throw new Error("로그인이 필요합니다.");
-        }
-
-        const tempWorkout: SessionExerciseWithSets = {
+        const tempExercise: DayExerciseWithDetails = {
           id: `temp-${Date.now()}`,
-          sessionId: "temp-session",
+          trainingDayId: "temp-training-day",
           exerciseId: input.exerciseId,
           exerciseName: input.exerciseName,
           targetMuscleGroup: input.targetMuscleGroup,
-          orderInSession: 0,
-          completed: false,
-          sets: input.workoutSetList.map((set, index) => ({
-            ...set,
-            setOrder: set.setOrder ?? index,
-            completed: set.completed ?? false,
+          displayOrder: 0,
+          isCompleted: false,
+          sets: input.sets.map((s, index) => ({
+            ...s,
+            setOrder: s.setOrder ?? index,
+            isCompleted: s.isCompleted ?? false,
           })),
+          isDeleted: false,
         };
 
         set((state) => ({
-          todaySessionExercises: [tempWorkout, ...state.todaySessionExercises],
+          todayExercises: [tempExercise, ...state.todayExercises],
         }));
 
-        try {
-          const created = await createSessionExercise(
-            input.date,
-            input.exerciseId,
-            input.workoutSetList.map((set) => ({
-              reps: set.plannedReps ?? 0,
-              weight: set.plannedWeight ?? undefined,
-            })),
-          );
-          const newWorkout = created;
+        await executeWithRepo(
+          async (repo) => {
+            // 훈련일 조회 또는 생성
+            const trainingDay = await repo.trainingDay.getOrCreate(input.date);
 
-          set((state) => ({
-            todaySessionExercises: state.todaySessionExercises.map((w) =>
-              w.id === tempWorkout.id ? newWorkout : w,
-            ),
-          }));
-        } catch (error) {
-          set((state) => ({
-            todaySessionExercises: state.todaySessionExercises.filter(
-              (w) => w.id !== tempWorkout.id,
-            ),
-          }));
+            // 현재 운동 개수로 순서 결정
+            const currentExercises = await repo.dayExercise.findByTrainingDayId(
+              trainingDay.id,
+            );
+            const displayOrder = currentExercises.length;
 
-          console.error("운동 기록 추가 실패:", error);
-          throw error;
-        }
-      },
+            // 일별 운동 생성
+            const dayExercise = await repo.dayExercise.create({
+              trainingDayId: trainingDay.id,
+              exerciseId: input.exerciseId,
+              displayOrder,
+            });
 
-      toggleWorkoutComplete: async (id: string) => {
-        if (!isAuthenticated()) {
-          throw new Error("로그인이 필요합니다.");
-        }
+            // 세트 생성
+            await repo.exerciseSet.createMany(
+              dayExercise.id,
+              input.sets.map((s) => ({
+                reps: s.plannedReps ?? null,
+                weight: s.plannedWeight ?? null,
+              })),
+            );
 
-        const previousWorkouts = get().todaySessionExercises;
+            // 생성된 데이터 조회 및 업데이트
+            const exercises = await repo.dayExercise.findByTrainingDayId(
+              trainingDay.id,
+            );
+            const created = exercises.find((e) => e.id === dayExercise.id);
 
-        const updatedWorkouts: SessionExerciseWithSets[] = previousWorkouts.map(
-          (w) => {
-            if (w.id === id) {
-              const newCompleted = !w.completed;
-              return {
-                ...w,
-                completed: newCompleted,
-                sets: w.sets.map((set, index) => ({
-                  ...set,
-                  completed: newCompleted,
-                  actualReps:
-                    set.actualReps ??
-                    set.plannedReps ??
-                    (newCompleted ? 0 : null),
-                  setOrder: set.setOrder ?? index,
-                })),
-              };
+            if (!created) {
+              throw new Error("생성된 운동 정보를 찾을 수 없습니다.");
             }
-            return w;
+
+            set((state) => ({
+              todayExercises: state.todayExercises.map((w) =>
+                w.id === tempExercise.id ? created : w,
+              ),
+            }));
+          },
+          {
+            errorMessage: "운동 기록 추가 실패:",
+            onError: () => {
+              set((state) => ({
+                todayExercises: state.todayExercises.filter(
+                  (w) => w.id !== tempExercise.id,
+                ),
+              }));
+            },
           },
         );
-        set({ todaySessionExercises: updatedWorkouts });
-
-        try {
-          const workout = updatedWorkouts.find((w) => w.id === id);
-          if (workout) {
-            await updateTodayWorkoutCompletion(id, workout.completed);
-          }
-        } catch (error) {
-          set({ todaySessionExercises: previousWorkouts });
-          console.error("운동 완료 토글 실패:", error);
-          throw error;
-        }
       },
 
-      toggleSetComplete: async (workoutId: string, setOrder: number) => {
-        if (!isAuthenticated()) {
-          throw new Error("로그인이 필요합니다.");
-        }
+      toggleExerciseComplete: async (id: string) => {
+        const previousExercises = get().todayExercises;
 
-        const previousWorkouts = get().todaySessionExercises;
+        const updatedExercises = previousExercises.map((w) => {
+          if (w.id === id) {
+            const newCompleted = !w.isCompleted;
+            return {
+              ...w,
+              isCompleted: newCompleted,
+              sets: w.sets.map((s, index) => ({
+                ...s,
+                isCompleted: newCompleted,
+                actualReps:
+                  s.actualReps ?? s.plannedReps ?? (newCompleted ? 0 : null),
+                setOrder: s.setOrder ?? index,
+              })),
+            };
+          }
+          return w;
+        });
 
-        const updatedWorkouts: SessionExerciseWithSets[] = previousWorkouts.map(
-          (w) => {
-            if (w.id === workoutId) {
-              const newSetDetails = [...w.sets];
-              newSetDetails[setOrder] = {
-                ...newSetDetails[setOrder],
-                completed: !newSetDetails[setOrder].completed,
-              };
+        set({ todayExercises: updatedExercises });
 
-              const allCompleted = newSetDetails.every(
-                (set) => set.completed === true,
+        await executeWithRepo(
+          async (repo) => {
+            const exercise = updatedExercises.find((w) => w.id === id);
+            if (exercise) {
+              await repo.exerciseSet.updateAllCompletion(
+                id,
+                exercise.isCompleted,
               );
-
-              return {
-                ...w,
-                sets: newSetDetails,
-                completed: allCompleted,
-              };
             }
-            return w;
+          },
+          {
+            errorMessage: "운동 완료 토글 실패:",
+            onError: () => set({ todayExercises: previousExercises }),
           },
         );
+      },
 
-        set({ todaySessionExercises: updatedWorkouts });
+      toggleSetComplete: async (dayExerciseId: string, setOrder: number) => {
+        const previousExercises = get().todayExercises;
 
-        try {
-          const workout = updatedWorkouts.find((w) => w.id === workoutId);
-          if (workout) {
-            const set = workout.sets[setOrder];
-            await updateTodaySetCompletion(workoutId, setOrder, set.completed);
+        const updatedExercises = previousExercises.map((w) => {
+          if (w.id === dayExerciseId) {
+            const newSets = [...w.sets];
+            newSets[setOrder] = {
+              ...newSets[setOrder],
+              isCompleted: !newSets[setOrder].isCompleted,
+            };
+
+            const allCompleted = newSets.every((s) => s.isCompleted);
+
+            return {
+              ...w,
+              sets: newSets,
+              isCompleted: allCompleted,
+            };
           }
-        } catch (error) {
-          set({ todaySessionExercises: previousWorkouts });
-          console.error("세트 완료 토글 실패:", error);
-          throw error;
-        }
+          return w;
+        });
+
+        set({ todayExercises: updatedExercises });
+
+        await executeWithRepo(
+          async (repo) => {
+            const exercise = updatedExercises.find(
+              (w) => w.id === dayExerciseId,
+            );
+            if (exercise) {
+              const targetSet = exercise.sets[setOrder];
+              await repo.exerciseSet.updateCompletion(
+                dayExerciseId,
+                setOrder,
+                targetSet.isCompleted,
+              );
+            }
+          },
+          {
+            errorMessage: "세트 완료 토글 실패:",
+            onError: () => set({ todayExercises: previousExercises }),
+          },
+        );
       },
 
       updateSetDetails: async (
-        workoutId: string,
+        dayExerciseId: string,
         setIndex: number,
         reps: number,
         weight?: number,
       ) => {
-        if (!isAuthenticated()) {
-          throw new Error("로그인이 필요합니다.");
-        }
+        const previousExercises = get().todayExercises;
 
-        const previousWorkouts = get().todaySessionExercises;
+        const updatedExercises = previousExercises.map((w) => {
+          if (w.id === dayExerciseId) {
+            const newSets = [...w.sets];
+            newSets[setIndex] = {
+              ...newSets[setIndex],
+              actualReps: reps,
+              actualWeight: weight ?? null,
+            };
 
-        const updatedWorkouts: SessionExerciseWithSets[] = previousWorkouts.map(
-          (w) => {
-            if (w.id === workoutId) {
-              const newSetDetails = [...w.sets];
-              newSetDetails[setIndex] = {
-                ...newSetDetails[setIndex],
-                actualReps: reps,
-                actualWeight: weight,
-              };
+            return {
+              ...w,
+              sets: newSets,
+            };
+          }
+          return w;
+        });
 
-              return {
-                ...w,
-                sets: newSetDetails,
-              };
-            }
-            return w;
+        set({ todayExercises: updatedExercises });
+
+        await executeWithRepo(
+          async (repo) => {
+            await repo.exerciseSet.updateActual(dayExerciseId, setIndex, {
+              actualReps: reps,
+              actualWeight: weight ?? null,
+            });
+          },
+          {
+            errorMessage: "세트 상세 업데이트 실패:",
+            onError: () => set({ todayExercises: previousExercises }),
           },
         );
-        set({ todaySessionExercises: updatedWorkouts });
-
-        try {
-          const workout = updatedWorkouts.find((w) => w.id === workoutId);
-          if (workout) {
-            await updateTodaySetDetails(workoutId, setIndex, reps, weight);
-          }
-        } catch (error) {
-          set({ todaySessionExercises: previousWorkouts });
-          console.error("세트 상세 업데이트 실패:", error);
-          throw error;
-        }
       },
 
       loadWeeklyPlan: async () => {
-        if (!isAuthenticated()) return;
-
         set({ isLoadingWeeklyPlan: true, weeklyPlanError: null });
         const today = new Date();
-        try {
-          const range = getWeekRange(today);
-          const { startISO, endISO } = range;
 
-          const sessionsWithSets = await fetchWorkoutSessionsWithSetsInRange(
-            startISO,
-            endISO,
-          );
+        await executeWithRepo(
+          async (repo) => {
+            const range = getWeekRange(today);
+            const { startISO, endISO } = range;
 
-          set({
-            weeklyPlan: createWeeklyPlanFromSessions(range, sessionsWithSets),
-          });
-        } catch (err) {
-          console.error("주간 계획 로드 실패:", err);
-          set({
-            weeklyPlanError: "주간 계획을 불러오지 못했습니다.",
-            weeklyPlan: buildEmptyPlan(today),
-          });
-        } finally {
-          set({ isLoadingWeeklyPlan: false });
-        }
+            const trainingDaysWithExercises =
+              await repo.dayExercise.findByDateRange(startISO, endISO);
+
+            set({
+              weeklyPlan: createWeeklyPlanFromData(
+                range,
+                trainingDaysWithExercises,
+              ),
+            });
+          },
+          {
+            errorMessage: "주간 계획 로드 실패:",
+            shouldThrow: false,
+            onError: () => {
+              set({
+                weeklyPlanError: "주간 계획을 불러오지 못했습니다.",
+                weeklyPlan: buildEmptyPlan(today),
+              });
+            },
+            onFinally: () => set({ isLoadingWeeklyPlan: false }),
+          },
+        );
       },
 
-      addWorkout: async (sessionDate: string, workout: WeeklyWorkoutInput) => {
-        if (!isAuthenticated()) throw new Error("로그인이 필요합니다.");
-
+      addWorkout: async (trainingDate: string, workout: WeeklyWorkoutInput) => {
         set({ isMutatingWeeklyPlan: true });
-        try {
-          const weeklyPlan = get().weeklyPlan;
-          const targetDay = weeklyPlan.sessionPlans.find(
-            (day) => day.sessionDate === sessionDate,
-          );
-          if (!targetDay) {
-            throw new Error("선택한 날짜 정보를 찾을 수 없습니다.");
-          }
-          const session = await getOrCreateWorkoutSession(sessionDate);
 
-          const orderInSession = targetDay.exercises.length;
-          const sessionExerciseBase = await insertSessionExercise({
-            sessionId: session.id,
-            exerciseId: workout.exerciseId,
-            orderInSession,
-          });
-
-          await insertWorkoutSetsForSessionExercise({
-            sessionExerciseId: sessionExerciseBase.id,
-            plannedSets: workout.setDetails.map((set) => ({
-              reps: set.plannedReps ?? 0,
-              weight: set.plannedWeight ?? undefined,
-            })),
-          });
-
-          const details = await fetchWorkoutSessionExercise(session.id);
-          const sessionExercise = details.find(
-            (exercise) => exercise.id === sessionExerciseBase.id,
-          );
-
-          if (!sessionExercise) {
-            throw new Error("생성된 세션 운동 정보를 찾을 수 없습니다.");
-          }
-
-          const created: WeeklyPlanExercise = {
-            ...sessionExercise,
-            note: workout.note,
-          };
-
-          set((prev) => {
-            const nextSessionPlans = prev.weeklyPlan.sessionPlans.map((day) =>
-              day.sessionDate === sessionDate
-                ? {
-                    ...day,
-                    exercises: [...day.exercises, created],
-                  }
-                : day,
+        await executeWithRepo(
+          async (repo) => {
+            const weeklyPlan = get().weeklyPlan;
+            const targetDay = weeklyPlan.sessionPlans.find(
+              (day) => day.trainingDate === trainingDate,
             );
-            return {
-              weeklyPlan: {
-                ...prev.weeklyPlan,
-                sessionPlans: nextSessionPlans,
-              },
+            if (!targetDay) {
+              throw new Error("선택한 날짜 정보를 찾을 수 없습니다.");
+            }
+
+            const trainingDay = await repo.trainingDay.getOrCreate(
+              trainingDate,
+            );
+
+            const displayOrder = targetDay.exercises.length;
+            const dayExercise = await repo.dayExercise.create({
+              trainingDayId: trainingDay.id,
+              exerciseId: workout.exerciseId,
+              displayOrder,
+            });
+
+            await repo.exerciseSet.createMany(
+              dayExercise.id,
+              workout.setDetails.map((s) => ({
+                reps: s.plannedReps ?? null,
+                weight: s.plannedWeight ?? null,
+              })),
+            );
+
+            const exercises = await repo.dayExercise.findByTrainingDayId(
+              trainingDay.id,
+            );
+            const createdExercise = exercises.find(
+              (e) => e.id === dayExercise.id,
+            );
+
+            if (!createdExercise) {
+              throw new Error("생성된 운동 정보를 찾을 수 없습니다.");
+            }
+
+            const created: WeeklyPlanExercise = {
+              ...createdExercise,
+              note: workout.note,
             };
-          });
-        } finally {
-          set({ isMutatingWeeklyPlan: false });
-        }
+
+            set((prev) => {
+              const nextSessionPlans = prev.weeklyPlan.sessionPlans.map((day) =>
+                day.trainingDate === trainingDate
+                  ? {
+                      ...day,
+                      exercises: [...day.exercises, created],
+                    }
+                  : day,
+              );
+              return {
+                weeklyPlan: {
+                  ...prev.weeklyPlan,
+                  sessionPlans: nextSessionPlans,
+                },
+              };
+            });
+          },
+          {
+            // 낙관적 업데이트가 아닌 경우 에러 메시지는 기본적으로 로그에만 남김
+            onFinally: () => set({ isMutatingWeeklyPlan: false }),
+          },
+        );
       },
 
       editWorkout: async (
-        sessionDate: string,
+        trainingDate: string,
         workoutId: string,
         payload: WeeklyWorkoutInput,
       ) => {
-        if (!isAuthenticated()) throw new Error("로그인이 필요합니다.");
-
         set({ isMutatingWeeklyPlan: true });
-        try {
-          const weeklyPlan = get().weeklyPlan;
-          const current = weeklyPlan.sessionPlans
-            .flatMap((day) => day.exercises)
-            .find((w) => w.id === workoutId);
 
-          if (!current) {
-            throw new Error("수정할 운동을 찾을 수 없습니다.");
-          }
+        await executeWithRepo(
+          async (repo) => {
+            const weeklyPlan = get().weeklyPlan;
+            const current = weeklyPlan.sessionPlans
+              .flatMap((day) => day.exercises)
+              .find((w) => w.id === workoutId);
 
-          await updateSessionExercise({
-            sessionExerciseId: workoutId,
-            exerciseId: payload.exerciseId,
-          });
+            if (!current) {
+              throw new Error("수정할 운동을 찾을 수 없습니다.");
+            }
 
-          await replaceWorkoutSetsForSessionExercise({
-            sessionExerciseId: workoutId,
-            plannedSets: payload.setDetails.map((set) => ({
-              reps: set.plannedReps ?? 0,
-              weight: set.plannedWeight ?? undefined,
-            })),
-          });
+            await repo.dayExercise.update(workoutId, {
+              exerciseId: payload.exerciseId,
+            });
 
-          const details = await fetchWorkoutSessionExercise(current.sessionId);
-          const updatedExercise = details.find(
-            (exercise) => exercise.id === workoutId,
-          );
-
-          if (!updatedExercise) {
-            throw new Error("수정된 세션 운동을 찾을 수 없습니다.");
-          }
-
-          const updated: WeeklyPlanExercise = {
-            ...updatedExercise,
-            note: payload.note ?? current.note,
-          };
-
-          set((prev) => {
-            const nextSessionPlans = prev.weeklyPlan.sessionPlans.map((day) =>
-              day.sessionDate === sessionDate
-                ? {
-                    ...day,
-                    exercises: day.exercises.map((workout) =>
-                      workout.id === workoutId ? updated : workout,
-                    ),
-                  }
-                : day,
+            await repo.exerciseSet.replaceAll(
+              workoutId,
+              payload.setDetails.map((s) => ({
+                reps: s.plannedReps ?? null,
+                weight: s.plannedWeight ?? null,
+              })),
             );
-            return {
-              weeklyPlan: {
-                ...prev.weeklyPlan,
-                sessionPlans: nextSessionPlans,
-              },
+
+            const exercises = await repo.dayExercise.findByTrainingDayId(
+              current.trainingDayId,
+            );
+            const updatedExercise = exercises.find((e) => e.id === workoutId);
+
+            if (!updatedExercise) {
+              throw new Error("수정된 운동을 찾을 수 없습니다.");
+            }
+
+            const updated: WeeklyPlanExercise = {
+              ...updatedExercise,
+              note: payload.note ?? current.note,
             };
-          });
-        } finally {
-          set({ isMutatingWeeklyPlan: false });
-        }
+
+            set((prev) => {
+              const nextSessionPlans = prev.weeklyPlan.sessionPlans.map((day) =>
+                day.trainingDate === trainingDate
+                  ? {
+                      ...day,
+                      exercises: day.exercises.map((w) =>
+                        w.id === workoutId ? updated : w,
+                      ),
+                    }
+                  : day,
+              );
+              return {
+                weeklyPlan: {
+                  ...prev.weeklyPlan,
+                  sessionPlans: nextSessionPlans,
+                },
+              };
+            });
+          },
+          {
+            onFinally: () => set({ isMutatingWeeklyPlan: false }),
+          },
+        );
       },
 
-      removeWorkout: async (sessionDate: string, workoutId: string) => {
-        if (!isAuthenticated()) throw new Error("로그인이 필요합니다.");
-
+      removeWorkout: async (trainingDate: string, workoutId: string) => {
         set({ isMutatingWeeklyPlan: true });
-        try {
-          await deleteSessionExerciseRow(workoutId);
-          set((prev) => {
-            const nextSessionPlans = prev.weeklyPlan.sessionPlans.map((day) =>
-              day.sessionDate === sessionDate
-                ? {
-                    ...day,
-                    exercises: day.exercises.filter(
-                      (workout) => workout.id !== workoutId,
-                    ),
-                  }
-                : day,
-            );
-            return {
-              weeklyPlan: {
-                ...prev.weeklyPlan,
-                sessionPlans: nextSessionPlans,
-              },
-            };
-          });
-        } finally {
-          set({ isMutatingWeeklyPlan: false });
-        }
+
+        await executeWithRepo(
+          async (repo) => {
+            await repo.dayExercise.delete(workoutId);
+            set((prev) => {
+              const nextSessionPlans = prev.weeklyPlan.sessionPlans.map((day) =>
+                day.trainingDate === trainingDate
+                  ? {
+                      ...day,
+                      exercises: day.exercises.filter(
+                        (w) => w.id !== workoutId,
+                      ),
+                    }
+                  : day,
+              );
+              return {
+                weeklyPlan: {
+                  ...prev.weeklyPlan,
+                  sessionPlans: nextSessionPlans,
+                },
+              };
+            });
+          },
+          {
+            onFinally: () => set({ isMutatingWeeklyPlan: false }),
+          },
+        );
       },
     }),
   ),
 );
 
+// 편의를 위한 내보내기
 export const loadInitialData = useDataStore.getState().loadInitialData;
-export const addTodaySessionExercise =
-  useDataStore.getState().addTodaySessionExercise;
+export const addTodayExercise = useDataStore.getState().addTodayExercise;
 export const refreshExercises = useDataStore.getState().refreshExercises;
 export const clearData = useDataStore.getState().clearData;
 export const addExercise = useDataStore.getState().addExercise;
 export const updateExercise = useDataStore.getState().updateExercise;
 export const deleteExercise = useDataStore.getState().deleteExercise;
-export const toggleWorkoutComplete =
-  useDataStore.getState().toggleWorkoutComplete;
+export const toggleExerciseComplete =
+  useDataStore.getState().toggleExerciseComplete;
 export const toggleSetComplete = useDataStore.getState().toggleSetComplete;
 export const updateSetDetails = useDataStore.getState().updateSetDetails;
 export const loadWeeklyPlan = useDataStore.getState().loadWeeklyPlan;

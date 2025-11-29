@@ -2,7 +2,7 @@ import { useColor } from "@/constants/colors";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-export const EmptyWorkoutState = () => {
+export const EmptyState = () => {
   const colors = useColor();
 
   return (
@@ -39,4 +39,3 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 });
-

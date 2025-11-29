@@ -1,6 +1,12 @@
 import { getSupabaseSession } from "@/lib/auth";
 import type { Tables } from "@/lib/database.types";
 import {
+  cleanupSyncedLocalData,
+  getPendingDataCount,
+  syncLocalToRemote,
+  type SyncProgress,
+} from "@/lib/sync/sync-service";
+import {
   GoogleSignin,
   isSuccessResponse,
   statusCodes,
@@ -16,13 +22,13 @@ const iosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
 
 if (!webClientId) {
   throw new Error(
-    "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID가 설정되지 않았습니다. app.config.ts 혹은 환경변수를 확인해주세요.",
+    "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID가 설정되지 않았습니다. app.config.ts 혹은 환경변수를 확인해주세요."
   );
 }
 
 if (!iosClientId) {
   throw new Error(
-    "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID가 설정되지 않았습니다. app.config.ts 혹은 환경변수를 확인해주세요.",
+    "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID가 설정되지 않았습니다. app.config.ts 혹은 환경변수를 확인해주세요."
   );
 }
 
@@ -33,22 +39,30 @@ GoogleSignin.configure({
   offlineAccess: true,
 });
 
+export type SyncState = "idle" | "checking" | "syncing" | "done" | "error";
+
 export const useAuthStore = create(
   combine(
     {
-      isAuthenticated: false, // if session is not null
+      isAuthenticated: false,
       isLoading: true,
       session: null as Session | null,
       user: null as User | null,
       profile: null as Tables<"profiles"> | null,
+      // 동기화 관련 상태
+      syncState: "idle" as SyncState,
+      syncProgress: null as SyncProgress | null,
+      syncError: null as string | null,
+      pendingDataCount: 0,
     },
-    (set) => ({
+    (set, get) => ({
       initializeAuth: async () => {
         try {
           const session = await getSupabaseSession();
           if (!session) {
+            // 비로그인 상태 - 로컬 모드로 동작
             set({
-              session,
+              session: null,
               isAuthenticated: false,
               user: null,
               profile: null,
@@ -59,7 +73,7 @@ export const useAuthStore = create(
 
           set({
             session,
-            isAuthenticated: !!session,
+            isAuthenticated: true,
             user: session.user,
             profile,
           });
@@ -68,7 +82,7 @@ export const useAuthStore = create(
             try {
               if (!session) {
                 set({
-                  session,
+                  session: null,
                   isAuthenticated: false,
                   user: null,
                   profile: null,
@@ -80,7 +94,7 @@ export const useAuthStore = create(
 
               set({
                 session,
-                isAuthenticated: !!session,
+                isAuthenticated: true,
                 user: session.user,
                 profile,
               });
@@ -91,6 +105,65 @@ export const useAuthStore = create(
         } finally {
           set({ isLoading: false });
         }
+      },
+
+      /**
+       * 동기화 대기 데이터 확인
+       */
+      checkPendingData: async () => {
+        set({ syncState: "checking" });
+        try {
+          const counts = await getPendingDataCount();
+          set({
+            pendingDataCount: counts.total,
+            syncState: "idle",
+          });
+          return counts.total > 0;
+        } catch (error) {
+          console.error("대기 데이터 확인 실패:", error);
+          set({ syncState: "error", syncError: "데이터 확인 실패" });
+          return false;
+        }
+      },
+
+      /**
+       * 로컬 데이터를 원격으로 동기화
+       */
+      syncData: async () => {
+        set({ syncState: "syncing", syncError: null });
+
+        const result = await syncLocalToRemote((progress) => {
+          set({ syncProgress: progress });
+        });
+
+        if (result.success) {
+          // 동기화 완료된 데이터 정리
+          await cleanupSyncedLocalData();
+          set({
+            syncState: "done",
+            syncProgress: null,
+            pendingDataCount: 0,
+          });
+          return true;
+        } else {
+          set({
+            syncState: "error",
+            syncError: result.error ?? "동기화 실패",
+            syncProgress: null,
+          });
+          return false;
+        }
+      },
+
+      /**
+       * 동기화 상태 초기화
+       */
+      resetSyncState: () => {
+        set({
+          syncState: "idle",
+          syncProgress: null,
+          syncError: null,
+        });
       },
 
       // Google 소셜 로그인
@@ -128,17 +201,24 @@ export const useAuthStore = create(
 
           console.log("Supabase 로그인 성공:", data.user?.email);
 
-          // 세션은 onAuthStateChange에서 자동 처리됨
+          // 5. 로그인 성공 후 동기화 대기 데이터 확인
+          const hasPendingData = await get().checkPendingData();
+          if (hasPendingData) {
+            // 동기화 대기 데이터가 있으면 자동 동기화
+            await get().syncData();
+          }
+
           return true;
-        } catch (error: any) {
+        } catch (error: unknown) {
           // Google Sign-In 에러 핸들링
-          if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+          const err = error as { code?: string };
+          if (err.code === statusCodes.SIGN_IN_CANCELLED) {
             console.log("사용자가 로그인을 취소했습니다");
             return false;
-          } else if (error.code === statusCodes.IN_PROGRESS) {
+          } else if (err.code === statusCodes.IN_PROGRESS) {
             console.log("로그인이 이미 진행 중입니다");
             return false;
-          } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+          } else if (err.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
             throw new Error("Google Play Services를 사용할 수 없습니다");
           }
 
@@ -157,11 +237,29 @@ export const useAuthStore = create(
 
           if (error) throw error;
 
-          // 세션은 자동으로 onAuthStateChange 리스너에서 처리됨
+          // 로그인 성공 후 동기화 대기 데이터 확인
+          const hasPendingData = await get().checkPendingData();
+          if (hasPendingData) {
+            await get().syncData();
+          }
         } catch (error) {
           console.error("이메일 로그인 실패:", error);
           throw error;
         }
+      },
+
+      /**
+       * 비로그인 모드로 시작
+       * 로컬 저장소를 사용하여 앱 사용 가능
+       */
+      continueAsGuest: () => {
+        set({
+          isAuthenticated: false,
+          isLoading: false,
+          session: null,
+          user: null,
+          profile: null,
+        });
       },
 
       logout: async () => {
@@ -176,10 +274,19 @@ export const useAuthStore = create(
           console.error("로그아웃 실패:", error);
           throw error;
         }
+
+        // 동기화 상태 초기화
+        set({
+          syncState: "idle",
+          syncProgress: null,
+          syncError: null,
+          pendingDataCount: 0,
+        });
       },
-    }),
-  ),
+    })
+  )
 );
+
 export const getAuthStore = () => useAuthStore.getState();
 
 export const initializeAuth = useAuthStore.getState().initializeAuth;
@@ -189,3 +296,9 @@ export const isAuthenticated = () => useAuthStore.getState().isAuthenticated;
 export const signInWithGoogle = useAuthStore.getState().signInWithGoogle;
 
 export const signInWithEmail = useAuthStore.getState().signInWithEmail;
+
+export const continueAsGuest = useAuthStore.getState().continueAsGuest;
+
+export const checkPendingData = useAuthStore.getState().checkPendingData;
+
+export const syncData = useAuthStore.getState().syncData;

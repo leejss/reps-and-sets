@@ -1,5 +1,5 @@
-import type { SessionExerciseWithSets } from "@/lib/queries/workoutSessionExercises.query";
-import type { WorkoutSet } from "@/lib/queries/workoutSets.model";
+import type { DayExerciseWithDetails } from "@/lib/models/day-exercise";
+import type { ExerciseSet } from "@/lib/models/exercise-set";
 
 export type Weekday = "Mon" | "Tue" | "Wed" | "Thu" | "Fri" | "Sat" | "Sun";
 
@@ -27,16 +27,16 @@ export type WeeklyWorkoutInput = {
   exerciseId: string;
   exerciseName: string;
   targetMuscleGroup: string;
-  setDetails: WorkoutSet[];
+  setDetails: ExerciseSet[];
   note?: string;
 };
 
-export type WeeklyPlanExercise = SessionExerciseWithSets & {
+export type WeeklyPlanExercise = DayExerciseWithDetails & {
   note?: string;
 };
 
 export type WeeklySessionPlan = {
-  sessionDate: string;
+  trainingDate: string;
   exercises: WeeklyPlanExercise[];
 };
 
