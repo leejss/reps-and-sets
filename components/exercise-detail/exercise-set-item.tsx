@@ -6,19 +6,19 @@ import { useColor } from "@/constants/colors";
 import type { ExerciseSet } from "@/lib/models/exercise-set";
 import { getDisplayReps, getDisplayWeight } from "./utils";
 
-type WorkoutSetItemProps = {
+type ExerciseSetItemProps = {
   index: number;
   set: ExerciseSet;
   onToggle: () => void;
   onEdit: () => void;
 };
 
-export const WorkoutSetItem = ({
+export const ExerciseSetItem = ({
   index,
   set,
   onToggle,
   onEdit,
-}: WorkoutSetItemProps) => {
+}: ExerciseSetItemProps) => {
   const colors = useColor();
 
   const displayReps = getDisplayReps(set) ?? "0";
@@ -84,7 +84,9 @@ export const WorkoutSetItem = ({
                 name="create-outline"
                 size={18}
                 color={
-                  set.isCompleted ? colors.primarySurface : colors.text.secondary
+                  set.isCompleted
+                    ? colors.primarySurface
+                    : colors.text.secondary
                 }
               />
             </TouchableOpacity>

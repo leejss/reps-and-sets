@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from "react-native";
 
 import { useColor } from "@/constants/colors";
 
-type WorkoutInfoCardProps = {
+type ExerciseInfoCardProps = {
   exerciseName: string;
   targetMuscleGroup: string;
   totalSets: number;
@@ -11,13 +11,13 @@ type WorkoutInfoCardProps = {
   progressPercentage: number;
 };
 
-export const WorkoutInfoCard = ({
+export const ExerciseInfoCard = ({
   exerciseName,
   targetMuscleGroup,
   totalSets,
   completedSets,
   progressPercentage,
-}: WorkoutInfoCardProps) => {
+}: ExerciseInfoCardProps) => {
   const colors = useColor();
 
   const safeProgress = Math.max(0, Math.min(100, progressPercentage || 0));

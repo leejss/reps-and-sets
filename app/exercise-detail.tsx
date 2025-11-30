@@ -1,4 +1,6 @@
 import { EditSetModal } from "@/components/exercise-detail/edit-set-modal";
+import { ExerciseInfoCard } from "@/components/exercise-detail/exercise-info-card";
+import { ExerciseSetItem } from "@/components/exercise-detail/exercise-set-item";
 import type {
   EditableField,
   EditingState,
@@ -7,8 +9,6 @@ import {
   getDisplayReps,
   getDisplayWeight,
 } from "@/components/exercise-detail/utils";
-import { WorkoutInfoCard } from "@/components/exercise-detail/workout-info-card";
-import { WorkoutSetItem } from "@/components/exercise-detail/workout-set-item";
 import { useColor } from "@/constants/colors";
 import type { DayExerciseWithDetails } from "@/lib/models/day-exercise";
 import type { ExerciseSet } from "@/lib/models/exercise-set";
@@ -136,7 +136,7 @@ export default function ExerciseDetailScreen() {
         style={styles.content}
         contentContainerStyle={styles.contentContainer}
       >
-        <WorkoutInfoCard
+        <ExerciseInfoCard
           exerciseName={currentExercise.exerciseName}
           targetMuscleGroup={currentExercise.targetMuscleGroup}
           totalSets={currentSetsCount}
@@ -150,7 +150,7 @@ export default function ExerciseDetailScreen() {
         </Text>
         <View style={styles.setsList}>
           {currentExercise.sets.map((set: ExerciseSet, index: number) => (
-            <WorkoutSetItem
+            <ExerciseSetItem
               key={`${currentExercise.id}-${index}`}
               index={index}
               set={set}
