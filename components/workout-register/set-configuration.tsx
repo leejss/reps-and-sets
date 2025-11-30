@@ -16,7 +16,7 @@ export function SetConfiguration() {
     selectedExerciseId,
     numberOfSets,
     setNumberOfSets,
-    workoutSetList,
+    sets,
     useUniformValues,
     setUseUniformValues,
     uniformReps,
@@ -59,7 +59,7 @@ export function SetConfiguration() {
       </View>
 
       {/* 세트가 생성된 경우 */}
-      {workoutSetList.length > 0 && (
+      {sets.length > 0 && (
         <>
           {/* 동일한 값 적용 토글 */}
           <TouchableOpacity
@@ -149,7 +149,7 @@ export function SetConfiguration() {
               >
                 세트별 상세 정보
               </Text>
-              {workoutSetList.map((set, index) => (
+              {sets.map((set, index) => (
                 <View
                   key={index}
                   style={[
@@ -218,7 +218,7 @@ export function SetConfiguration() {
                         placeholder="예: 60"
                         placeholderTextColor={colors.input.placeholder}
                         value={
-                          set.plannedWeight !== undefined
+                          set.plannedWeight != null
                             ? set.plannedWeight.toString()
                             : ""
                         }

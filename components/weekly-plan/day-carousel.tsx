@@ -65,12 +65,12 @@ export const DayCarousel = ({
       contentContainerStyle={styles.carousel}
     >
       {sessionPlans.map((plan) => {
-        const weekdayId = getWeekdayFromDate(plan.sessionDate);
-        const isSelected = selectedDate === plan.sessionDate;
+        const weekdayId = getWeekdayFromDate(plan.trainingDate);
+        const isSelected = selectedDate === plan.trainingDate;
 
         return (
           <TouchableOpacity
-            key={plan.sessionDate}
+            key={plan.trainingDate}
             onLayout={handleChipLayout(weekdayId)}
             style={[
               styles.dayChip,
@@ -80,7 +80,7 @@ export const DayCarousel = ({
                   : colors.iconButton.background,
               },
             ]}
-            onPress={() => onSelectDate(plan.sessionDate)}
+            onPress={() => onSelectDate(plan.trainingDate)}
             activeOpacity={0.85}
           >
             <Text
@@ -105,7 +105,7 @@ export const DayCarousel = ({
                 },
               ]}
             >
-              {formatChipDate(plan.sessionDate)}
+              {formatChipDate(plan.trainingDate)}
             </Text>
           </TouchableOpacity>
         );

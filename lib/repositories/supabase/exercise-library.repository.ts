@@ -3,11 +3,7 @@ import { supabase } from "../../supabase";
 import { getAuthenticatedUser } from "../../utils";
 import type { IExerciseRepository } from "../types";
 
-/**
- * TODO: Supabase 마이그레이션 후 테이블 이름 변경
- * exercises → exercise_library
- */
-const TABLE_NAME = "exercises" as const;
+const TABLE_NAME = "exercise_library" as const;
 
 /**
  * Supabase Row를 도메인 모델로 변환

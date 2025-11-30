@@ -8,25 +8,30 @@ import { SupabaseExerciseSetRepository } from "./supabase/exercise-set.repositor
 import { SupabaseTrainingDayRepository } from "./supabase/training-day.repository";
 import type { ILocalRepository, IRepository } from "./types";
 
-let supabaseRepository: IRepository | null = null;
+let repository: IRepository | null = null;
 let localRepository: ILocalRepository | null = null;
 
 /**
- * Supabase Repository 인스턴스 반환 (싱글톤)
+ * Repository 인스턴스 반환 (싱글톤)
+ * 현재는 Supabase만 단일 데이터 소스로 사용
  */
-export function getSupabaseRepository(): IRepository {
-  if (!supabaseRepository) {
-    supabaseRepository = {
+export function getRepository(): IRepository {
+  if (!repository) {
+    repository = {
       exercise: new SupabaseExerciseRepository(),
       trainingDay: new SupabaseTrainingDayRepository(),
       dayExercise: new SupabaseDayExerciseRepository(),
       exerciseSet: new SupabaseExerciseSetRepository(),
     };
   }
-  return supabaseRepository;
+  return repository;
 }
 
+// 기존 API 호환성을 위한 alias
+export const getSupabaseRepository = getRepository;
+
 /**
+ * @deprecated 현재 사용하지 않음. 동기화 기능 활성화 시 사용
  * Local Repository 인스턴스 반환 (싱글톤)
  */
 export function getLocalRepository(): ILocalRepository {
@@ -39,11 +44,4 @@ export function getLocalRepository(): ILocalRepository {
     };
   }
   return localRepository;
-}
-
-/**
- * 인증 상태에 따라 적절한 Repository 반환
- */
-export function getRepository(isAuthenticated: boolean): IRepository {
-  return isAuthenticated ? getSupabaseRepository() : getLocalRepository();
 }

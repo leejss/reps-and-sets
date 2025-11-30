@@ -18,11 +18,9 @@ import type {
 } from "@/types/weekly-plan";
 import { create } from "zustand";
 import { combine } from "zustand/middleware";
-import { useAuthStore } from "./auth-store";
 
 function getRepo(): IRepository {
-  const isAuthenticated = useAuthStore.getState().isAuthenticated;
-  return getRepository(isAuthenticated);
+  return getRepository();
 }
 
 async function execute<T>(
@@ -472,8 +470,14 @@ export const useDataStore = create(
         );
       },
 
-      loadWeeklyPlan: async () => {
-        set({ isLoadingWeeklyPlan: true, weeklyPlanError: null });
+      /**
+       * @param silent - true면 로딩 UI를 보여주지 않음 (백그라운드 새로고침)
+       */
+      loadWeeklyPlan: async (silent = false) => {
+        // silent 모드가 아닐 때만 로딩 상태 표시
+        if (!silent) {
+          set({ isLoadingWeeklyPlan: true, weeklyPlanError: null });
+        }
         const today = new Date();
 
         await execute(
@@ -495,12 +499,19 @@ export const useDataStore = create(
             errorMessage: "주간 계획 로드 실패:",
             shouldThrow: false,
             onError: () => {
-              set({
-                weeklyPlanError: "주간 계획을 불러오지 못했습니다.",
-                weeklyPlan: buildEmptyPlan(today),
-              });
+              // silent 모드에서는 에러도 조용히 처리
+              if (!silent) {
+                set({
+                  weeklyPlanError: "주간 계획을 불러오지 못했습니다.",
+                  weeklyPlan: buildEmptyPlan(today),
+                });
+              }
             },
-            onFinally: () => set({ isLoadingWeeklyPlan: false }),
+            onFinally: () => {
+              if (!silent) {
+                set({ isLoadingWeeklyPlan: false });
+              }
+            },
           },
         );
       },

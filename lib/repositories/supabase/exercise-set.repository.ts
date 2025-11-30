@@ -1,8 +1,8 @@
-import type {
+import {
   ExerciseSet,
   ExerciseSetActualInput,
   ExerciseSetPlanInput,
-} from "../../models";
+} from "@/lib/models/exercise-set";
 import { supabase } from "../../supabase";
 import type { IExerciseSetRepository } from "../types";
 import type { ExerciseSetInsert, ExerciseSetRow } from "./types";
@@ -42,7 +42,7 @@ export class SupabaseExerciseSetRepository implements IExerciseSetRepository {
 
   async createMany(
     dayExerciseId: string,
-    sets: ExerciseSetPlanInput[]
+    sets: ExerciseSetPlanInput[],
   ): Promise<ExerciseSet[]> {
     if (sets.length === 0) return [];
 
@@ -68,7 +68,7 @@ export class SupabaseExerciseSetRepository implements IExerciseSetRepository {
 
   async replaceAll(
     dayExerciseId: string,
-    sets: ExerciseSetPlanInput[]
+    sets: ExerciseSetPlanInput[],
   ): Promise<ExerciseSet[]> {
     // 기존 세트 삭제
     const { error: deleteError } = await supabase
@@ -89,7 +89,7 @@ export class SupabaseExerciseSetRepository implements IExerciseSetRepository {
   async updateCompletion(
     dayExerciseId: string,
     setOrder: number,
-    isCompleted: boolean
+    isCompleted: boolean,
   ): Promise<void> {
     const { error } = await supabase
       .from("exercise_sets")
@@ -109,7 +109,7 @@ export class SupabaseExerciseSetRepository implements IExerciseSetRepository {
   async updateActual(
     dayExerciseId: string,
     setOrder: number,
-    input: ExerciseSetActualInput
+    input: ExerciseSetActualInput,
   ): Promise<void> {
     const { error } = await supabase
       .from("exercise_sets")
@@ -128,7 +128,7 @@ export class SupabaseExerciseSetRepository implements IExerciseSetRepository {
 
   async updateAllCompletion(
     dayExerciseId: string,
-    isCompleted: boolean
+    isCompleted: boolean,
   ): Promise<void> {
     const { error } = await supabase
       .from("exercise_sets")
@@ -144,4 +144,3 @@ export class SupabaseExerciseSetRepository implements IExerciseSetRepository {
     }
   }
 }
-

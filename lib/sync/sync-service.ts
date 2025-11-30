@@ -1,8 +1,15 @@
-import { getLocalRepository, getSupabaseRepository } from "../repositories/factory";
-import type { ILocalRepository, IRepository } from "../repositories/types";
+import {
+  getLocalRepository,
+  getSupabaseRepository,
+} from "../repositories/factory";
 
 export interface SyncProgress {
-  phase: "exercises" | "trainingDays" | "dayExercises" | "exerciseSets" | "done";
+  phase:
+    | "exercises"
+    | "trainingDays"
+    | "dayExercises"
+    | "exerciseSets"
+    | "done";
   current: number;
   total: number;
 }
@@ -14,7 +21,7 @@ export type SyncProgressCallback = (progress: SyncProgress) => void;
  * FK 관계 순서: exercises → trainingDays → dayExercises → exerciseSets
  */
 export async function syncLocalToRemote(
-  onProgress?: SyncProgressCallback
+  onProgress?: SyncProgressCallback,
 ): Promise<{ success: boolean; error?: string }> {
   const localRepo = getLocalRepository();
   const remoteRepo = getSupabaseRepository();
@@ -62,7 +69,7 @@ export async function syncLocalToRemote(
       const trainingDay = pendingTrainingDays[i];
       // getOrCreate를 사용하여 중복 방지
       const created = await remoteRepo.trainingDay.getOrCreate(
-        trainingDay.trainingDate
+        trainingDay.trainingDate,
       );
       trainingDayIdMap.set(trainingDay.id, created.id);
       await localRepo.trainingDay.markAsSynced(trainingDay.id);
@@ -212,4 +219,3 @@ export async function getPendingDataCount(): Promise<{
       exerciseSets.length,
   };
 }
-

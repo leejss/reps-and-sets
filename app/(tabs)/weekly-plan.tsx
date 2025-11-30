@@ -8,6 +8,7 @@ import { getWeekdayFromDate } from "@/lib/utils";
 import {
   addWorkout,
   editWorkout,
+  loadWeeklyPlan,
   removeWorkout,
   useDataStore,
 } from "@/stores/data-store";
@@ -16,7 +17,8 @@ import {
   WeeklyPlanExercise,
   WeeklyWorkoutInput,
 } from "@/types/weekly-plan";
-import React, { useEffect, useMemo, useState } from "react";
+import { useFocusEffect } from "expo-router";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, ScrollView, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -48,15 +50,25 @@ export default function WeeklyPlanScreen() {
     formatLocalDateISO(new Date()),
   );
 
+  // 화면 진입 시 데이터 새로고침 (이미 데이터가 있으면 백그라운드 로드)
+  useFocusEffect(
+    useCallback(() => {
+      const hasData = weeklyPlan.sessionPlans.some(
+        (plan) => plan.exercises.length > 0,
+      );
+      loadWeeklyPlan(hasData); // hasData가 true면 silent 모드
+    }, [weeklyPlan.sessionPlans]),
+  );
+
   useEffect(() => {
     if (weeklyPlan.sessionPlans.length === 0) {
       return;
     }
     const exists = weeklyPlan.sessionPlans.some(
-      (plan) => plan.sessionDate === selectedDate,
+      (plan) => plan.trainingDate === selectedDate,
     );
     if (!exists) {
-      setSelectedDate(weeklyPlan.sessionPlans[0].sessionDate);
+      setSelectedDate(weeklyPlan.sessionPlans[0].trainingDate);
     }
   }, [weeklyPlan.sessionPlans, selectedDate]);
 
@@ -65,8 +77,9 @@ export default function WeeklyPlanScreen() {
       return null;
     }
     return (
-      weeklyPlan.sessionPlans.find((day) => day.sessionDate === selectedDate) ??
-      weeklyPlan.sessionPlans[0]
+      weeklyPlan.sessionPlans.find(
+        (day) => day.trainingDate === selectedDate,
+      ) ?? weeklyPlan.sessionPlans[0]
     );
   }, [weeklyPlan.sessionPlans, selectedDate]);
 
@@ -83,7 +96,7 @@ export default function WeeklyPlanScreen() {
     setEditorState({
       visible: true,
       mode: "create",
-      targetDate: activePlan.sessionDate,
+      targetDate: activePlan.trainingDate,
       workout: null,
     });
   };
@@ -93,7 +106,7 @@ export default function WeeklyPlanScreen() {
     setEditorState({
       visible: true,
       mode: "edit",
-      targetDate: activePlan.sessionDate,
+      targetDate: activePlan.trainingDate,
       workout,
     });
   };
@@ -131,7 +144,7 @@ export default function WeeklyPlanScreen() {
       if (!activePlan) {
         return;
       }
-      await removeWorkout(activePlan.sessionDate, workoutId);
+      await removeWorkout(activePlan.trainingDate, workoutId);
     } catch (err) {
       handleError("삭제 실패", err, "운동을 삭제하는 중 오류가 발생했습니다.");
     }
@@ -152,7 +165,7 @@ export default function WeeklyPlanScreen() {
         <SummaryHeader range={weeklyPlan.weekRange} />
         <DayCarousel
           sessionPlans={weeklyPlan.sessionPlans}
-          selectedDate={activePlan.sessionDate}
+          selectedDate={activePlan.trainingDate}
           onSelectDate={setSelectedDate}
         />
         <WorkoutBoard
@@ -172,14 +185,14 @@ export default function WeeklyPlanScreen() {
         dayLabel={(() => {
           const target =
             weeklyPlan.sessionPlans.find(
-              (day) => day.sessionDate === editorState.targetDate,
+              (day) => day.trainingDate === editorState.targetDate,
             ) ?? activePlan;
-          const weekday = getWeekdayFromDate(target.sessionDate);
+          const weekday = getWeekdayFromDate(target.trainingDate);
           return WEEKDAY_LABELS[weekday];
         })()}
         exercises={exercises}
         initialValues={
-          editorState.workout
+          editorState.workout && editorState.workout.exerciseId
             ? {
                 exerciseId: editorState.workout.exerciseId,
                 exerciseName: editorState.workout.exerciseName,

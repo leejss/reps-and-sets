@@ -14,17 +14,16 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 function RootNavigator() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  const isGuest = useAuthStore((state) => state.isGuest);
 
   return (
     <Stack>
       <Stack.Screen name="index" options={{ headerShown: false }} />
 
-      <Stack.Protected guard={!isAuthenticated && !isGuest}>
+      <Stack.Protected guard={!isAuthenticated}>
         <Stack.Screen name="login" options={{ headerShown: false }} />
       </Stack.Protected>
 
-      <Stack.Protected guard={isAuthenticated || isGuest}>
+      <Stack.Protected guard={isAuthenticated}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="workout-detail" options={{ headerShown: false }} />
 

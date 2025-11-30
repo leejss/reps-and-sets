@@ -61,18 +61,19 @@ export function TodayExerciseRegisterProvider({
   }, [numberOfSets]);
 
   useEffect(() => {
-    if (useUniformValues && sets.length > 0) {
+    if (useUniformValues) {
       const reps = parseInt(uniformReps) || 0;
       const weight = uniformWeight ? parseFloat(uniformWeight) : undefined;
-      setSets((prev) =>
-        prev.map((set) => ({
+      setSets((prev) => {
+        if (prev.length === 0) return prev;
+        return prev.map((set) => ({
           ...set,
           plannedReps: reps,
           plannedWeight: weight,
-        })),
-      );
+        }));
+      });
     }
-  }, [uniformReps, uniformWeight, useUniformValues, sets]);
+  }, [uniformReps, uniformWeight, useUniformValues]);
 
   const handleSetDetailChange = (
     index: number,

@@ -7,19 +7,14 @@ import { supabase } from "../../supabase";
 import { getAuthenticatedUser } from "../../utils";
 import type { ITrainingDayRepository } from "../types";
 
-/**
- * TODO: Supabase 마이그레이션 후 테이블/컬럼 이름 변경
- * workout_sessions → training_days
- * session_date → training_date
- */
-const TABLE_NAME = "workout_sessions" as const;
+const TABLE_NAME = "training_days" as const;
 
 /**
  * Supabase Row를 도메인 모델로 변환
  */
 function mapToTrainingDay(row: {
   id: string;
-  session_date: string;
+  training_date: string;
   title: string | null;
   status: string;
   created_at: string;
@@ -27,7 +22,7 @@ function mapToTrainingDay(row: {
 }): TrainingDay {
   return {
     id: row.id,
-    trainingDate: row.session_date,
+    trainingDate: row.training_date,
     title: row.title,
     status: row.status as TrainingStatus,
     createdAt: new Date(row.created_at),
@@ -43,7 +38,7 @@ export class SupabaseTrainingDayRepository implements ITrainingDayRepository {
       .from(TABLE_NAME)
       .select("*")
       .eq("user_id", user.id)
-      .eq("session_date", date)
+      .eq("training_date", date)
       .maybeSingle();
 
     if (error) {
@@ -64,9 +59,9 @@ export class SupabaseTrainingDayRepository implements ITrainingDayRepository {
       .from(TABLE_NAME)
       .select("*")
       .eq("user_id", user.id)
-      .gte("session_date", startDate)
-      .lte("session_date", endDate)
-      .order("session_date", { ascending: true });
+      .gte("training_date", startDate)
+      .lte("training_date", endDate)
+      .order("training_date", { ascending: true });
 
     if (error) {
       console.error("훈련일 범위 조회 실패:", error);
@@ -90,7 +85,7 @@ export class SupabaseTrainingDayRepository implements ITrainingDayRepository {
       .from(TABLE_NAME)
       .insert({
         user_id: user.id,
-        session_date: input.trainingDate,
+        training_date: input.trainingDate,
         title: input.title ?? null,
         status: input.status ?? "planned",
       })
@@ -112,7 +107,7 @@ export class SupabaseTrainingDayRepository implements ITrainingDayRepository {
     const updatePayload: Record<string, unknown> = {};
 
     if (input.trainingDate !== undefined) {
-      updatePayload.session_date = input.trainingDate;
+      updatePayload.training_date = input.trainingDate;
     }
     if (input.title !== undefined) {
       updatePayload.title = input.title;
