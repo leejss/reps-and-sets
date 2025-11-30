@@ -4,16 +4,17 @@ import { useEffect } from "react";
 
 export function Initializer() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const isGuest = useAuthStore((state) => state.isGuest);
 
   useEffect(() => {
     initializeAuth();
   }, []);
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated || isGuest) {
       loadInitialData();
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, isGuest]);
 
   return null;
 }

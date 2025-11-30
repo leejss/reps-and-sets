@@ -16,7 +16,7 @@ export const Routes = {
   TABS: "/(tabs)",
 
   // 운동 관련
-  WORKOUT_REGISTER: "/workout-register",
+  TODAY_EXERCISE_REGISTER: "/today-exercise-register",
   EXERCISE_DETAIL: "/exercise-detail",
 
   // 운동 종목 관련

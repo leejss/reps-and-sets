@@ -29,7 +29,7 @@ function RootNavigator() {
         <Stack.Screen name="workout-detail" options={{ headerShown: false }} />
 
         <Stack.Screen
-          name="workout-register"
+          name="today-exercise-register"
           options={{ presentation: "modal", headerShown: false }}
         />
         <Stack.Screen

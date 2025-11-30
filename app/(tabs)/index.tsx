@@ -13,7 +13,7 @@ export default function HomeScreen() {
   const todayExercises = useDataStore((state) => state.todayExercises);
   const colors = useColor();
   const navigateToRegister = () => {
-    router.push(Routes.WORKOUT_REGISTER);
+    router.push(Routes.TODAY_EXERCISE_REGISTER);
   };
 
   const navigateToDetail = (id: string) => {
