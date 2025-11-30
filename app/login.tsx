@@ -1,6 +1,6 @@
 import { useColor } from "@/constants/colors";
-import { signInWithEmail } from "@/stores/auth-store";
-import { Ionicons } from "@expo/vector-icons";
+import { signInWithEmail, signInWithGoogle } from "@/stores/auth-store";
+import { AntDesign, Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { router } from "expo-router";
 import React, { useCallback, useRef, useState } from "react";
@@ -46,6 +46,25 @@ export default function LoginScreen() {
       setIsLoading(false);
     }
   }, [email, password]);
+
+  const handleGoogleLogin = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const success = await signInWithGoogle();
+      if (success) {
+        router.replace(Routes.TABS);
+      }
+    } catch (error) {
+      Alert.alert(
+        "로그인 실패",
+        error instanceof Error
+          ? error.message
+          : "Google 로그인에 실패했습니다.",
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   return (
     <SafeAreaView
@@ -161,6 +180,48 @@ export default function LoginScreen() {
                 <Text style={styles.loginButtonText}>로그인</Text>
               )}
             </TouchableOpacity>
+
+            <View style={styles.dividerContainer}>
+              <View
+                style={[styles.dividerLine, { backgroundColor: colors.border }]}
+              />
+              <Text
+                style={[styles.dividerText, { color: colors.text.tertiary }]}
+              >
+                또는
+              </Text>
+              <View
+                style={[styles.dividerLine, { backgroundColor: colors.border }]}
+              />
+            </View>
+
+            <TouchableOpacity
+              style={[
+                styles.socialButton,
+                {
+                  backgroundColor: colors.input.background,
+                  borderColor: colors.border,
+                },
+              ]}
+              onPress={handleGoogleLogin}
+              disabled={isLoading}
+              activeOpacity={0.8}
+            >
+              <AntDesign
+                name="google"
+                size={20}
+                color={colors.text.primary}
+                style={styles.socialIcon}
+              />
+              <Text
+                style={[
+                  styles.socialButtonText,
+                  { color: colors.text.primary },
+                ]}
+              >
+                Google로 계속하기
+              </Text>
+            </TouchableOpacity>
           </Animated.View>
 
           {/* Footer Info */}
@@ -249,6 +310,34 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "700",
+  },
+  dividerContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 24,
+    gap: 12,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+  },
+  dividerText: {
+    fontSize: 14,
+  },
+  socialButton: {
+    flexDirection: "row",
+    height: 56,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+  },
+  socialIcon: {
+    marginRight: 12,
+  },
+  socialButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
   },
   footer: {
     marginTop: 48,
