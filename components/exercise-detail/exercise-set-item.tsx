@@ -3,12 +3,12 @@ import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 import { useColor } from "@/constants/colors";
-import type { WorkoutSet } from "@/lib/queries/workoutSets.query";
+import type { ExerciseSet } from "@/lib/models/exercise-set";
 import { getDisplayReps, getDisplayWeight } from "./utils";
 
 type WorkoutSetItemProps = {
   index: number;
-  set: WorkoutSet;
+  set: ExerciseSet;
   onToggle: () => void;
   onEdit: () => void;
 };
@@ -28,8 +28,8 @@ export const WorkoutSetItem = ({
       style={[
         styles.setCard,
         {
-          backgroundColor: set.completed ? colors.primary : colors.surface,
-          borderColor: set.completed ? colors.primary : colors.border,
+          backgroundColor: set.isCompleted ? colors.primary : colors.surface,
+          borderColor: set.isCompleted ? colors.primary : colors.border,
         },
       ]}
     >
@@ -44,7 +44,7 @@ export const WorkoutSetItem = ({
               style={[
                 styles.setNumber,
                 {
-                  color: set.completed
+                  color: set.isCompleted
                     ? colors.primarySurface
                     : colors.text.primary,
                 },
@@ -56,7 +56,7 @@ export const WorkoutSetItem = ({
               style={[
                 styles.setDetails,
                 {
-                  color: set.completed
+                  color: set.isCompleted
                     ? colors.primarySurface
                     : colors.text.secondary,
                 },
@@ -73,7 +73,7 @@ export const WorkoutSetItem = ({
               style={[
                 styles.editButton,
                 {
-                  backgroundColor: set.completed
+                  backgroundColor: set.isCompleted
                     ? "rgba(255, 255, 255, 0.2)"
                     : colors.tag.background,
                 },
@@ -84,7 +84,7 @@ export const WorkoutSetItem = ({
                 name="create-outline"
                 size={18}
                 color={
-                  set.completed ? colors.primarySurface : colors.text.secondary
+                  set.isCompleted ? colors.primarySurface : colors.text.secondary
                 }
               />
             </TouchableOpacity>
@@ -92,16 +92,16 @@ export const WorkoutSetItem = ({
               style={[
                 styles.checkIcon,
                 {
-                  backgroundColor: set.completed
+                  backgroundColor: set.isCompleted
                     ? "rgba(255, 255, 255, 0.2)"
                     : colors.tag.background,
-                  borderColor: set.completed
+                  borderColor: set.isCompleted
                     ? "rgba(255, 255, 255, 0.3)"
                     : colors.input.border,
                 },
               ]}
             >
-              {set.completed && (
+              {set.isCompleted && (
                 <Ionicons
                   name="checkmark"
                   size={24}

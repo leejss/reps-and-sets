@@ -1,18 +1,20 @@
-import { EditSetModal } from "@/components/workout-detail/edit-set-modal";
+import { EditSetModal } from "@/components/exercise-detail/edit-set-modal";
 import type {
   EditableField,
   EditingState,
-} from "@/components/workout-detail/types";
+} from "@/components/exercise-detail/types";
 import {
   getDisplayReps,
   getDisplayWeight,
-} from "@/components/workout-detail/utils";
-import { WorkoutInfoCard } from "@/components/workout-detail/workout-info-card";
-import { WorkoutSetItem } from "@/components/workout-detail/workout-set-item";
+} from "@/components/exercise-detail/utils";
+import { WorkoutInfoCard } from "@/components/exercise-detail/workout-info-card";
+import { WorkoutSetItem } from "@/components/exercise-detail/workout-set-item";
 import { useColor } from "@/constants/colors";
+import type { DayExerciseWithDetails } from "@/lib/models/day-exercise";
+import type { ExerciseSet } from "@/lib/models/exercise-set";
 import {
+  toggleExerciseComplete,
   toggleSetComplete,
-  toggleWorkoutComplete,
   updateSetDetails,
   useDataStore,
 } from "@/stores/data-store";
@@ -27,11 +29,9 @@ import {
   View,
 } from "react-native";
 
-export default function WorkoutDetailScreen() {
+export default function ExerciseDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const todaySessionExercises = useDataStore(
-    (state) => state.todaySessionExercises,
-  );
+  const todayExercises = useDataStore((state) => state.todayExercises);
   const colors = useColor();
   const [editingState, setEditingState] = useState<EditingState>({
     index: null,
@@ -39,11 +39,10 @@ export default function WorkoutDetailScreen() {
     weight: "",
   });
 
-  const currentSessionExercises = todaySessionExercises.find(
-    (w) => w.id === id,
-  );
+  const currentExercise: DayExerciseWithDetails | undefined =
+    todayExercises.find((w: DayExerciseWithDetails) => w.id === id);
 
-  if (!currentSessionExercises) {
+  if (!currentExercise) {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.header}>
@@ -61,11 +60,11 @@ export default function WorkoutDetailScreen() {
     );
   }
 
-  const completedCount = currentSessionExercises.sets.filter(
-    (s) => s.completed,
+  const completedCount = currentExercise.sets.filter(
+    (s: ExerciseSet) => s.isCompleted,
   ).length;
 
-  const currentSetsCount = currentSessionExercises.sets.length;
+  const currentSetsCount = currentExercise.sets.length;
   const progressPercentage =
     currentSetsCount === 0 ? 0 : (completedCount / currentSetsCount) * 100;
 
@@ -84,7 +83,7 @@ export default function WorkoutDetailScreen() {
   };
 
   const handleEditSet = (index: number) => {
-    const set = currentSessionExercises.sets[index];
+    const set = currentExercise.sets[index];
     const reps = getDisplayReps(set);
     const weight = getDisplayWeight(set);
     setEditingState({
@@ -102,7 +101,7 @@ export default function WorkoutDetailScreen() {
         : undefined;
       try {
         await updateSetDetails(
-          currentSessionExercises.id,
+          currentExercise.id,
           editingState.index,
           reps,
           weight,
@@ -138,8 +137,8 @@ export default function WorkoutDetailScreen() {
         contentContainerStyle={styles.contentContainer}
       >
         <WorkoutInfoCard
-          exerciseName={currentSessionExercises.exerciseName}
-          targetMuscleGroup={currentSessionExercises.targetMuscleGroup}
+          exerciseName={currentExercise.exerciseName}
+          targetMuscleGroup={currentExercise.targetMuscleGroup}
           totalSets={currentSetsCount}
           completedSets={completedCount}
           progressPercentage={progressPercentage}
@@ -150,15 +149,15 @@ export default function WorkoutDetailScreen() {
           세트
         </Text>
         <View style={styles.setsList}>
-          {currentSessionExercises.sets.map((set, index) => (
+          {currentExercise.sets.map((set: ExerciseSet, index: number) => (
             <WorkoutSetItem
-              key={`${currentSessionExercises.id}-${index}`}
+              key={`${currentExercise.id}-${index}`}
               index={index}
               set={set}
               onEdit={() => handleEditSet(index)}
               onToggle={async () => {
                 try {
-                  await toggleSetComplete(currentSessionExercises.id, index);
+                  await toggleSetComplete(currentExercise.id, index);
                 } catch (error) {
                   console.error("세트 완료 토글 실패:", error);
                 }
@@ -170,7 +169,7 @@ export default function WorkoutDetailScreen() {
         <TouchableOpacity
           onPress={async () => {
             try {
-              await toggleWorkoutComplete(currentSessionExercises.id);
+              await toggleExerciseComplete(currentExercise.id);
             } catch (error) {
               console.error("운동 완료 토글 실패:", error);
             }
@@ -178,10 +177,10 @@ export default function WorkoutDetailScreen() {
           style={[
             styles.completeButton,
             {
-              backgroundColor: currentSessionExercises.completed
+              backgroundColor: currentExercise.isCompleted
                 ? colors.tag.background
                 : colors.primary,
-              borderColor: currentSessionExercises.completed
+              borderColor: currentExercise.isCompleted
                 ? colors.input.border
                 : colors.primary,
             },
@@ -191,7 +190,7 @@ export default function WorkoutDetailScreen() {
           <Text
             style={[styles.completeButtonText, { color: colors.text.primary }]}
           >
-            {currentSessionExercises.completed ? "초기화" : "모든 세트 완료"}
+            {currentExercise.isCompleted ? "초기화" : "모든 세트 완료"}
           </Text>
         </TouchableOpacity>
       </ScrollView>
