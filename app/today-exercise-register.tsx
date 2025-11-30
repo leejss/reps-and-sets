@@ -1,6 +1,6 @@
-import { WorkoutRegisterProvider } from "@/components/workout-register/context";
+import { TodayExerciseRegisterProvider } from "@/components/workout-register/context";
 import { ExerciseSelector } from "@/components/workout-register/exercise-selector";
-import { WorkoutRegisterFooter } from "@/components/workout-register/footer";
+import { TodayExerciseRegisterFooter } from "@/components/workout-register/footer";
 import { SetConfiguration } from "@/components/workout-register/set-configuration";
 import { useColor } from "@/constants/colors";
 import { Ionicons } from "@expo/vector-icons";
@@ -14,7 +14,7 @@ import {
   View,
 } from "react-native";
 
-function WorkoutRegisterContent() {
+function TodayExerciseRegisterContent() {
   const colors = useColor();
 
   return (
@@ -49,16 +49,16 @@ function WorkoutRegisterContent() {
         <ExerciseSelector />
         <SetConfiguration />
       </ScrollView>
-      <WorkoutRegisterFooter />
+      <TodayExerciseRegisterFooter />
     </View>
   );
 }
 
-export default function WorkoutRegisterScreen() {
+export default function TodayExerciseRegisterScreen() {
   return (
-    <WorkoutRegisterProvider>
-      <WorkoutRegisterContent />
-    </WorkoutRegisterProvider>
+    <TodayExerciseRegisterProvider>
+      <TodayExerciseRegisterContent />
+    </TodayExerciseRegisterProvider>
   );
 }
 

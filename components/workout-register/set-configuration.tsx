@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useWorkoutRegister } from "./context";
+import { useTodayExerciseRegister } from "./context";
 
 export function SetConfiguration() {
   const colors = useColor();
@@ -24,7 +24,7 @@ export function SetConfiguration() {
     uniformWeight,
     setUniformWeight,
     handleSetDetailChange,
-  } = useWorkoutRegister();
+  } = useTodayExerciseRegister();
 
   if (!selectedExerciseId) {
     return null;

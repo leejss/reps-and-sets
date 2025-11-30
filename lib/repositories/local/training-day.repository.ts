@@ -1,4 +1,8 @@
-import type { TrainingDay, TrainingDayInput, TrainingStatus } from "../../models/training-day";
+import type {
+  TrainingDay,
+  TrainingDayInput,
+  TrainingStatus,
+} from "../../models/training-day";
 import type { ILocalTrainingDayRepository, Syncable } from "../types";
 import { generateUUID, getDatabase, nowISO } from "./database";
 
@@ -29,21 +33,21 @@ export class LocalTrainingDayRepository implements ILocalTrainingDayRepository {
     const db = await getDatabase();
     const row = await db.getFirstAsync<TrainingDayRow>(
       "SELECT * FROM training_days WHERE training_date = ?",
-      [date]
+      [date],
     );
     return row ? mapToTrainingDay(row) : null;
   }
 
   async findByDateRange(
     startDate: string,
-    endDate: string
+    endDate: string,
   ): Promise<TrainingDay[]> {
     const db = await getDatabase();
     const rows = await db.getAllAsync<TrainingDayRow>(
       `SELECT * FROM training_days 
        WHERE training_date >= ? AND training_date <= ? 
        ORDER BY training_date ASC`,
-      [startDate, endDate]
+      [startDate, endDate],
     );
     return rows.map(mapToTrainingDay);
   }
@@ -71,7 +75,7 @@ export class LocalTrainingDayRepository implements ILocalTrainingDayRepository {
         input.status ?? "planned",
         now,
         now,
-      ]
+      ],
     );
 
     const created = await this.findByDate(input.trainingDate);
@@ -81,7 +85,7 @@ export class LocalTrainingDayRepository implements ILocalTrainingDayRepository {
 
   async update(
     id: string,
-    input: Partial<TrainingDayInput>
+    input: Partial<TrainingDayInput>,
   ): Promise<TrainingDay> {
     const db = await getDatabase();
     const now = nowISO();
@@ -107,12 +111,12 @@ export class LocalTrainingDayRepository implements ILocalTrainingDayRepository {
 
     await db.runAsync(
       `UPDATE training_days SET ${sets.join(", ")} WHERE id = ?`,
-      values
+      values,
     );
 
     const row = await db.getFirstAsync<TrainingDayRow>(
       "SELECT * FROM training_days WHERE id = ?",
-      [id]
+      [id],
     );
     if (!row) throw new Error("훈련일 수정 실패");
     return mapToTrainingDay(row);
@@ -127,7 +131,7 @@ export class LocalTrainingDayRepository implements ILocalTrainingDayRepository {
   async findAllPending(): Promise<(TrainingDay & Syncable)[]> {
     const db = await getDatabase();
     const rows = await db.getAllAsync<TrainingDayRow>(
-      "SELECT * FROM training_days WHERE sync_status = 'pending' ORDER BY created_at ASC"
+      "SELECT * FROM training_days WHERE sync_status = 'pending' ORDER BY created_at ASC",
     );
     return rows.map(mapToTrainingDay);
   }
@@ -136,7 +140,7 @@ export class LocalTrainingDayRepository implements ILocalTrainingDayRepository {
     const db = await getDatabase();
     await db.runAsync(
       "UPDATE training_days SET sync_status = 'synced' WHERE id = ?",
-      [id]
+      [id],
     );
   }
 
@@ -145,4 +149,3 @@ export class LocalTrainingDayRepository implements ILocalTrainingDayRepository {
     await db.runAsync("DELETE FROM training_days WHERE sync_status = 'synced'");
   }
 }
-

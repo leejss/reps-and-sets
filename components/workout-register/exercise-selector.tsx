@@ -4,12 +4,13 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { useWorkoutRegister } from "./context";
+import { useTodayExerciseRegister } from "./context";
 
 export function ExerciseSelector() {
   const exercises = useDataStore((state) => state.exercises);
   const colors = useColor();
-  const { selectedExerciseId, setSelectedExerciseId } = useWorkoutRegister();
+  const { selectedExerciseId, setSelectedExerciseId } =
+    useTodayExerciseRegister();
 
   const toggleExercise = (exerciseId: string) => {
     if (selectedExerciseId === exerciseId) {

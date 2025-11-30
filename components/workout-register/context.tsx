@@ -1,3 +1,4 @@
+import { ExerciseSet } from "@/lib/models/exercise-set";
 import React, {
   createContext,
   ReactNode,
@@ -6,20 +7,13 @@ import React, {
   useState,
 } from "react";
 
-interface WorkoutSet {
-  setOrder: number;
-  plannedReps?: number;
-  plannedWeight?: number;
-  completed: boolean;
-}
-
-interface WorkoutRegisterContextType {
+interface TodayExerciseRegisterContextType {
   selectedExerciseId: string | null;
   setSelectedExerciseId: (id: string | null) => void;
   numberOfSets: string;
   setNumberOfSets: (value: string) => void;
-  workoutSetList: WorkoutSet[];
-  setWorkoutSetList: React.Dispatch<React.SetStateAction<WorkoutSet[]>>;
+  sets: ExerciseSet[];
+  setSets: React.Dispatch<React.SetStateAction<ExerciseSet[]>>;
   useUniformValues: boolean;
   setUseUniformValues: (value: boolean) => void;
   uniformReps: string;
@@ -34,16 +28,20 @@ interface WorkoutRegisterContextType {
   resetState: () => void;
 }
 
-const WorkoutRegisterContext = createContext<
-  WorkoutRegisterContextType | undefined
+const TodayExerciseRegisterContext = createContext<
+  TodayExerciseRegisterContextType | undefined
 >(undefined);
 
-export function WorkoutRegisterProvider({ children }: { children: ReactNode }) {
+export function TodayExerciseRegisterProvider({
+  children,
+}: {
+  children: ReactNode;
+}) {
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(
     null,
   );
   const [numberOfSets, setNumberOfSets] = useState("");
-  const [workoutSetList, setWorkoutSetList] = useState<WorkoutSet[]>([]);
+  const [sets, setSets] = useState<ExerciseSet[]>([]);
   const [useUniformValues, setUseUniformValues] = useState(false);
   const [uniformReps, setUniformReps] = useState("");
   const [uniformWeight, setUniformWeight] = useState("");
@@ -51,24 +49,22 @@ export function WorkoutRegisterProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const numSets = parseInt(numberOfSets);
     if (numSets > 0 && numSets <= 20) {
-      setWorkoutSetList(
+      setSets(
         Array.from({ length: numSets }, (_, index) => ({
           setOrder: index,
-          plannedReps: 0,
-          plannedWeight: undefined,
-          completed: false,
+          isCompleted: false,
         })),
       );
     } else {
-      setWorkoutSetList([]);
+      setSets([]);
     }
   }, [numberOfSets]);
 
   useEffect(() => {
-    if (useUniformValues && workoutSetList.length > 0) {
+    if (useUniformValues && sets.length > 0) {
       const reps = parseInt(uniformReps) || 0;
       const weight = uniformWeight ? parseFloat(uniformWeight) : undefined;
-      setWorkoutSetList((prev) =>
+      setSets((prev) =>
         prev.map((set) => ({
           ...set,
           plannedReps: reps,
@@ -76,15 +72,14 @@ export function WorkoutRegisterProvider({ children }: { children: ReactNode }) {
         })),
       );
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [uniformReps, uniformWeight, useUniformValues]);
+  }, [uniformReps, uniformWeight, useUniformValues, sets]);
 
   const handleSetDetailChange = (
     index: number,
     field: "reps" | "weight",
     value: string,
   ) => {
-    const newSetDetails = [...workoutSetList];
+    const newSetDetails = [...sets];
     if (field === "reps") {
       newSetDetails[index].plannedReps = parseInt(value) || 0;
     } else {
@@ -92,27 +87,27 @@ export function WorkoutRegisterProvider({ children }: { children: ReactNode }) {
         ? parseFloat(value)
         : undefined;
     }
-    setWorkoutSetList(newSetDetails);
+    setSets(newSetDetails);
   };
 
   const resetState = () => {
     setSelectedExerciseId(null);
     setNumberOfSets("");
-    setWorkoutSetList([]);
+    setSets([]);
     setUseUniformValues(true);
     setUniformReps("");
     setUniformWeight("");
   };
 
   return (
-    <WorkoutRegisterContext.Provider
+    <TodayExerciseRegisterContext.Provider
       value={{
         selectedExerciseId,
         setSelectedExerciseId,
         numberOfSets,
         setNumberOfSets,
-        workoutSetList,
-        setWorkoutSetList,
+        sets,
+        setSets,
         useUniformValues,
         setUseUniformValues,
         uniformReps,
@@ -124,12 +119,12 @@ export function WorkoutRegisterProvider({ children }: { children: ReactNode }) {
       }}
     >
       {children}
-    </WorkoutRegisterContext.Provider>
+    </TodayExerciseRegisterContext.Provider>
   );
 }
 
-export function useWorkoutRegister() {
-  const context = useContext(WorkoutRegisterContext);
+export function useTodayExerciseRegister() {
+  const context = useContext(TodayExerciseRegisterContext);
   if (context === undefined) {
     throw new Error(
       "useWorkoutRegister must be used within a WorkoutRegisterProvider",

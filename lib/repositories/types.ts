@@ -2,14 +2,14 @@ import type {
   DayExercise,
   DayExerciseInput,
   DayExerciseWithDetails,
-  Exercise,
-  ExerciseInput,
+} from "../models/day-exercise";
+import type { Exercise, ExerciseInput } from "../models/exercise";
+import type {
   ExerciseSet,
   ExerciseSetActualInput,
   ExerciseSetPlanInput,
-  TrainingDay,
-  TrainingDayInput,
-} from "../models";
+} from "../models/exercise-set";
+import type { TrainingDay, TrainingDayInput } from "../models/training-day";
 
 /**
  * 동기화 상태
@@ -62,10 +62,7 @@ export interface ITrainingDayRepository {
   create(input: TrainingDayInput): Promise<TrainingDay>;
 
   /** 훈련일 수정 */
-  update(
-    id: string,
-    input: Partial<TrainingDayInput>,
-  ): Promise<TrainingDay>;
+  update(id: string, input: Partial<TrainingDayInput>): Promise<TrainingDay>;
 
   /** 훈련일 삭제 */
   delete(id: string): Promise<void>;
@@ -83,7 +80,9 @@ export interface IDayExerciseRepository {
   findByDateRange(
     startDate: string,
     endDate: string,
-  ): Promise<{ trainingDay: TrainingDay; exercises: DayExerciseWithDetails[] }[]>;
+  ): Promise<
+    { trainingDay: TrainingDay; exercises: DayExerciseWithDetails[] }[]
+  >;
 
   /** 일별 운동 생성 */
   create(input: DayExerciseInput): Promise<DayExercise>;
@@ -136,7 +135,10 @@ export interface IExerciseSetRepository {
   ): Promise<void>;
 
   /** 일별 운동의 모든 세트 완료 상태 일괄 업데이트 */
-  updateAllCompletion(dayExerciseId: string, isCompleted: boolean): Promise<void>;
+  updateAllCompletion(
+    dayExerciseId: string,
+    isCompleted: boolean,
+  ): Promise<void>;
 }
 
 // ============================================================
@@ -189,4 +191,3 @@ export interface ILocalRepository {
   dayExercise: ILocalDayExerciseRepository;
   exerciseSet: ILocalExerciseSetRepository;
 }
-

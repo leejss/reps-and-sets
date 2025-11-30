@@ -1,31 +1,28 @@
 import { useColor } from "@/constants/colors";
 import { formatLocalDateISO } from "@/lib/date";
-import { addTodaySessionExercise, useDataStore } from "@/stores/data-store";
+import { addTodayExercise, useDataStore } from "@/stores/data-store";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useWorkoutRegister } from "./context";
+import { useTodayExerciseRegister } from "./context";
 
-export function WorkoutRegisterFooter() {
+export function TodayExerciseRegisterFooter() {
   const insets = useSafeAreaInsets();
   const colors = useColor();
   const exercises = useDataStore((state) => state.exercises);
-  const { selectedExerciseId, workoutSetList, resetState } =
-    useWorkoutRegister();
+  const { selectedExerciseId, sets, resetState } = useTodayExerciseRegister();
 
   const selectedExercise = exercises.find((e) => e.id === selectedExerciseId);
 
   const handleSubmit = async () => {
-    if (!selectedExercise || workoutSetList.length === 0) {
+    if (!selectedExercise || sets.length === 0) {
       return;
     }
 
     // 최소한 하나의 세트에 reps가 입력되어야 함
-    const hasValidSet = workoutSetList.some(
-      (set) => (set.plannedReps ?? 0) > 0,
-    );
+    const hasValidSet = sets.some((set) => (set.plannedReps ?? 0) > 0);
 
     if (!hasValidSet) {
       return;
@@ -33,12 +30,12 @@ export function WorkoutRegisterFooter() {
 
     try {
       const today = formatLocalDateISO(new Date());
-      await addTodaySessionExercise({
+      await addTodayExercise({
         date: today,
         exerciseId: selectedExercise.id,
         exerciseName: selectedExercise.name,
         targetMuscleGroup: selectedExercise.targetMuscleGroup,
-        workoutSetList: workoutSetList,
+        sets,
       });
 
       resetState();
@@ -69,16 +66,14 @@ export function WorkoutRegisterFooter() {
           {
             backgroundColor: colors.button.primary.background,
             opacity:
-              workoutSetList.length === 0 ||
-              !workoutSetList.some((s) => (s.plannedReps ?? 0) > 0)
+              sets.length === 0 || !sets.some((s) => (s.plannedReps ?? 0) > 0)
                 ? 0.5
                 : 1,
           },
         ]}
         onPress={handleSubmit}
         disabled={
-          workoutSetList.length === 0 ||
-          !workoutSetList.some((s) => (s.plannedReps ?? 0) > 0)
+          sets.length === 0 || !sets.some((s) => (s.plannedReps ?? 0) > 0)
         }
         activeOpacity={0.8}
       >

@@ -22,13 +22,13 @@ const iosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
 
 if (!webClientId) {
   throw new Error(
-    "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID가 설정되지 않았습니다. app.config.ts 혹은 환경변수를 확인해주세요."
+    "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID가 설정되지 않았습니다. app.config.ts 혹은 환경변수를 확인해주세요.",
   );
 }
 
 if (!iosClientId) {
   throw new Error(
-    "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID가 설정되지 않았습니다. app.config.ts 혹은 환경변수를 확인해주세요."
+    "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID가 설정되지 않았습니다. app.config.ts 혹은 환경변수를 확인해주세요.",
   );
 }
 
@@ -45,6 +45,7 @@ export const useAuthStore = create(
   combine(
     {
       isAuthenticated: false,
+      isGuest: false, // 게스트 모드 여부 추가
       isLoading: true,
       session: null as Session | null,
       user: null as User | null,
@@ -64,6 +65,7 @@ export const useAuthStore = create(
             set({
               session: null,
               isAuthenticated: false,
+              isGuest: false,
               user: null,
               profile: null,
             });
@@ -74,6 +76,7 @@ export const useAuthStore = create(
           set({
             session,
             isAuthenticated: true,
+            isGuest: false,
             user: session.user,
             profile,
           });
@@ -84,6 +87,7 @@ export const useAuthStore = create(
                 set({
                   session: null,
                   isAuthenticated: false,
+                  isGuest: false,
                   user: null,
                   profile: null,
                 });
@@ -95,6 +99,7 @@ export const useAuthStore = create(
               set({
                 session,
                 isAuthenticated: true,
+                isGuest: false,
                 user: session.user,
                 profile,
               });
@@ -208,6 +213,7 @@ export const useAuthStore = create(
             await get().syncData();
           }
 
+          set({ isGuest: false }); // 로그인 시 게스트 모드 해제
           return true;
         } catch (error: unknown) {
           // Google Sign-In 에러 핸들링
@@ -242,19 +248,18 @@ export const useAuthStore = create(
           if (hasPendingData) {
             await get().syncData();
           }
+
+          set({ isGuest: false }); // 로그인 시 게스트 모드 해제
         } catch (error) {
           console.error("이메일 로그인 실패:", error);
           throw error;
         }
       },
 
-      /**
-       * 비로그인 모드로 시작
-       * 로컬 저장소를 사용하여 앱 사용 가능
-       */
       continueAsGuest: () => {
         set({
           isAuthenticated: false,
+          isGuest: true, // 게스트 모드 활성화
           isLoading: false,
           session: null,
           user: null,
@@ -281,10 +286,11 @@ export const useAuthStore = create(
           syncProgress: null,
           syncError: null,
           pendingDataCount: 0,
+          isGuest: false, // 로그아웃 시 게스트 모드도 해제
         });
       },
-    })
-  )
+    }),
+  ),
 );
 
 export const getAuthStore = () => useAuthStore.getState();
@@ -292,6 +298,7 @@ export const getAuthStore = () => useAuthStore.getState();
 export const initializeAuth = useAuthStore.getState().initializeAuth;
 
 export const isAuthenticated = () => useAuthStore.getState().isAuthenticated;
+export const isGuest = () => useAuthStore.getState().isGuest;
 
 export const signInWithGoogle = useAuthStore.getState().signInWithGoogle;
 

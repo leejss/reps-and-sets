@@ -1,5 +1,5 @@
 import { useColor } from "@/constants/colors";
-import { signInWithEmail, signInWithGoogle } from "@/stores/auth-store";
+import { continueAsGuest, signInWithEmail } from "@/stores/auth-store";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { router } from "expo-router";
@@ -33,19 +33,15 @@ export default function LoginScreen() {
   const colors = useColor();
   const passwordInputRef = useRef<TextInput>(null);
 
-  const handleGoogleLogin = useCallback(async () => {
-    setIsLoading(true);
+  // 게스트 모드로 시작하기
+  const handleGuestLogin = useCallback(() => {
     try {
-      const loggedIn = await signInWithGoogle();
-      if (loggedIn) {
-        router.replace(Routes.TABS);
-      }
+      setIsLoading(true);
+      continueAsGuest();
+      router.replace(Routes.TABS);
     } catch (error) {
-      Alert.alert(
-        "Google 로그인 실패",
-        error instanceof Error ? error.message : "로그인에 실패했습니다.",
-      );
-    } finally {
+      console.error(error);
+      Alert.alert("오류", "게스트 모드로 진입하는 중 문제가 발생했습니다.");
       setIsLoading(false);
     }
   }, []);
@@ -101,7 +97,7 @@ export default function LoginScreen() {
               Reps & Sets
             </Text>
             <Text style={[styles.subtitle, { color: colors.text.secondary }]}>
-              나만의 운동 루틴을 기록하고{"\n"}더 나은 내일을 만들어보세요
+              운동의 시작,{"\n"}지금 바로 기록해보세요
             </Text>
           </Animated.View>
 
@@ -109,48 +105,45 @@ export default function LoginScreen() {
           <Animated.View
             entering={FadeInDown.delay(300).springify()}
             style={styles.actionContainer}
+            layout={LinearTransition.springify()}
           >
-            {/* Google Login Button */}
-            <TouchableOpacity
-              style={[
-                styles.socialButton,
-                styles.googleButton,
-                {
-                  opacity: isLoading ? 0.7 : 1,
-                  shadowColor: colors.shadow,
-                },
-              ]}
-              onPress={handleGoogleLogin}
-              disabled={isLoading}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="logo-google" size={24} color="#4285F4" />
-              <Text style={styles.socialButtonText}>Google로 시작하기</Text>
-            </TouchableOpacity>
-
-            {/* Divider */}
-            <View style={styles.divider}>
-              <View
-                style={[styles.dividerLine, { backgroundColor: colors.border }]}
-              />
-              <Text
-                style={[styles.dividerText, { color: colors.text.tertiary }]}
+            {/* Primary Action: Guest Mode */}
+            {!showEmailLogin && (
+              <TouchableOpacity
+                style={[
+                  styles.primaryButton,
+                  {
+                    backgroundColor: colors.button.primary.background,
+                    shadowColor: colors.button.primary.background,
+                  },
+                ]}
+                onPress={handleGuestLogin}
+                disabled={isLoading}
+                activeOpacity={0.8}
               >
-                또는
-              </Text>
-              <View
-                style={[styles.dividerLine, { backgroundColor: colors.border }]}
-              />
-            </View>
+                {isLoading ? (
+                  <ActivityIndicator color="#FFF" />
+                ) : (
+                  <>
+                    <Text style={styles.primaryButtonText}>
+                      비회원으로 시작하기
+                    </Text>
+                    <Ionicons name="arrow-forward" size={20} color="#FFF" />
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
 
-            {/* Email Login Toggle */}
+            {/* Secondary Action: Toggle Email Login */}
             <TouchableOpacity
               style={[
-                styles.emailToggle,
+                styles.secondaryButton,
                 {
                   backgroundColor: showEmailLogin
                     ? colors.surface
                     : "transparent",
+                  borderColor: showEmailLogin ? "transparent" : colors.border,
+                  marginTop: showEmailLogin ? 0 : 16,
                 },
               ]}
               onPress={toggleEmailLogin}
@@ -158,16 +151,16 @@ export default function LoginScreen() {
             >
               <Text
                 style={[
-                  styles.emailToggleText,
-                  { color: colors.text.secondary },
+                  styles.secondaryButtonText,
+                  { color: colors.text.primary },
                 ]}
               >
-                이메일로 로그인
+                {showEmailLogin ? "이메일 로그인 닫기" : "이메일로 로그인"}
               </Text>
               <Ionicons
-                name={showEmailLogin ? "chevron-up" : "chevron-down"}
-                size={16}
-                color={colors.text.secondary}
+                name={showEmailLogin ? "chevron-up" : "mail-outline"}
+                size={18}
+                color={colors.text.primary}
               />
             </TouchableOpacity>
 
@@ -267,8 +260,7 @@ export default function LoginScreen() {
             style={styles.footer}
           >
             <Text style={[styles.footerText, { color: colors.text.tertiary }]}>
-              로그인하면 이용약관 및 개인정보처리방침에{"\n"}동의하는 것으로
-              간주합니다.
+              Reps & Sets는 여러분의 건강한 운동 습관을 응원합니다.
             </Text>
           </Animated.View>
         </ScrollView>
@@ -291,13 +283,13 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: "center",
-    marginBottom: 40,
+    marginBottom: 48,
   },
   logo: {
-    width: 80,
-    height: 80,
+    width: 96,
+    height: 96,
     marginBottom: 24,
-    borderRadius: 20,
+    borderRadius: 24,
   },
   title: {
     fontSize: 32,
@@ -309,68 +301,49 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: "center",
     lineHeight: 24,
+    opacity: 0.8,
   },
   actionContainer: {
     width: "100%",
+    gap: 12,
   },
-  socialButton: {
+  primaryButton: {
+    height: 58,
+    borderRadius: 18,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 8,
+    marginBottom: 8,
+  },
+  primaryButtonText: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+  secondaryButton: {
     height: 56,
     borderRadius: 16,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 12,
-    backgroundColor: "#FFFFFF",
+    gap: 8,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-    marginBottom: 24,
   },
-  socialButtonText: {
+  secondaryButtonText: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#1F1F1F",
-  },
-  googleButton: {
-    // Specific Google styles if needed
-  },
-  divider: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 24,
-    gap: 16,
-    paddingHorizontal: 8,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    opacity: 0.5,
-  },
-  dividerText: {
-    fontSize: 14,
-    fontWeight: "500",
-  },
-  emailToggle: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 12,
-    gap: 6,
-    borderRadius: 8,
-    marginBottom: 12,
-  },
-  emailToggleText: {
-    fontSize: 14,
-    fontWeight: "500",
   },
   formContainer: {
     marginTop: 8,
+    backgroundColor: "transparent",
   },
   inputWrapper: {
-    gap: 16,
+    gap: 12,
     marginBottom: 24,
   },
   inputContainer: {
@@ -405,12 +378,13 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   footer: {
-    marginTop: 40,
+    marginTop: 48,
     alignItems: "center",
   },
   footerText: {
-    fontSize: 12,
+    fontSize: 13,
     textAlign: "center",
-    lineHeight: 18,
+    lineHeight: 20,
+    opacity: 0.6,
   },
 });

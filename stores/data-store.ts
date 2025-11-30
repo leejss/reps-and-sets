@@ -25,11 +25,7 @@ function getRepo(): IRepository {
   return getRepository(isAuthenticated);
 }
 
-/**
- * 리포지토리 실행을 위한 고차 함수 (Helper)
- * 반복되는 try-catch, 에러 로깅, 롤백 처리를 중앙화합니다.
- */
-async function executeWithRepo<T>(
+async function execute<T>(
   action: (repo: IRepository) => Promise<T>,
   options: {
     errorMessage?: string;
@@ -139,7 +135,7 @@ export const useDataStore = create(
     (set, get) => ({
       refreshExercises: async () => {
         set({ isLoadingExercises: true });
-        await executeWithRepo(
+        await execute(
           async (repo) => {
             const data = await repo.exercise.findAll();
             set({ exercises: data });
@@ -153,7 +149,7 @@ export const useDataStore = create(
       },
 
       loadInitialData: async () => {
-        await executeWithRepo(
+        await execute(
           async (repo) => {
             const today = new Date();
             const todayISO = formatLocalDateISO(today);
@@ -206,7 +202,7 @@ export const useDataStore = create(
         }));
 
         // 2. 리포지토리 실행
-        await executeWithRepo(
+        await execute(
           async (repo) => {
             const newExercise = await repo.exercise.create(exercise);
             set((state) => ({
@@ -237,7 +233,7 @@ export const useDataStore = create(
           ),
         }));
 
-        await executeWithRepo(
+        await execute(
           async (repo) => {
             await repo.exercise.update(id, exercise);
           },
@@ -255,7 +251,7 @@ export const useDataStore = create(
           exercises: state.exercises.filter((e) => e.id !== id),
         }));
 
-        await executeWithRepo(
+        await execute(
           async (repo) => {
             await repo.exercise.delete(id);
           },
@@ -293,7 +289,7 @@ export const useDataStore = create(
           todayExercises: [tempExercise, ...state.todayExercises],
         }));
 
-        await executeWithRepo(
+        await execute(
           async (repo) => {
             // 훈련일 조회 또는 생성
             const trainingDay = await repo.trainingDay.getOrCreate(input.date);
@@ -324,6 +320,7 @@ export const useDataStore = create(
             const exercises = await repo.dayExercise.findByTrainingDayId(
               trainingDay.id,
             );
+
             const created = exercises.find((e) => e.id === dayExercise.id);
 
             if (!created) {
@@ -372,7 +369,7 @@ export const useDataStore = create(
 
         set({ todayExercises: updatedExercises });
 
-        await executeWithRepo(
+        await execute(
           async (repo) => {
             const exercise = updatedExercises.find((w) => w.id === id);
             if (exercise) {
@@ -413,7 +410,7 @@ export const useDataStore = create(
 
         set({ todayExercises: updatedExercises });
 
-        await executeWithRepo(
+        await execute(
           async (repo) => {
             const exercise = updatedExercises.find(
               (w) => w.id === dayExerciseId,
@@ -461,7 +458,7 @@ export const useDataStore = create(
 
         set({ todayExercises: updatedExercises });
 
-        await executeWithRepo(
+        await execute(
           async (repo) => {
             await repo.exerciseSet.updateActual(dayExerciseId, setIndex, {
               actualReps: reps,
@@ -479,7 +476,7 @@ export const useDataStore = create(
         set({ isLoadingWeeklyPlan: true, weeklyPlanError: null });
         const today = new Date();
 
-        await executeWithRepo(
+        await execute(
           async (repo) => {
             const range = getWeekRange(today);
             const { startISO, endISO } = range;
@@ -511,7 +508,7 @@ export const useDataStore = create(
       addWorkout: async (trainingDate: string, workout: WeeklyWorkoutInput) => {
         set({ isMutatingWeeklyPlan: true });
 
-        await executeWithRepo(
+        await execute(
           async (repo) => {
             const weeklyPlan = get().weeklyPlan;
             const targetDay = weeklyPlan.sessionPlans.find(
@@ -587,7 +584,7 @@ export const useDataStore = create(
       ) => {
         set({ isMutatingWeeklyPlan: true });
 
-        await executeWithRepo(
+        await execute(
           async (repo) => {
             const weeklyPlan = get().weeklyPlan;
             const current = weeklyPlan.sessionPlans
@@ -652,7 +649,7 @@ export const useDataStore = create(
       removeWorkout: async (trainingDate: string, workoutId: string) => {
         set({ isMutatingWeeklyPlan: true });
 
-        await executeWithRepo(
+        await execute(
           async (repo) => {
             await repo.dayExercise.delete(workoutId);
             set((prev) => {
