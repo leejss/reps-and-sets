@@ -1,4 +1,5 @@
 import { useColor } from "@/constants/colors";
+import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
@@ -6,17 +7,17 @@ export const EmptyState = () => {
   const colors = useColor();
 
   return (
-    <View
-      style={[
-        styles.card,
-        { backgroundColor: colors.surface, borderColor: colors.border },
-      ]}
-    >
-      <Text style={[styles.title, { color: colors.text.secondary }]}>
-        등록된 운동이 없습니다.
+    <View style={[styles.card, { backgroundColor: colors.surface }]}>
+      <View
+        style={[styles.iconContainer, { backgroundColor: colors.background }]}
+      >
+        <Ionicons name="barbell" size={40} color={colors.primary} />
+      </View>
+      <Text style={[styles.title, { color: colors.text.primary }]}>
+        오늘의 운동을 시작하세요
       </Text>
-      <Text style={[styles.subtitle, { color: colors.text.tertiary }]}>
-        아래 + 버튼을 눌러 운동을 추가해보세요
+      <Text style={[styles.subtitle, { color: colors.text.secondary }]}>
+        아래 + 버튼을 눌러 새로운 운동을 추가하고{"\n"}기록을 시작해보세요!
       </Text>
     </View>
   );
@@ -24,18 +25,29 @@ export const EmptyState = () => {
 
 const styles = StyleSheet.create({
   card: {
-    padding: 32,
-    borderRadius: 12,
-    borderWidth: 1,
+    padding: 40,
+    borderRadius: 24,
     alignItems: "center",
+    justifyContent: "center",
+    marginTop: 20,
+  },
+  iconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 24,
   },
   title: {
-    fontSize: 14,
+    fontSize: 18,
+    fontWeight: "700",
     textAlign: "center",
+    marginBottom: 8,
   },
   subtitle: {
-    fontSize: 12,
-    marginTop: 8,
+    fontSize: 14,
     textAlign: "center",
+    lineHeight: 20,
   },
 });

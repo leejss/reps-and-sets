@@ -9,10 +9,11 @@ export const HomeHeader = () => {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.headerSurface }]}>
-      <Text style={[styles.title, { color: colors.text.primary }]}>RepSet</Text>
-      <Text style={[styles.date, { color: colors.text.secondary }]}>
-        {dateLabel}
-      </Text>
+      <View>
+        <Text style={[styles.title, { color: colors.text.primary }]}>
+          {dateLabel}
+        </Text>
+      </View>
     </View>
   );
 };
@@ -20,15 +21,15 @@ export const HomeHeader = () => {
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 24,
-    paddingTop: 32,
-    paddingBottom: 32,
+    paddingTop: 24,
+    paddingBottom: 16,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   title: {
-    fontSize: 24,
-    fontWeight: "600",
-    marginBottom: 4,
-  },
-  date: {
-    fontSize: 14,
+    fontSize: 30,
+    fontWeight: "800",
+    letterSpacing: -0.5,
   },
 });

@@ -16,7 +16,7 @@ interface FloatingActionButtonProps {
 export function FloatingActionButton({
   onPress,
   icon = "add",
-  iconSize = 28,
+  iconSize = 32,
   style,
   bottom = 96,
   right = 24,
@@ -45,18 +45,18 @@ export function FloatingActionButton({
 const styles = StyleSheet.create({
   fab: {
     position: "absolute",
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     alignItems: "center",
     justifyContent: "center",
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
-      height: 4,
+      height: 8,
     },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
     elevation: 8,
   },
 });

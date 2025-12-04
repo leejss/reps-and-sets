@@ -177,12 +177,18 @@ const buildWeightDisplay = (
 
 const styles = StyleSheet.create({
   card: {
-    padding: 16,
-    borderRadius: 12,
+    padding: 20,
+    borderRadius: 24,
     borderWidth: 1,
-    marginBottom: 12,
     position: "relative",
-    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    elevation: 3,
   },
   content: {
     flexDirection: "row",
@@ -196,19 +202,21 @@ const styles = StyleSheet.create({
   titleRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 4,
+    marginBottom: 6,
   },
   title: {
-    fontSize: 16,
-    fontWeight: "600",
+    fontSize: 18,
+    fontWeight: "700",
     flexShrink: 1,
+    letterSpacing: -0.5,
   },
   deletedIcon: {
     marginLeft: 6,
   },
   details: {
-    fontSize: 14,
-    marginBottom: 8,
+    fontSize: 15,
+    marginBottom: 12,
+    fontWeight: "500",
   },
   tagRow: {
     flexDirection: "row",
@@ -217,25 +225,27 @@ const styles = StyleSheet.create({
   },
   tag: {
     alignSelf: "flex-start",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
   },
   tagText: {
-    fontSize: 12,
+    fontSize: 13,
+    fontWeight: "600",
   },
   progress: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     borderRadius: 12,
   },
   progressText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: "700",
   },
   completedGlow: {
     ...StyleSheet.absoluteFillObject,
     opacity: 0.08,
     zIndex: 0,
+    borderRadius: 24,
   },
 });

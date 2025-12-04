@@ -59,8 +59,9 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 16,
+    fontSize: 22,
+    fontWeight: "700",
+    marginBottom: 20,
+    letterSpacing: -0.5,
   },
 });
