@@ -33,6 +33,13 @@ export const ExerciseInfoCard = ({
         },
       ]}
     >
+      <Text
+        style={[styles.exerciseName, { color: colors.text.primary }]}
+        numberOfLines={2}
+      >
+        {exerciseName}
+      </Text>
+
       <View style={styles.topRow}>
         <View style={styles.leftColumn}>
           <View
@@ -45,13 +52,6 @@ export const ExerciseInfoCard = ({
               {targetMuscleGroup}
             </Text>
           </View>
-
-          <Text
-            style={[styles.exerciseName, { color: colors.text.primary }]}
-            numberOfLines={2}
-          >
-            {exerciseName}
-          </Text>
         </View>
 
         <View style={styles.rightColumn}>
@@ -62,23 +62,6 @@ export const ExerciseInfoCard = ({
             style={[styles.percentageCaption, { color: colors.text.secondary }]}
           >
             진행률
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.metaRow}>
-        <Text style={[styles.workoutInfo, { color: colors.text.secondary }]}>
-          총 {totalSets}세트 · {completedSets}세트 완료
-        </Text>
-
-        <View
-          style={[
-            styles.statusPill,
-            { borderColor: colors.primary, backgroundColor: colors.surface },
-          ]}
-        >
-          <Text style={[styles.statusText, { color: colors.primary }]}>
-            {isCompleted ? "완료" : "진행"}
           </Text>
         </View>
       </View>
@@ -141,17 +124,17 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
   },
   exerciseName: {
-    fontSize: 22,
-    fontWeight: "800",
-    letterSpacing: 0.3,
-    lineHeight: 28,
+    fontSize: 26,
+    fontWeight: "900",
+    letterSpacing: 0.5,
+    lineHeight: 32,
+    marginBottom: 16,
   },
   muscleGroupTag: {
     alignSelf: "flex-start",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
-    marginBottom: 12,
   },
   muscleGroupText: {
     fontSize: 13,
