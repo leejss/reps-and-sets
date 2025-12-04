@@ -2,7 +2,6 @@ import { useColor } from "@/constants/colors";
 import { signInWithEmail, signInWithGoogle } from "@/stores/auth-store";
 import { AntDesign, Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
-import { router } from "expo-router";
 import React, { useCallback, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -18,7 +17,6 @@ import {
 } from "react-native";
 import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Routes } from "./route-config";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
@@ -36,7 +34,10 @@ export default function LoginScreen() {
     setIsLoading(true);
     try {
       await signInWithEmail(email.trim(), password.trim());
-      router.replace(Routes.TABS);
+      console.log("이메일 로그인 성공");
+      // 인증 상태 변경 시 _layout.tsx의 Stack.Protected와
+      // index.tsx의 Redirect가 자동으로 화면을 전환합니다.
+      // router.replace()는 onAuthStateChange보다 먼저 실행될 수 있어 제거
     } catch (error) {
       Alert.alert(
         "로그인 실패",
@@ -51,9 +52,11 @@ export default function LoginScreen() {
     setIsLoading(true);
     try {
       const success = await signInWithGoogle();
-      if (success) {
-        router.replace(Routes.TABS);
+      if (!success) {
+        // 사용자가 취소한 경우
+        console.log("Google 로그인 취소됨");
       }
+      // 성공 시 onAuthStateChange가 트리거되어 자동 네비게이션
     } catch (error) {
       Alert.alert(
         "로그인 실패",
@@ -97,7 +100,6 @@ export default function LoginScreen() {
             </Text>
           </Animated.View>
 
-          {/* Login Form */}
           <Animated.View
             entering={FadeInUp.delay(300).springify()}
             style={styles.formContainer}
@@ -130,7 +132,6 @@ export default function LoginScreen() {
                   editable={!isLoading}
                   returnKeyType="next"
                   onSubmitEditing={() => passwordInputRef.current?.focus()}
-                  blurOnSubmit={false}
                 />
               </View>
 
