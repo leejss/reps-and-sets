@@ -3,6 +3,7 @@ import { useAppStore } from "@/stores/app-store";
 import { useAuthStore } from "@/stores/auth-store";
 import { useDataStore } from "@/stores/data-store";
 import { Ionicons } from "@expo/vector-icons";
+import * as Application from "expo-application";
 import { router } from "expo-router";
 import React from "react";
 import {
@@ -15,7 +16,6 @@ import {
   View,
 } from "react-native";
 import { Routes } from "../route-config";
-
 export default function SettingsScreen() {
   const user = useAuthStore((state) => state.session?.user);
   const logout = useAuthStore((state) => state.logout);
@@ -84,7 +84,7 @@ export default function SettingsScreen() {
               <Text
                 style={[styles.userEmail, { color: colors.text.secondary }]}
               >
-                {user?.email || "guest@example.com"}
+                {user?.email || ""}
               </Text>
             </View>
           </View>
@@ -163,7 +163,7 @@ export default function SettingsScreen() {
               <Text
                 style={[styles.versionText, { color: colors.text.secondary }]}
               >
-                v1.0.0
+                v{Application.nativeApplicationVersion ?? ""}
               </Text>
             </View>
           </TouchableOpacity>
