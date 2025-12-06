@@ -46,26 +46,26 @@ export const useAuthStore = create(
       initializeAuth: async () => {
         try {
           const session = await getSupabaseSession();
-          if (!session) {
+          if (session) {
+            const profile = await fetchProfile(
+              session.user.id,
+              session.user.user_metadata?.full_name ?? session.user.email,
+            );
+
+            set({
+              session,
+              isAuthenticated: true,
+              user: session.user,
+              profile,
+            });
+          } else {
             set({
               session: null,
               isAuthenticated: false,
               user: null,
               profile: null,
             });
-            return;
           }
-          const profile = await fetchProfile(
-            session.user.id,
-            session.user.user_metadata?.full_name ?? session.user.email,
-          );
-
-          set({
-            session,
-            isAuthenticated: true,
-            user: session.user,
-            profile,
-          });
 
           supabase.auth.onAuthStateChange(async (_event, session) => {
             try {

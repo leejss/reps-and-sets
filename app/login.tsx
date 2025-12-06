@@ -1,52 +1,22 @@
 import { useColor } from "@/constants/colors";
-import { signInWithEmail, signInWithGoogle } from "@/stores/auth-store";
-import { AntDesign, Ionicons } from "@expo/vector-icons";
-import { Image } from "expo-image";
-import React, { useCallback, useRef, useState } from "react";
+import { signInWithGoogle } from "@/stores/auth-store";
+import { AntDesign } from "@expo/vector-icons";
+import React, { useCallback, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
-  View,
 } from "react-native";
 import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function LoginScreen() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const colors = useColor();
-  const passwordInputRef = useRef<TextInput>(null);
-
-  const handleEmailLogin = useCallback(async () => {
-    if (!email.trim() || !password.trim()) {
-      Alert.alert("알림", "이메일과 비밀번호를 입력해주세요.");
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      await signInWithEmail(email.trim(), password.trim());
-      console.log("이메일 로그인 성공");
-      // 인증 상태 변경 시 _layout.tsx의 Stack.Protected와
-      // index.tsx의 Redirect가 자동으로 화면을 전환합니다.
-      // router.replace()는 onAuthStateChange보다 먼저 실행될 수 있어 제거
-    } catch (error) {
-      Alert.alert(
-        "로그인 실패",
-        error instanceof Error ? error.message : "로그인에 실패했습니다.",
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  }, [email, password]);
 
   const handleGoogleLogin = useCallback(async () => {
     setIsLoading(true);
@@ -87,11 +57,6 @@ export default function LoginScreen() {
             entering={FadeInDown.delay(100).springify()}
             style={styles.header}
           >
-            <Image
-              source={require("@/assets/images/icon.png")}
-              style={styles.logo}
-              contentFit="contain"
-            />
             <Text style={[styles.title, { color: colors.text.primary }]}>
               Reps & Sets
             </Text>
@@ -104,98 +69,6 @@ export default function LoginScreen() {
             entering={FadeInUp.delay(300).springify()}
             style={styles.formContainer}
           >
-            <View style={styles.inputWrapper}>
-              <View
-                style={[
-                  styles.inputContainer,
-                  {
-                    backgroundColor: colors.input.background,
-                    borderColor: colors.input.border,
-                  },
-                ]}
-              >
-                <Ionicons
-                  name="mail-outline"
-                  size={20}
-                  color={colors.text.tertiary}
-                  style={styles.inputIcon}
-                />
-                <TextInput
-                  style={[styles.input, { color: colors.text.primary }]}
-                  placeholder="이메일"
-                  placeholderTextColor={colors.input.placeholder}
-                  value={email}
-                  onChangeText={setEmail}
-                  autoCapitalize="none"
-                  keyboardType="email-address"
-                  autoComplete="email"
-                  editable={!isLoading}
-                  returnKeyType="next"
-                  onSubmitEditing={() => passwordInputRef.current?.focus()}
-                />
-              </View>
-
-              <View
-                style={[
-                  styles.inputContainer,
-                  {
-                    backgroundColor: colors.input.background,
-                    borderColor: colors.input.border,
-                  },
-                ]}
-              >
-                <Ionicons
-                  name="lock-closed-outline"
-                  size={20}
-                  color={colors.text.tertiary}
-                  style={styles.inputIcon}
-                />
-                <TextInput
-                  ref={passwordInputRef}
-                  style={[styles.input, { color: colors.text.primary }]}
-                  placeholder="비밀번호"
-                  placeholderTextColor={colors.input.placeholder}
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry
-                  autoComplete="password"
-                  editable={!isLoading}
-                  returnKeyType="go"
-                  onSubmitEditing={handleEmailLogin}
-                />
-              </View>
-            </View>
-
-            <TouchableOpacity
-              style={[
-                styles.loginButton,
-                { backgroundColor: colors.button.primary.background },
-              ]}
-              onPress={handleEmailLogin}
-              disabled={isLoading}
-              activeOpacity={0.8}
-            >
-              {isLoading ? (
-                <ActivityIndicator color="#FFF" />
-              ) : (
-                <Text style={styles.loginButtonText}>로그인</Text>
-              )}
-            </TouchableOpacity>
-
-            <View style={styles.dividerContainer}>
-              <View
-                style={[styles.dividerLine, { backgroundColor: colors.border }]}
-              />
-              <Text
-                style={[styles.dividerText, { color: colors.text.tertiary }]}
-              >
-                또는
-              </Text>
-              <View
-                style={[styles.dividerLine, { backgroundColor: colors.border }]}
-              />
-            </View>
-
             <TouchableOpacity
               style={[
                 styles.socialButton,
@@ -220,7 +93,7 @@ export default function LoginScreen() {
                   { color: colors.text.primary },
                 ]}
               >
-                Google로 계속하기
+                Google로 시작하기
               </Text>
             </TouchableOpacity>
           </Animated.View>
@@ -256,12 +129,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 48,
   },
-  logo: {
-    width: 96,
-    height: 96,
-    marginBottom: 24,
-    borderRadius: 24,
-  },
   title: {
     fontSize: 32,
     fontWeight: "800",
@@ -276,54 +143,6 @@ const styles = StyleSheet.create({
   },
   formContainer: {
     width: "100%",
-  },
-  inputWrapper: {
-    gap: 12,
-    marginBottom: 24,
-  },
-  inputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    height: 56,
-    borderRadius: 16,
-    borderWidth: 1,
-    paddingHorizontal: 16,
-  },
-  inputIcon: {
-    marginRight: 12,
-  },
-  input: {
-    flex: 1,
-    height: "100%",
-    fontSize: 16,
-  },
-  loginButton: {
-    height: 56,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  loginButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
-  },
-  dividerContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginVertical: 24,
-    gap: 12,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-  },
-  dividerText: {
-    fontSize: 14,
   },
   socialButton: {
     flexDirection: "row",

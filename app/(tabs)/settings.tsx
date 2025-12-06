@@ -47,7 +47,7 @@ export default function SettingsScreen() {
       {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.headerSurface }]}>
         <Text style={[styles.headerTitle, { color: colors.text.primary }]}>
-          Settings
+          설정
         </Text>
       </View>
 
