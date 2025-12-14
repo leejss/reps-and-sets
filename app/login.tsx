@@ -21,12 +21,7 @@ export default function LoginScreen() {
   const handleGoogleLogin = useCallback(async () => {
     setIsLoading(true);
     try {
-      const success = await signInWithGoogle();
-      if (!success) {
-        // 사용자가 취소한 경우
-        console.log("Google 로그인 취소됨");
-      }
-      // 성공 시 onAuthStateChange가 트리거되어 자동 네비게이션
+      await signInWithGoogle();
     } catch (error) {
       Alert.alert(
         "로그인 실패",
