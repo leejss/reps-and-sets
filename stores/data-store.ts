@@ -16,15 +16,15 @@ export const useDataStore = create<DataStore>()((set, get) => ({
 
   loadInitialData: async () => {
     await helpers.execute(
-      async (repo) => {
+      async (services) => {
         const today = new Date();
         const todayISO = formatLocalDateISO(today);
 
-        const trainingDay = await repo.trainingDay.getOrCreate(todayISO);
+        const trainingDay = await services.trainingDay.getOrCreate(todayISO);
 
         const [exercises, todayExercises] = await Promise.all([
-          repo.exercise.findAll(),
-          repo.dayExercise.findByTrainingDayId(trainingDay.id),
+          services.exercise.findAll(),
+          services.dayExercise.findByTrainingDayId(trainingDay.id),
         ]);
 
         set({ exercises, todayExercises });

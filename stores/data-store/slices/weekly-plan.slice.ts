@@ -34,12 +34,12 @@ export function createWeeklyPlanSlice(
       const today = new Date();
 
       await helpers.execute(
-        async (repo) => {
+        async (services) => {
           const range = getWeekRange(today);
           const { startISO, endISO } = range;
 
           const trainingDaysWithExercises =
-            await repo.dayExercise.findByDateRange(startISO, endISO);
+            await services.weeklyPlan.loadWeekData(startISO, endISO);
 
           set({
             weeklyPlan: createWeeklyPlanFromData(
@@ -72,7 +72,7 @@ export function createWeeklyPlanSlice(
       set({ isMutatingWeeklyPlan: true });
 
       await helpers.execute(
-        async (repo) => {
+        async (services) => {
           const weeklyPlan = get().weeklyPlan;
           const targetDay = weeklyPlan.sessionPlans.find(
             (day) => day.trainingDate === trainingDate,
@@ -82,33 +82,12 @@ export function createWeeklyPlanSlice(
             throw new Error("선택한 날짜 정보를 찾을 수 없습니다.");
           }
 
-          const trainingDay = await repo.trainingDay.getOrCreate(trainingDate);
           const displayOrder = targetDay.exercises.length;
-
-          const dayExercise = await repo.dayExercise.create({
-            trainingDayId: trainingDay.id,
-            exerciseId: workout.exerciseId,
+          const createdExercise = await services.weeklyPlan.addWorkout({
+            trainingDate,
+            workout,
             displayOrder,
           });
-
-          await repo.exerciseSet.createMany(
-            dayExercise.id,
-            workout.setDetails.map((s) => ({
-              reps: s.plannedReps ?? null,
-              weight: s.plannedWeight ?? null,
-            })),
-          );
-
-          const exercises = await repo.dayExercise.findByTrainingDayId(
-            trainingDay.id,
-          );
-          const createdExercise = exercises.find(
-            (e) => e.id === dayExercise.id,
-          );
-
-          if (!createdExercise) {
-            throw new Error("생성된 운동 정보를 찾을 수 없습니다.");
-          }
 
           const created: WeeklyPlanExercise = {
             ...createdExercise,
@@ -144,7 +123,7 @@ export function createWeeklyPlanSlice(
       set({ isMutatingWeeklyPlan: true });
 
       await helpers.execute(
-        async (repo) => {
+        async (services) => {
           const weeklyPlan = get().weeklyPlan;
           const current = weeklyPlan.sessionPlans
             .flatMap((day) => day.exercises)
@@ -154,26 +133,11 @@ export function createWeeklyPlanSlice(
             throw new Error("수정할 운동을 찾을 수 없습니다.");
           }
 
-          await repo.dayExercise.update(workoutId, {
-            exerciseId: payload.exerciseId,
-          });
-
-          await repo.exerciseSet.replaceAll(
+          const updatedExercise = await services.weeklyPlan.editWorkout({
+            trainingDayId: current.trainingDayId,
             workoutId,
-            payload.setDetails.map((s) => ({
-              reps: s.plannedReps ?? null,
-              weight: s.plannedWeight ?? null,
-            })),
-          );
-
-          const exercises = await repo.dayExercise.findByTrainingDayId(
-            current.trainingDayId,
-          );
-          const updatedExercise = exercises.find((e) => e.id === workoutId);
-
-          if (!updatedExercise) {
-            throw new Error("수정된 운동을 찾을 수 없습니다.");
-          }
+            payload,
+          });
 
           const updated: WeeklyPlanExercise = {
             ...updatedExercise,
@@ -210,8 +174,8 @@ export function createWeeklyPlanSlice(
       set({ isMutatingWeeklyPlan: true });
 
       await helpers.execute(
-        async (repo) => {
-          await repo.dayExercise.delete(workoutId);
+        async (services) => {
+          await services.weeklyPlan.removeWorkout(workoutId);
 
           set((prev) => {
             const nextSessionPlans = prev.weeklyPlan.sessionPlans.map((day) =>

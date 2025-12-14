@@ -45,36 +45,12 @@ export function createTodayWorkoutSlice(
       }));
 
       await helpers.execute(
-        async (repo) => {
-          const trainingDay = await repo.trainingDay.getOrCreate(input.date);
-
-          const currentExercises = await repo.dayExercise.findByTrainingDayId(
-            trainingDay.id,
-          );
-          const displayOrder = currentExercises.length;
-
-          const dayExercise = await repo.dayExercise.create({
-            trainingDayId: trainingDay.id,
+        async (services) => {
+          const created = await services.todayWorkout.addTodayExercise({
             exerciseId: input.exerciseId,
-            displayOrder,
+            sets: input.sets,
+            date: input.date,
           });
-
-          await repo.exerciseSet.createMany(
-            dayExercise.id,
-            input.sets.map((s) => ({
-              reps: s.plannedReps ?? null,
-              weight: s.plannedWeight ?? null,
-            })),
-          );
-
-          const exercises = await repo.dayExercise.findByTrainingDayId(
-            trainingDay.id,
-          );
-          const created = exercises.find((e) => e.id === dayExercise.id);
-
-          if (!created) {
-            throw new Error("생성된 운동 정보를 찾을 수 없습니다.");
-          }
 
           set((state) => ({
             todayExercises: state.todayExercises.map((w) =>
@@ -119,10 +95,10 @@ export function createTodayWorkoutSlice(
       set({ todayExercises: updatedExercises });
 
       await helpers.execute(
-        async (repo) => {
+        async (services) => {
           const exercise = updatedExercises.find((w) => w.id === id);
           if (exercise) {
-            await repo.exerciseSet.updateAllCompletion(
+            await services.todayWorkout.setExerciseCompletion(
               id,
               exercise.isCompleted,
             );
@@ -160,11 +136,11 @@ export function createTodayWorkoutSlice(
       set({ todayExercises: updatedExercises });
 
       await helpers.execute(
-        async (repo) => {
+        async (services) => {
           const exercise = updatedExercises.find((w) => w.id === dayExerciseId);
           if (exercise) {
             const targetSet = exercise.sets[setOrder];
-            await repo.exerciseSet.updateCompletion(
+            await services.todayWorkout.setSetCompletion(
               dayExerciseId,
               setOrder,
               targetSet.isCompleted,
@@ -206,8 +182,8 @@ export function createTodayWorkoutSlice(
       set({ todayExercises: updatedExercises });
 
       await helpers.execute(
-        async (repo) => {
-          await repo.exerciseSet.updateActual(dayExerciseId, setIndex, {
+        async (services) => {
+          await services.todayWorkout.updateSetActual(dayExerciseId, setIndex, {
             actualReps: reps,
             actualWeight: weight ?? null,
           });

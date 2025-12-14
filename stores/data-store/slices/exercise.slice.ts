@@ -19,8 +19,8 @@ export function createExerciseSlice(
     refreshExercises: async () => {
       set({ isLoadingExercises: true });
       await helpers.execute(
-        async (repo) => {
-          const data = await repo.exercise.findAll();
+        async (services) => {
+          const data = await services.exercise.findAll();
           set({ exercises: data });
         },
         {
@@ -42,8 +42,8 @@ export function createExerciseSlice(
       set((state) => ({ exercises: [tempExercise, ...state.exercises] }));
 
       await helpers.execute(
-        async (repo) => {
-          const newExercise = await repo.exercise.create(exercise);
+        async (services) => {
+          const newExercise = await services.exercise.create(exercise);
           set((state) => ({
             exercises: state.exercises.map((e) =>
               e.id === tempExercise.id ? newExercise : e,
@@ -73,8 +73,8 @@ export function createExerciseSlice(
       }));
 
       await helpers.execute(
-        async (repo) => {
-          await repo.exercise.update(id, exercise);
+        async (services) => {
+          await services.exercise.update(id, exercise);
         },
         {
           errorMessage: "운동 수정 실패:",
@@ -91,8 +91,8 @@ export function createExerciseSlice(
       }));
 
       await helpers.execute(
-        async (repo) => {
-          await repo.exercise.delete(id);
+        async (services) => {
+          await services.exercise.delete(id);
         },
         {
           errorMessage: "운동 삭제 실패:",

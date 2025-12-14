@@ -1,12 +1,12 @@
-import { getRepository } from "@/lib/repositories/factory";
-import type { IRepository } from "@/lib/repositories/types";
+import type { Services } from "@/lib/services";
+import { getServices } from "@/lib/services";
 
-function getRepo(): IRepository {
-  return getRepository();
+function getSvc(): Services {
+  return getServices();
 }
 
 export async function execute<T>(
-  action: (repo: IRepository) => Promise<T>,
+  action: (services: Services) => Promise<T>,
   options: {
     errorMessage?: string;
     onError?: (error: unknown) => void;
@@ -17,8 +17,8 @@ export async function execute<T>(
   const { errorMessage, onError, onFinally, shouldThrow = true } = options;
 
   try {
-    const repo = getRepo();
-    return await action(repo);
+    const services = getSvc();
+    return await action(services);
   } catch (error) {
     if (errorMessage) {
       console.error(errorMessage, error);
