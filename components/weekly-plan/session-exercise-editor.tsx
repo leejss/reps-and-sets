@@ -1,6 +1,6 @@
 import { useColor } from "@/constants/colors";
-import { Exercise } from "@/lib/queries/exercises.model";
-import { WorkoutSet } from "@/lib/queries/workoutSets.model";
+import type { Exercise } from "@/lib/models/exercise";
+import type { ExerciseSet } from "@/lib/models/exercise-set";
 import { WeeklyWorkoutInput } from "@/types/weekly-plan";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
@@ -74,7 +74,7 @@ export const SessionExerciseEditor = ({
   const { numberOfSets, isUniformValues, uniformReps, uniformWeight, note } =
     uiState;
 
-  const workoutSetList: WorkoutSet[] = workoutInput?.setDetails ?? [];
+  const workoutSetList: ExerciseSet[] = workoutInput?.setDetails ?? [];
 
   const selectedExercise = workoutInput
     ? exercises.find((e) => e.id === workoutInput.exerciseId)
@@ -287,7 +287,7 @@ export const SessionExerciseEditor = ({
                           const prevSets = prev?.setDetails ?? [];
                           const prevNote = prev?.note;
 
-                          let nextSets: WorkoutSet[] = prevSets;
+                          let nextSets: ExerciseSet[] = prevSets;
 
                           const num = parseInt(numberOfSets, 10);
                           if (
@@ -307,7 +307,7 @@ export const SessionExerciseEditor = ({
                                     base?.plannedWeight ?? undefined,
                                   actualReps: base?.actualReps ?? null,
                                   actualWeight: base?.actualWeight ?? null,
-                                  completed: base?.completed ?? false,
+                                  isCompleted: base?.isCompleted ?? false,
                                 };
                               },
                             );
@@ -473,7 +473,7 @@ export const SessionExerciseEditor = ({
                         if (!prev) return prev;
 
                         const prevSets = prev.setDetails ?? [];
-                        const nextSets: WorkoutSet[] = Array.from(
+                        const nextSets: ExerciseSet[] = Array.from(
                           { length: num },
                           (_, index) => {
                             const base = prevSets[index];
@@ -484,7 +484,7 @@ export const SessionExerciseEditor = ({
                               plannedWeight: base?.plannedWeight ?? undefined,
                               actualReps: base?.actualReps ?? null,
                               actualWeight: base?.actualWeight ?? null,
-                              completed: base?.completed ?? false,
+                              isCompleted: base?.isCompleted ?? false,
                             };
                           },
                         );

@@ -21,7 +21,6 @@ export const ExerciseInfoCard = ({
   const colors = useColor();
 
   const safeProgress = Math.max(0, Math.min(100, progressPercentage || 0));
-  const isCompleted = totalSets > 0 && completedSets >= totalSets;
 
   return (
     <View

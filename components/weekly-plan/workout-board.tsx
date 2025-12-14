@@ -65,9 +65,9 @@ export const WorkoutBoard = ({
   const workouts = sessionPlan.exercises;
   const boardState = resolveBoardState({ isLoading, errorMessage, workouts });
   const isInteractive = !isLoading && !disabled;
-  const weekdayId = getWeekdayFromDate(sessionPlan.sessionDate);
+  const weekdayId = getWeekdayFromDate(sessionPlan.trainingDate);
   const dayLabel = WEEKDAY_LABELS[weekdayId];
-  const dateLabel = formatChipDate(sessionPlan.sessionDate);
+  const dateLabel = formatChipDate(sessionPlan.trainingDate);
 
   const renderContentByState: Record<BoardState, () => React.ReactNode> = {
     loading: () => (
