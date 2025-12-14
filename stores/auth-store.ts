@@ -1,4 +1,3 @@
-import { getSupabaseSession } from "@/lib/auth";
 import type { Tables } from "@/lib/database.types";
 import {
   GoogleSignin,
@@ -8,8 +7,7 @@ import {
 import type { Session, User } from "@supabase/supabase-js";
 import { create } from "zustand";
 import { combine } from "zustand/middleware";
-import { fetchProfile } from "../lib/queries/profile.query";
-import { supabase } from "../lib/supabase";
+import { getAuthService } from "../lib/services/auth.service";
 
 const webClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
 const iosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
@@ -44,10 +42,12 @@ export const useAuthStore = create(
     },
     (set) => ({
       initializeAuth: async () => {
+        const authService = getAuthService();
+
         try {
-          const session = await getSupabaseSession();
+          const session = await authService.getSession();
           if (session) {
-            const profile = await fetchProfile(
+            const profile = await authService.getOrCreateProfile(
               session.user.id,
               session.user.user_metadata?.full_name ?? session.user.email,
             );
@@ -67,7 +67,7 @@ export const useAuthStore = create(
             });
           }
 
-          supabase.auth.onAuthStateChange(async (_event, session) => {
+          authService.onAuthStateChange(async (_event, session) => {
             try {
               if (!session) {
                 set({
@@ -79,7 +79,7 @@ export const useAuthStore = create(
                 return;
               }
 
-              const profile = await fetchProfile(
+              const profile = await authService.getOrCreateProfile(
                 session.user.id,
                 session.user.user_metadata?.full_name ?? session.user.email,
               );
@@ -101,6 +101,8 @@ export const useAuthStore = create(
 
       // Google 소셜 로그인
       signInWithGoogle: async (): Promise<boolean> => {
+        const authService = getAuthService();
+
         try {
           // 1. Google Play Services 체크 (Android)
           await GoogleSignin.hasPlayServices({
@@ -125,10 +127,9 @@ export const useAuthStore = create(
           console.log("Google Sign-In 성공:", response.data.user);
 
           // 4. Supabase에 ID Token으로 로그인
-          const { data, error } = await supabase.auth.signInWithIdToken({
-            provider: "google",
-            token: idToken,
-          });
+          const { data, error } = await authService.signInWithGoogleIdToken(
+            idToken,
+          );
 
           if (error) throw error;
 
@@ -154,11 +155,10 @@ export const useAuthStore = create(
 
       // 이메일/비밀번호 로그인 (개발용)
       signInWithEmail: async (email: string, password: string) => {
+        const authService = getAuthService();
+
         try {
-          const { error } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-          });
+          const { error } = await authService.signInWithEmail(email, password);
 
           if (error) throw error;
         } catch (error) {
@@ -168,13 +168,15 @@ export const useAuthStore = create(
       },
 
       logout: async () => {
+        const authService = getAuthService();
+
         try {
           await GoogleSignin.signOut();
         } catch (error) {
           console.warn("Google Sign-Out 오류:", error);
         }
 
-        const { error } = await supabase.auth.signOut();
+        const { error } = await authService.signOut();
         if (error) {
           console.error("로그아웃 실패:", error);
           throw error;
