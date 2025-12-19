@@ -1,6 +1,7 @@
 import { FloatingActionButton } from "@/components/floating-action-button";
 import { useColor } from "@/constants/colors";
 import { deleteExercise, useDataStore } from "@/stores/data-store";
+import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React from "react";
 import {
@@ -13,7 +14,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { RouteHelpers } from "../route-config";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { RouteHelpers } from "./route-config";
 
 type ThemeColors = ReturnType<typeof useColor>;
 
@@ -146,14 +148,28 @@ export default function ExercisesScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
-      <View style={[styles.header, { backgroundColor: colors.headerSurface }]}>
-        <Text style={[styles.headerTitle, { color: colors.text.primary }]}>
-          내 운동
-        </Text>
-        <Text style={[styles.headerSubtitle, { color: colors.text.secondary }]}>
-          {exercises.length}개의 운동이 등록되었습니다.
-        </Text>
-      </View>
+      <SafeAreaView
+        edges={["top"]}
+        style={{ backgroundColor: colors.headerSurface }}
+      >
+        <View style={styles.header}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+            hitSlop={8}
+          >
+            <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, { color: colors.text.primary }]}>
+            내 운동 라이브러리
+          </Text>
+          <Text
+            style={[styles.headerSubtitle, { color: colors.text.secondary }]}
+          >
+            {exercises.length}개의 운동이 등록되었습니다.
+          </Text>
+        </View>
+      </SafeAreaView>
 
       {/* Content */}
       <ScrollView
@@ -275,8 +291,11 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 24,
-    paddingTop: 32,
+    paddingTop: 8,
     paddingBottom: 32,
+  },
+  backButton: {
+    marginBottom: 16,
   },
   headerTitle: {
     fontSize: 24,

@@ -13,7 +13,10 @@ export const Routes = {
 
   // 메인 화면
   ROOT: "/",
-  TABS: "/(tabs)",
+  HOME: "/home",
+  EXERCISES: "/exercises",
+  WEEKLY_PLAN: "/weekly-plan",
+  SETTINGS: "/settings",
 
   // 운동 관련
   TODAY_EXERCISE_REGISTER: "/today-exercise-register",

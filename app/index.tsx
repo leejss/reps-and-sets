@@ -20,7 +20,7 @@ export default function Index() {
     return <Redirect href={Routes.LOGIN} />;
   }
 
-  return <Redirect href={Routes.TABS} />;
+  return <Redirect href={Routes.HOME} />;
 }
 
 const styles = StyleSheet.create({

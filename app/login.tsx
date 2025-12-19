@@ -1,6 +1,6 @@
 import { useColor } from "@/constants/colors";
-import { signInWithGoogle } from "@/stores/auth-store";
-import { AntDesign } from "@expo/vector-icons";
+import { signInWithGoogle, signInDev } from "@/stores/auth-store";
+import { AntDesign, MaterialCommunityIcons } from "@expo/vector-icons";
 import React, { useCallback, useState } from "react";
 import {
   Alert,
@@ -10,6 +10,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
+  View,
 } from "react-native";
 import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -29,6 +30,17 @@ export default function LoginScreen() {
           ? error.message
           : "Google 로그인에 실패했습니다.",
       );
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const handleDevBypass = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      await signInDev();
+    } catch (error) {
+      Alert.alert("Bypass 실패", "개발용 로그인에 실패했습니다.");
     } finally {
       setIsLoading(false);
     }
@@ -91,17 +103,39 @@ export default function LoginScreen() {
                 Google로 시작하기
               </Text>
             </TouchableOpacity>
+
+            {__DEV__ && (
+              <TouchableOpacity
+                style={[
+                  styles.devButton,
+                  {
+                    backgroundColor: colors.background,
+                    borderColor: colors.border,
+                  },
+                ]}
+                onPress={handleDevBypass}
+                disabled={isLoading}
+                activeOpacity={0.8}
+              >
+                <MaterialCommunityIcons
+                  name="xml"
+                  size={20}
+                  color={colors.text.secondary}
+                  style={styles.socialIcon}
+                />
+                <Text
+                  style={[
+                    styles.devButtonText,
+                    { color: colors.text.secondary },
+                  ]}
+                >
+                  Developer Bypass
+                </Text>
+              </TouchableOpacity>
+            )}
           </Animated.View>
 
           {/* Footer Info */}
-          <Animated.View
-            entering={FadeInDown.delay(500).springify()}
-            style={styles.footer}
-          >
-            <Text style={[styles.footerText, { color: colors.text.tertiary }]}>
-              Reps & Sets는 여러분의 건강한 운동 습관을 응원합니다.
-            </Text>
-          </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -138,6 +172,7 @@ const styles = StyleSheet.create({
   },
   formContainer: {
     width: "100%",
+    gap: 12,
   },
   socialButton: {
     flexDirection: "row",
@@ -147,12 +182,26 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: 1,
   },
+  devButton: {
+    flexDirection: "row",
+    height: 56,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    marginTop: 12,
+    borderStyle: "dashed",
+  },
   socialIcon: {
     marginRight: 12,
   },
   socialButtonText: {
     fontSize: 16,
     fontWeight: "600",
+  },
+  devButtonText: {
+    fontSize: 14,
+    fontWeight: "500",
   },
   footer: {
     marginTop: 48,

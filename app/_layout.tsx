@@ -24,7 +24,10 @@ function RootNavigator() {
       </Stack.Protected>
 
       <Stack.Protected guard={isAuthenticated}>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="home" options={{ headerShown: false }} />
+        <Stack.Screen name="exercises" options={{ headerShown: false }} />
+        <Stack.Screen name="weekly-plan" options={{ headerShown: false }} />
+        <Stack.Screen name="settings" options={{ headerShown: false }} />
         <Stack.Screen name="exercise-detail" options={{ headerShown: false }} />
 
         <Stack.Screen

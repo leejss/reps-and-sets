@@ -15,7 +15,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { Routes } from "../route-config";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Routes } from "./route-config";
 export default function SettingsScreen() {
   const user = useAuthStore((state) => state.session?.user);
   const logout = useAuthStore((state) => state.logout);
@@ -45,11 +46,23 @@ export default function SettingsScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
-      <View style={[styles.header, { backgroundColor: colors.headerSurface }]}>
-        <Text style={[styles.headerTitle, { color: colors.text.primary }]}>
-          설정
-        </Text>
-      </View>
+      <SafeAreaView
+        edges={["top"]}
+        style={{ backgroundColor: colors.headerSurface }}
+      >
+        <View style={styles.header}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+            hitSlop={8}
+          >
+            <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, { color: colors.text.primary }]}>
+            설정
+          </Text>
+        </View>
+      </SafeAreaView>
 
       {/* Content */}
       <ScrollView
@@ -202,8 +215,11 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 24,
-    paddingTop: 32,
+    paddingTop: 8,
     paddingBottom: 32,
+  },
+  backButton: {
+    marginBottom: 16,
   },
   headerTitle: {
     fontSize: 24,

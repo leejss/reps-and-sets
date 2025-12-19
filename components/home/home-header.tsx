@@ -1,7 +1,10 @@
 import { useColor } from "@/constants/colors";
 import { formatKoreanHeaderDate } from "@/lib/date";
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
+import { Routes } from "@/app/route-config";
 
 export const HomeHeader = () => {
   const colors = useColor();
@@ -14,6 +17,15 @@ export const HomeHeader = () => {
           {dateLabel}
         </Text>
       </View>
+      <View style={styles.rightSection}>
+        <TouchableOpacity
+          onPress={() => router.push(Routes.SETTINGS)}
+          hitSlop={8}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="settings-outline" size={24} color={colors.text.primary} />
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
@@ -21,7 +33,7 @@ export const HomeHeader = () => {
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 24,
-    paddingTop: 24,
+    paddingTop: 8,
     paddingBottom: 16,
     flexDirection: "row",
     justifyContent: "space-between",
@@ -31,5 +43,10 @@ const styles = StyleSheet.create({
     fontSize: 30,
     fontWeight: "800",
     letterSpacing: -0.5,
+  },
+  rightSection: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
   },
 });

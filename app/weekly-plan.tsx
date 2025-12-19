@@ -5,6 +5,7 @@ import { WorkoutBoard } from "@/components/weekly-plan/workout-board";
 import { useColor } from "@/constants/colors";
 import { formatLocalDateISO } from "@/lib/date";
 import { getWeekdayFromDate } from "@/lib/utils";
+import { Ionicons } from "@expo/vector-icons";
 import {
   addWorkout,
   editWorkout,
@@ -17,9 +18,9 @@ import {
   WeeklyPlanExercise,
   WeeklyWorkoutInput,
 } from "@/types/weekly-plan";
-import { useFocusEffect } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Alert, ScrollView, StyleSheet } from "react-native";
+import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 type EditorState = {
@@ -156,6 +157,14 @@ export default function WeeklyPlanScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+      <View style={styles.header}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          hitSlop={8}
+        >
+          <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
+        </TouchableOpacity>
+      </View>
       <ScrollView
         contentContainerStyle={[
           styles.container,
@@ -210,6 +219,10 @@ export default function WeeklyPlanScreen() {
 }
 
 const styles = StyleSheet.create({
+  header: {
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+  },
   container: {
     paddingHorizontal: 24,
     paddingBottom: 140,

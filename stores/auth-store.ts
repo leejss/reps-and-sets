@@ -1,4 +1,5 @@
 import type { Tables } from "@/lib/database.types";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   GoogleSignin,
   isSuccessResponse,
@@ -8,6 +9,8 @@ import type { Session, User } from "@supabase/supabase-js";
 import { create } from "zustand";
 import { combine } from "zustand/middleware";
 import { getAuthService } from "../lib/services/auth.service";
+
+const DEV_BYPASS_KEY = "reps_and_sets_dev_bypass";
 
 const webClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
 const iosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
@@ -45,6 +48,43 @@ export const useAuthStore = create(
         const authService = getAuthService();
 
         try {
+          // 1. 개발용 바이패스 확인
+          if (__DEV__) {
+            const isBypass = await AsyncStorage.getItem(DEV_BYPASS_KEY);
+            if (isBypass === "true") {
+              console.log("[Dev] Bypassing authentication...");
+
+              const mockUser: User = {
+                id: "dev-user-id",
+                email: "dev@example.com",
+                app_metadata: {},
+                user_metadata: { full_name: "Developer Admin" },
+                aud: "authenticated",
+                created_at: new Date().toISOString(),
+              };
+
+              set({
+                session: {
+                  access_token: "mock",
+                  refresh_token: "mock",
+                  expires_in: 3600,
+                  token_type: "bearer",
+                  user: mockUser,
+                },
+                isAuthenticated: true,
+                user: mockUser,
+                profile: {
+                  id: mockUser.id,
+                  display_name: "Developer Admin",
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString(),
+                },
+              });
+              set({ isLoading: false });
+              return;
+            }
+          }
+
           const session = await authService.getSession();
           if (session) {
             const profile = await authService.getOrCreateProfile(
@@ -70,12 +110,16 @@ export const useAuthStore = create(
           authService.onAuthStateChange(async (_event, session) => {
             try {
               if (!session) {
-                set({
-                  session: null,
-                  isAuthenticated: false,
-                  user: null,
-                  profile: null,
-                });
+                // 바이패스 모드가 아닐 때만 로그아웃 처리
+                const isBypass = await AsyncStorage.getItem(DEV_BYPASS_KEY);
+                if (isBypass !== "true") {
+                  set({
+                    session: null,
+                    isAuthenticated: false,
+                    user: null,
+                    profile: null,
+                  });
+                }
                 return;
               }
 
@@ -167,10 +211,60 @@ export const useAuthStore = create(
         }
       },
 
+      // 개발용 바이패스 로그인
+      signInDev: async () => {
+        if (!__DEV__) return;
+
+        try {
+          set({ isLoading: true });
+
+          await AsyncStorage.setItem(DEV_BYPASS_KEY, "true");
+
+          const mockUser: User = {
+            id: "dev-user-id",
+            email: "dev@example.com",
+            app_metadata: {},
+            user_metadata: {
+              full_name: "Developer Admin",
+            },
+            aud: "authenticated",
+            created_at: new Date().toISOString(),
+          };
+
+          set({
+            session: {
+              access_token: "mock",
+              refresh_token: "mock",
+              expires_in: 3600,
+              token_type: "bearer",
+              user: mockUser,
+            },
+            isAuthenticated: true,
+            user: mockUser,
+            profile: {
+              id: mockUser.id,
+              display_name: "Developer Admin",
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            },
+            isLoading: false,
+          });
+
+          return true;
+        } catch (error) {
+          console.error("Bypass 로그인 실패:", error);
+          set({ isLoading: false });
+          return false;
+        }
+      },
+
       logout: async () => {
         const authService = getAuthService();
 
         try {
+          if (__DEV__) {
+            await AsyncStorage.removeItem(DEV_BYPASS_KEY);
+          }
           await GoogleSignin.signOut();
         } catch (error) {
           console.warn("Google Sign-Out 오류:", error);
@@ -195,3 +289,5 @@ export const isAuthenticated = () => useAuthStore.getState().isAuthenticated;
 export const signInWithGoogle = useAuthStore.getState().signInWithGoogle;
 
 export const signInWithEmail = useAuthStore.getState().signInWithEmail;
+
+export const signInDev = useAuthStore.getState().signInDev;
